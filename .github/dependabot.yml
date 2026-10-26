@@ -1,0 +1,12 @@
+# Opens a pull request once a month when the test tools or the GitHub Actions above have updates.
+# The tests run on each one; merge it if they pass.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

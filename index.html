@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hieu Nguyen · The Physics of Learning</title>
+<meta name="description" content="Hieu Nguyen explores the intersection of physics and machine learning, using statistical mechanics as a common language between the two.">
+<meta name="theme-color" content="#0b0e15">
+<meta name="color-scheme" content="dark light">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Hieu Nguyen · The Physics of Learning">
+<meta property="og:description" content="Physics, statistics and machine learning, and statistical mechanics as the common language between them.">
+<meta property="og:image" content="assets/img/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+<link rel="preload" href="assets/fonts/instrument-serif-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/instrument-serif-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/manrope-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/css/site.css">
+<script>
+/* Runs before first paint: which page to show, the saved theme, and whether to play the intro. */
+(function (d) {
+  var h = d.documentElement, p = (location.hash || '').slice(1);
+  h.className += ' js';
+  h.setAttribute('data-page', /^(research|notes|about)$/.test(p) ? p : 'home');
+  try { var t = localStorage.getItem('hn-theme'); if (t === 'light' || t === 'dark') h.setAttribute('data-theme', t); } catch (e) {}
+  try {
+    var m = localStorage.getItem('hn-motion'), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var seen = sessionStorage.getItem('hn-intro-seen') === '1';
+    if (!seen && (m ? m === 'on' : !reduce)) h.className += ' intro-on';
+  } catch (e) {}
+})(document);
+</script>
+<script src="assets/js/physics.js" defer></script>
+<script src="assets/js/site.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<canvas id="cosmos" aria-hidden="true"></canvas>
+<div id="scrim" aria-hidden="true"></div>
+<div id="intro-ui">
+  <button id="skip" class="skip" type="button">Skip intro</button>
+</div>
+
+<div class="shell">
+  <header class="top">
+    <a class="brand" href="#home">Hieu Nguyen</a>
+    <nav aria-label="Primary">
+      <ul class="nav">
+        <li><a href="#home" data-nav="home">Home</a></li>
+        <li><a href="#research" data-nav="research">Research</a></li>
+        <li><a href="#notes" data-nav="notes">Notes</a></li>
+        <li><a href="#about" data-nav="about">About</a></li>
+        <li><button id="theme" class="linkish" type="button">Paper</button></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <!-- ================= HOME ================= -->
+    <section data-page="home" aria-labelledby="h-home">
+      <div class="hero" id="hero">
+        <div class="hero-pin" id="hero-pin">
+          <div class="hero-text" id="hero-text">
+            <p class="eyebrow"><span class="dot" aria-hidden="true"></span>Physics · Statistics · Machine learning</p>
+            <h1 id="h-home" class="motif" tabindex="-1"><span>The Physics Of</span> <em>Learning</em></h1>
+            <p class="intro-p" id="hero-lede">I’m Hieu! I explore the intersection of physics and machine learning—and how statistical mechanics can be used as the common language between the two divides.</p>
+            <div class="ctas">
+              <a class="btn-primary" href="#research">Explore my research
+                <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M4 22 L22 4 M9 4 H22 V17" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+              </a>
+              <a class="link-arrow" href="#about">A little about me
+                <svg width="30" height="14" viewBox="0 0 30 14" aria-hidden="true"><path d="M0 7 H28 M22 1 L28 7 L22 13" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+              </a>
+            </div>
+          </div>
+          <button id="motion" class="motion-toggle" type="button" data-state="on"><span class="motion-icon" aria-hidden="true"></span><span class="motion-label">Pause animation</span></button>
+        </div>
+      </div>
+
+      <div class="after" id="obs-section">
+        <div class="obs-wrap">
+          <div class="obs-text">
+            <p class="label">Observatory</p>
+            <h2>Light and matter near a black hole</h2>
+            <p>Bend light with the lens, heat the orbiting ensemble with noise, and launch a pulse to watch a wavefront wrap around the photon sphere.</p>
+            <p class="note"><span class="label">Instrument note</span>Light follows exact null geodesics of the Schwarzschild metric in the equatorial plane, <span class="m">u″ + u = (3/2) r<sub>s</sub> u²</span>, drawn on Flamm's paraboloid, with each wavefront at a single Schwarzschild coordinate time. Matter follows timelike geodesics in proper time, coupled to a Langevin bath with friction and noise of strength <span class="m">σ</span>. Click or tap the sheet to emit a spherical pulse.</p>
+            <p class="note"><span class="label">Behind the title</span>The accretion disk at the top of the page is a simulation too: test particles in the Paczyński–Wiita potential, which places the innermost stable orbit at 6GM/c², seen 8° above the disk plane, with light from its far side bent up over the hole.</p>
+          </div>
+          <figure class="observatory">
+            <div class="field" id="field">
+              <canvas id="sheet" role="img" aria-label="A curved spacetime sheet with a light ray bending around a black hole and an ensemble of particles orbiting it."></canvas>
+              <canvas id="flow" aria-hidden="true"></canvas>
+            </div>
+            <div class="panel">
+              <div class="controls">
+                <div class="ctl">
+                  <div class="ctl-head"><label for="rs">Lens strength · <span class="m">r<sub>s</sub></span></label><output id="rs-out" for="rs">0.60</output></div>
+                  <input id="rs" class="lens" type="range" min="0.15" max="1.2" step="0.01" value="0.6">
+                </div>
+                <div class="ctl">
+                  <div class="ctl-head"><label for="sigma">Noise strength · <span class="m">σ</span></label><output id="sigma-out" for="sigma">0.35</output></div>
+                  <input id="sigma" class="noise" type="range" min="0" max="1" step="0.01" value="0.35">
+                </div>
+                <div class="actions">
+                  <button id="emit" class="btn emit" type="button">Launch light pulse</button>
+                  <button id="run" class="btn" type="button">Pause</button>
+                </div>
+              </div>
+              <div class="phase">
+                <div class="ctl-head"><span>Phase space</span><span><span class="m">p<sub>r</sub></span> against <span class="m">r / r<sub>s</sub></span></span></div>
+                <canvas id="phase" role="img" aria-label="Scatter of the particle ensemble in radial phase space."></canvas>
+                <dl class="readouts" aria-live="off">
+                  <div><dt>Captured</dt><dd id="o-cap">0</dd></div>
+                  <div><dt>Photons</dt><dd id="o-ph">0</dd></div>
+                  <div><dt><span class="m">b<sub>c</sub></span></dt><dd id="o-bc">1.56</dd></div>
+                </dl>
+              </div>
+            </div>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= RESEARCH ================= -->
+    <section data-page="research" aria-labelledby="h-research">
+      <header class="page-head">
+        <h1 id="h-research" tabindex="-1">Research</h1>
+        <p>Two questions run through my work. When we describe a system with fewer variables than it really has, what do we lose, and can we bound it? And when a model learns from noisy data, which features of what it learned are stable, and which are artifacts of the noise? The tools are shared: path-space relative entropy, spectral theory, and the language of phase transitions.</p>
+      </header>
+
+      <article class="thread">
+        <div class="thread-meta"><span>Quantum thermodynamics</span><span>Working paper</span></div>
+        <div class="thread-body">
+          <h2>Hidden entropy production under coarse-graining</h2>
+          <p>Entropy production measures how distinguishable a process is from its time reverse. An observer who sees only some of the variables always measures less of it. I study how much less, in an exactly solvable Gaussian model of an open quantum system.</p>
+          <div class="eq">
+            <span class="formula">σ<sub>obs</sub> ≤ σ<sub>tot</sub></span>
+            <span class="why">Data processing for path-space relative entropy: coarse-graining can only lose irreversibility. The question is how much.</span>
+          </div>
+          <p>In this model the phase-space (Wigner) description underestimates irreversibility by a computable, purely quantum factor that diverges as the temperature goes to zero. Part of the story is absolute irreversibility: forward trajectories whose time reverses are impossible.</p>
+        </div>
+      </article>
+
+      <article class="thread">
+        <div class="thread-meta"><span>Machine learning theory</span><span>In revision</span></div>
+        <div class="thread-body">
+          <h2>Spectral response of normalizing flows trained on noisy data</h2>
+          <p>A normalizing flow learns an invertible map, so its Jacobian is available everywhere. I use the spectrum of the learned inverse map's Jacobian as a diagnostic. A Stieltjes response order parameter <span class="m">S(ε)</span> and its susceptibility <span class="m">χ<sub>S</sub>(ε)</span> track how that spectrum reorganizes as the training noise <span class="m">ε</span> grows, and mark the range of noise levels over which the learned model is robust.</p>
+          <div class="eq">
+            <span class="formula">S(z) = ∫ ρ(λ) dλ ⁄ (λ − z)</span>
+            <span class="why">The Stieltjes transform of a spectral density ρ, the object the response order parameter is built from.</span>
+          </div>
+          <p>Experiments use RealNVP models on natural images (BSD68), speech (LibriSpeech) and CIFAR, swept across a 60-point grid of training-noise levels on Boston University's Shared Computing Cluster.</p>
+        </div>
+      </article>
+
+      <article class="thread">
+        <div class="thread-meta"><span>Learning theory</span><span>In progress</span></div>
+        <div class="thread-body">
+          <h2>When does training noise help?</h2>
+          <p>Adding Gaussian noise during training often improves predictions. That is a claim that needs a proof, not a rule of thumb. I model the problem with two noise sources, the noise already in the observed data and the noise injected in training, and ask which injected level yields the model that best fits the underlying distribution. The answer organizes into three regimes.</p>
+          <figure class="fig">
+            <svg id="regimes" viewBox="0 0 560 236" role="img" aria-label="Schematic test risk against training noise, with brittle, robust and over-smoothed regimes."></svg>
+            <figcaption>Schematic. Too little training noise and the model is brittle; too much and it over-smooths; between them lies a robust window.</figcaption>
+          </figure>
+          <p>Current work applies this picture to Fourier-domain analyses of model robustness, with validation planned on CIFAR-10.</p>
+        </div>
+      </article>
+
+      <article class="thread">
+        <div class="thread-meta"><span>Interests</span></div>
+        <div class="thread-body">
+          <h2>Geometry and cosmology</h2>
+          <p>I keep a running interest in the geometry of spacetime and in cosmology. The accretion disk and the observatory on the <a href="#home">front page</a> come from there.</p>
+        </div>
+      </article>
+    </section>
+
+    <!-- ================= NOTES ================= -->
+    <section data-page="notes" aria-labelledby="h-notes">
+      <header class="page-head">
+        <h1 id="h-notes" tabindex="-1">Notes</h1>
+        <p>Long-form notes and textbooks, written to be read start to finish. Most are works in progress.</p>
+      </header>
+      <div class="filters" role="group" aria-label="Filter by subject">
+        <button class="chip" type="button" data-filter="All" aria-pressed="true">All<span></span></button>
+        <button class="chip" type="button" data-filter="Physics" aria-pressed="false">Physics<span></span></button>
+        <button class="chip" type="button" data-filter="Statistics" aria-pressed="false">Statistics<span></span></button>
+        <button class="chip" type="button" data-filter="Mathematics" aria-pressed="false">Mathematics<span></span></button>
+        <button class="chip" type="button" data-filter="Teaching" aria-pressed="false">Teaching<span></span></button>
+      </div>
+      <ul class="catalog" id="catalog">
+        <li class="entry" data-subject="Physics">
+          <h2>Statistical Field Theory</h2>
+          <p>A textbook built from coarse-graining up: smoothing and block spins, Green's functions and Feynman diagrams, phase transitions and the renormalization group, ending with energy-based models in machine learning.</p>
+          <p class="meta"><span>Physics</span><span>Chapters 1–8 in draft</span></p>
+        </li>
+        <li class="entry" data-subject="Statistics">
+          <h2>Mathematical Statistics</h2>
+          <p>Graduate-level notes developed from MA 782, being shaped into a textbook.</p>
+          <p class="meta"><span>Statistics</span><span>In progress</span></p>
+        </li>
+        <li class="entry" data-subject="Mathematics">
+          <h2>Functional Analysis</h2>
+          <p>A book project in functional analysis.</p>
+          <p class="meta"><span>Mathematics</span><span>In progress</span></p>
+        </li>
+        <li class="entry" data-subject="Mathematics">
+          <h2>Optimization Theory</h2>
+          <p>Notes on the theory of optimization.</p>
+          <p class="meta"><span>Mathematics</span><span>In progress</span></p>
+        </li>
+        <li class="entry" data-subject="Physics">
+          <h2>Computational Statistical Physics</h2>
+          <p>Notes on computational methods in statistical physics.</p>
+          <p class="meta"><span>Physics</span><span>In progress</span></p>
+        </li>
+        <li class="entry" data-subject="Mathematics">
+          <h2>Operations Research and Mathematics</h2>
+          <p>A textbook project in operations research.</p>
+          <p class="meta"><span>Mathematics</span><span>In progress</span></p>
+        </li>
+        <li class="entry" data-subject="Teaching">
+          <h2>MA 214 · Applied Statistics</h2>
+          <p>Course materials for the applied statistics course I teach at Boston University.</p>
+          <p class="meta"><span>Teaching</span><span>Current course</span></p>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ================= ABOUT ================= -->
+    <section data-page="about" aria-labelledby="h-about">
+      <header class="page-head">
+        <h1 id="h-about" tabindex="-1">About</h1>
+      </header>
+      <div class="about">
+        <div class="prose">
+          <p>I'm a researcher and educator at Boston University, working where statistical physics meets machine learning theory.</p>
+          <p>My interests run across pure mathematics, theoretical physics and machine learning. I'm happiest when a heuristic can be made precise enough to prove or refute, and I tend to reach for the tools of statistical mechanics to do it: relative entropy, response functions, and phase transitions.</p>
+          <p>Statistical mechanics and condensed matter are long-standing loves. Landau theory, the Ising model and the renormalization group show up in my research, in my notes, and in the figures I draw for them.</p>
+          <p>I teach MA 214, Applied Statistics, and I'm writing several textbooks, including one on statistical field theory and one on graduate mathematical statistics.</p>
+        </div>
+        <dl class="facts">
+          <div><dt class="label">Based at</dt><dd>Boston University</dd></div>
+          <div><dt class="label">Teaching</dt><dd>MA 214 · Applied Statistics</dd></div>
+          <div><dt class="label">Fields</dt><dd>Statistical physics, machine learning theory, quantum thermodynamics</dd></div>
+          <div><dt class="label">Elsewhere</dt><dd class="elsewhere"><span class="ph">arXiv</span><span class="ph">Google Scholar</span><span class="ph">GitHub</span><span class="ph">CV</span></dd></div>
+          <div><dt class="label">Contact</dt><dd><span class="ph">your address here</span></dd></div>
+          <div><dt class="label">Colophon</dt><dd>Set in Instrument Serif, Manrope and IBM Plex Mono. The accretion disk and the observatory are computed live in your browser.</dd></div>
+        </dl>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>© 2026 Hieu Nguyen</p>
+    <button id="replay" class="linkish" type="button">Replay intro</button>
+  </footer>
+</div>
+</body>
+</html>
