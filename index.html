@@ -135,49 +135,50 @@
       </header>
 
       <article class="thread">
-        <div class="thread-meta"><span>Quantum thermodynamics</span><span>Working paper</span></div>
+        <div class="thread-meta"><span>Quantum Thermodynamics</span></div>
         <div class="thread-body">
-          <h2>Hidden entropy production under coarse-graining</h2>
-          <p>Entropy production measures how distinguishable a process is from its time reverse. An observer who sees only some of the variables always measures less of it. I study how much less, in an exactly solvable Gaussian model of an open quantum system.</p>
-          <div class="eq">
-            <span class="formula">σ<sub>obs</sub> ≤ σ<sub>tot</sub></span>
-            <span class="why">Data processing for path-space relative entropy: coarse-graining can only lose irreversibility. The question is how much.</span>
-          </div>
-          <p>In this model the phase-space (Wigner) description underestimates irreversibility by a computable, purely quantum factor that diverges as the temperature goes to zero. Part of the story is absolute irreversibility: forward trajectories whose time reverses are impossible.</p>
+          <h2>The Arrow Of Time</h2>
+          <p>Quantum thermodynamics, as the name suggests, is about combining quantum mechanics with thermodynamics. The difference between this and quantum statistical mechanics 
+          is the former's ability to describe the dynamics of systems that are not in thermal equilibrium. One of the most interesting (at least, for me) consequences of quantum thermo is 
+          the microscopic description for the arrow of time. To put it short, we can distinguish the arrow of time by measuring the amount of entropy that is produced when a system undergoes some stochastic evolution. My work in this project showed
+          that coarse grained measurements underestimates irreversibility by a purely quantum factor that diverges as the temperature goes to zero.  </p>
+          <p> Beyond the quantum scale, I believe that these results can be extended to cosmology in asking whether or not these infinities still persist
+          in more complete cosmological models. </p>
         </div>
       </article>
 
       <article class="thread">
-        <div class="thread-meta"><span>Machine learning theory</span><span>In revision</span></div>
+        <div class="thread-meta"><span>Reinforcement Learning</span></div>
         <div class="thread-body">
-          <h2>Spectral response of normalizing flows trained on noisy data</h2>
-          <p>A normalizing flow learns an invertible map, so its Jacobian is available everywhere. I use the spectrum of the learned inverse map's Jacobian as a diagnostic. A Stieltjes response order parameter <span class="m">S(ε)</span> and its susceptibility <span class="m">χ<sub>S</sub>(ε)</span> track how that spectrum reorganizes as the training noise <span class="m">ε</span> grows, and mark the range of noise levels over which the learned model is robust.</p>
-          <div class="eq">
-            <span class="formula">S(z) = ∫ ρ(λ) dλ ⁄ (λ − z)</span>
-            <span class="why">The Stieltjes transform of a spectral density ρ, the object the response order parameter is built from.</span>
-          </div>
-          <p>Experiments use RealNVP models on natural images (BSD68), speech (LibriSpeech) and CIFAR, swept across a 60-point grid of training-noise levels on Boston University's Shared Computing Cluster.</p>
+          <h2>Can Machines Actually Learn?</h2>
+          <p>It's been known for a while that large language models (LLMs) can be inconsistent in how far they can generalize beyond what they were trained on. 
+          The natural question arises: can AI actually generate meaningfully novel ideas, and what would be the mechanism that enables such creativity? 
+          My work in this area includes building world models and training an agent in such environments to understand causal structure (action A causes effect B). In this way, 
+          language is not the key architecture of emergent intelligence but rather its consequence. What then is needed for an agent to understand causality? Can an agent ever truly 
+          understand causal structure? </p>
+      </article>
+
+      <article class="thread">
+        <div class="thread-meta"><span>Statistical Learning Theory</span><span>In progress</span></div>
+        <div class="thread-body">
+          <h2>Making Models More Robust</h2>
+          <p> The fact that one can improve a model's predictive ability by augmenting its training data feels like a trivial claim. The analogy would be that if you could train yourself 
+          to navigate mazes in the dark, then you could do a better job navigating navigating mazes when the lights are turned back on. For generative models, this phenomenon 
+          has been empirically shown to exist, yet no universal mathematical framework has been established to describe it. </p>
+          <p>My work provides a mathematical theory for explaining this phenomenon, and as a result has developed methodological tools 
+            for selecting robust models. The mathematical framework revolves around generalized linear models, and is inspired by information thermodynamics. Beyond 
+          the aesthetics, thermodynamics has demonstrated great utility in the development of machine learning theory. The next big question is whether thermodynamics actually plays a fundamental 
+          role in learning or if it will always just be a tool that we call upon. </p>
         </div>
       </article>
 
       <article class="thread">
-        <div class="thread-meta"><span>Learning theory</span><span>In progress</span></div>
+        <div class="thread-meta"><span>Other Interests</span></div>
         <div class="thread-body">
-          <h2>When does training noise help?</h2>
-          <p>Adding Gaussian noise during training often improves predictions. That is a claim that needs a proof, not a rule of thumb. I model the problem with two noise sources, the noise already in the observed data and the noise injected in training, and ask which injected level yields the model that best fits the underlying distribution. The answer organizes into three regimes.</p>
-          <figure class="fig">
-            <svg id="regimes" viewBox="0 0 560 236" role="img" aria-label="Schematic test risk against training noise, with brittle, robust and over-smoothed regimes."></svg>
-            <figcaption>Schematic. Too little training noise and the model is brittle; too much and it over-smooths; between them lies a robust window.</figcaption>
-          </figure>
-          <p>Current work applies this picture to Fourier-domain analyses of model robustness, with validation planned on CIFAR-10.</p>
-        </div>
-      </article>
-
-      <article class="thread">
-        <div class="thread-meta"><span>Interests</span></div>
-        <div class="thread-body">
-          <h2>Geometry and cosmology</h2>
-          <p>I keep a running interest in the geometry of spacetime and in cosmology. The accretion disk and the observatory on the <a href="#home">front page</a> come from there.</p>
+          <h2>AI Safety And Cybersecurity</h2>
+          <p> In the advent of OpenAI-HuggingFace incident of summer 2026, it is clear now that we are entering a new age of cybersecurity. Attackers are no longer just humans, they can be swarms of AI agents that can code faster than any human can. How do we defend ourselves and our informaton 
+          such attacks? I am leading a project that examines the behaviors of AI agent hackers in simulated environments. The results of our experiments can be used to exploit the inherent weaknesses of agentic attackers, as well as better understand how the landscape of 
+          cybersecurity must evolve. </p>
         </div>
       </article>
     </section>
