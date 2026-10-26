@@ -163,6 +163,7 @@ test('keyboard: skip link, a sensible focus order with visible focus, and page c
 
   await page.focus('a[data-nav="home"]');
   await page.keyboard.press('Enter');
+  await page.waitForFunction(() => document.activeElement && document.activeElement.id === 'h-home');   // the page change moves focus; wait for it
   await page.focus('#rs');
   for (let i = 0; i < 5; i++) await page.keyboard.press('ArrowRight');
   assert.equal(await page.inputValue('#rs'), '0.65');
