@@ -19,7 +19,6 @@
 <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
 <link rel="preload" href="assets/fonts/instrument-serif-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="assets/fonts/instrument-serif-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/manrope-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/site.css">
 <script>
@@ -49,7 +48,7 @@
 
 <div class="shell">
   <header class="top">
-    <a class="motif" href="#home">Hieu Nguyen</a>
+    <a class="brand" href="#home">Hieu Nguyen</a>
     <nav aria-label="Primary">
       <ul class="nav">
         <li><a href="#home" data-nav="home">Home</a></li>
@@ -68,7 +67,7 @@
         <div class="hero-pin" id="hero-pin">
           <div class="hero-text" id="hero-text">
             <p class="eyebrow"><span class="dot" aria-hidden="true"></span>Physics · Statistics · Machine learning</p>
-            <h1 id="h-home" class="motif" tabindex="-1"><span>The Physics Of</span> Learning</h1>
+            <h1 id="h-home" class="motif" tabindex="-1"><span>The Physics Of</span> <span class="accent">Learning</span></h1>
             <p class="intro-p" id="hero-lede">I’m Hieu! I explore the intersection of physics and machine learning—and how statistical mechanics can be used as the common language between the two divides.</p>
             <div class="ctas">
               <a class="btn-primary" href="#research">Explore my research
@@ -186,7 +185,7 @@
     <section data-page="notes" aria-labelledby="h-notes">
       <header class="page-head">
         <h1 id="h-notes" tabindex="-1">Notes</h1>
-        <p>Long-form notes and textbooks, written to be read start to finish. Most are works in progress.</p>
+        <p>Long-form notes and textbooks, written to be read start to finish. Each has its own page with the PDFs, problem sets and a description. Most are works in progress.</p>
       </header>
       <div class="filters" role="group" aria-label="Filter by subject">
         <button class="chip" type="button" data-filter="All" aria-pressed="true">All<span></span></button>
@@ -197,39 +196,39 @@
       </div>
       <ul class="catalog" id="catalog">
         <li class="entry" data-subject="Physics">
-          <h2>Statistical Field Theory</h2>
-          <p>A textbook built from coarse-graining up: smoothing and block spins, Green's functions and Feynman diagrams, phase transitions and the renormalization group, ending with energy-based models in machine learning.</p>
+          <h2><a href="notes/statistical-field-theory/">Statistical Field Theory</a></h2>
           <p class="meta"><span>Physics</span><span>Chapters 1–8 in draft</span></p>
+          <p>A textbook built from coarse-graining up: smoothing and block spins, Green's functions and Feynman diagrams, phase transitions and the renormalization group, ending with energy-based models in machine learning.</p>
         </li>
         <li class="entry" data-subject="Statistics">
-          <h2>Mathematical Statistics</h2>
-          <p>Graduate-level notes developed from MA 782, being shaped into a textbook.</p>
+          <h2><a href="notes/mathematical-statistics/">Mathematical Statistics</a></h2>
           <p class="meta"><span>Statistics</span><span>In progress</span></p>
+          <p>Graduate-level notes developed from MA 782, being shaped into a textbook.</p>
         </li>
         <li class="entry" data-subject="Mathematics">
-          <h2>Functional Analysis</h2>
+          <h2><a href="notes/functional-analysis/">Functional Analysis</a></h2>
+          <p class="meta"><span>Mathematics</span><span>In progress</span></p>
           <p>A book project in functional analysis.</p>
-          <p class="meta"><span>Mathematics</span><span>In progress</span></p>
         </li>
         <li class="entry" data-subject="Mathematics">
-          <h2>Optimization Theory</h2>
-          <p>Notes on the theory of optimization.</p>
+          <h2><a href="notes/optimization-theory/">Optimization Theory</a></h2>
           <p class="meta"><span>Mathematics</span><span>In progress</span></p>
+          <p>Notes on the theory of optimization.</p>
         </li>
         <li class="entry" data-subject="Physics">
-          <h2>Computational Statistical Physics</h2>
-          <p>Notes on computational methods in statistical physics.</p>
+          <h2><a href="notes/computational-statistical-physics/">Computational Statistical Physics</a></h2>
           <p class="meta"><span>Physics</span><span>In progress</span></p>
+          <p>Notes on computational methods in statistical physics.</p>
         </li>
         <li class="entry" data-subject="Mathematics">
-          <h2>Operations Research and Mathematics</h2>
-          <p>A textbook project in operations research.</p>
+          <h2><a href="notes/operations-research/">Operations Research and Mathematics</a></h2>
           <p class="meta"><span>Mathematics</span><span>In progress</span></p>
+          <p>A textbook project in operations research.</p>
         </li>
         <li class="entry" data-subject="Teaching">
-          <h2>MA 214 · Applied Statistics</h2>
-          <p>Course materials for the applied statistics course I teach at Boston University.</p>
+          <h2><a href="notes/ma-214/">MA 214 · Applied Statistics</a></h2>
           <p class="meta"><span>Teaching</span><span>Current course</span></p>
+          <p>Course materials for the applied statistics course I teach at Boston University.</p>
         </li>
       </ul>
     </section>

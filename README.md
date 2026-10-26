@@ -21,8 +21,15 @@ scripts/                local server and the build step that copies the site int
 Everything you read on the site is in `index.html`, one `<section data-page="…">` per page.
 
 - **A research thread:** copy one `<article class="thread">` block in the Research section and edit it.
-- **A note or book:** copy one `<li class="entry" data-subject="Physics">` in the Notes section. The subject
-  must be one of the filter buttons (Physics, Statistics, Mathematics, Teaching), or add a new button.
+- **A note or book:** each one has a line in the Notes list (`<li class="entry">` in `index.html`) and its own
+  page at `notes/<name>/index.html`. To add one, copy an existing folder in `notes/`, rename it, edit its page,
+  and add a matching `<li class="entry">` that links to it. The subject must be one of the filter buttons
+  (Physics, Statistics, Mathematics, Teaching), or add a new button.
+- **PDFs for a note (lecture notes, chapters, problem sets):** upload the PDF into that note's folder, e.g.
+  `notes/mathematical-statistics/chapter-1.pdf` (on GitHub: open the folder, **Add file → Upload files**). Then,
+  in that folder's `index.html`, replace the matching `<span class="doc-link soon">Coming soon</span>` with
+  `<a class="doc-link" href="chapter-1.pdf">PDF</a>`. Each page has commented examples showing how to add a
+  chapter or a problem set. The tests check that every PDF link points to a file that exists.
 - **Links on the About page:** replace the dashed placeholders (arXiv, Google Scholar, GitHub, CV, contact)
   with real links, e.g. `<a href="https://arxiv.org/a/...">arXiv</a>`. To host a CV, put the PDF in
   `assets/` and link to `assets/cv.pdf`.

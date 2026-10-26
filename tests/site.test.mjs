@@ -298,6 +298,50 @@ test('without JavaScript every page is still readable', async () => {
   await ctx.close();
 });
 
+test('notes: each description sits under its title, and each title opens its own page', async () => {
+  const { ctx, page, errors } = await open('Desktop 1440', { hash: '#notes' });
+  const entries = await page.$$eval('#catalog .entry', els => els.map(el => {
+    const h = el.querySelector('h2').getBoundingClientRect(), d = el.querySelector('p:not(.meta)').getBoundingClientRect();
+    return { title: el.querySelector('h2').textContent.trim(), href: el.querySelector('h2 a').getAttribute('href'), below: d.top >= h.bottom - 1, left: Math.abs(d.left - h.left) < 2 };
+  }));
+  assert.equal(entries.length, 7);
+  for (const e of entries) {
+    assert.ok(e.below && e.left, `${e.title}: the description should start under the title`);
+    const res = await page.goto(BASE + e.href);
+    assert.equal(res.status(), 200, `${e.href} should exist`);
+    assert.equal(await page.textContent('h1'), e.title, `${e.href}: heading`);
+    for (const s of ['Lecture notes', 'Problem sets']) assert.ok(await page.isVisible(`.course-section h2:text("${s}")`), `${e.href}: "${s}" section`);
+    assert.equal(await page.getAttribute('.crumb', 'href'), '/#notes');
+    for (const a of await page.$$eval('.doc-link[href]', els => els.map(x => x.getAttribute('href')))) {
+      const r = await page.request.get(new URL(a, page.url()).href);
+      assert.equal(r.status(), 200, `${e.href}: linked file ${a} is missing`);
+    }
+  }
+  await page.goto(BASE + entries[0].href);
+  await page.click('.crumb');
+  await page.waitForFunction(() => document.documentElement.dataset.page === 'notes');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('notes pages: phone layout, theme switch and accessibility', async () => {
+  for (const theme of ['dark', 'light']) {
+    const { ctx, page, errors } = await open('iPhone SE', { theme, hash: 'notes/mathematical-statistics/' });
+    assert.equal(await noSideScroll(page, 375), 0, 'no sideways scrolling');
+    const num = await rect(page, '.doc-num'), body = await rect(page, '.doc-body');
+    assert.ok(body.w > 200, 'chapter text should have room on a phone');
+    await page.addScriptTag({ content: axeSource });
+    const res = await page.evaluate(() => window.axe.run(document, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'] }));
+    const bad = res.violations.filter(v => v.impact === 'serious' || v.impact === 'critical');
+    assert.deepEqual(bad.map(v => v.id), [], theme);
+    const before = await page.getAttribute('html', 'data-theme');
+    await page.tap('#theme');
+    assert.notEqual(await page.getAttribute('html', 'data-theme'), before, 'the theme button works on notes pages');
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  }
+});
+
 test('unknown addresses get the 404 page', async () => {
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
