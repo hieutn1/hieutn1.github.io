@@ -132,7 +132,8 @@ test('keyboard: skip link, a sensible focus order with visible focus, and page c
   const { ctx, page } = await open('Desktop 1440');
   await page.keyboard.press('Tab');
   assert.equal(await page.evaluate(() => document.activeElement.className), 'skip-link');
-  assert.ok((await rect(page, '.skip-link')).y >= 0, 'skip link should slide into view when focused');
+  await page.waitForFunction(() => document.querySelector('.skip-link').getBoundingClientRect().top >= 0, null, { timeout: 2000 })
+    .catch(() => assert.fail('skip link should slide into view when focused'));
 
   const order = [];
   for (let i = 0; i < 20; i++) {
@@ -308,8 +309,8 @@ test('notes: each description sits under its title, and each title opens its own
   for (const e of entries) {
     assert.ok(e.below && e.left, `${e.title}: the description should start under the title`);
     const res = await page.goto(BASE + e.href);
-    assert.equal(res.status(), 200, `${e.href} should exist`);
-    assert.equal(await page.textContent('h1'), e.title, `${e.href}: heading`);
+    assert.equal(res.status(), 200, `${e.href} should exist: create ${e.href}index.html from scripts/note-template.html (see README, "Adding a note")`);
+    assert.equal(await page.textContent('h1'), e.title, `${e.href}: the page's heading should match its title in the Notes list`);
     for (const s of ['Lecture notes', 'Problem sets']) assert.ok(await page.isVisible(`.course-section h2:text("${s}")`), `${e.href}: "${s}" section`);
     assert.equal(await page.getAttribute('.crumb', 'href'), '/#notes');
     for (const a of await page.$$eval('.doc-link[href]', els => els.map(x => x.getAttribute('href')))) {
@@ -340,6 +341,31 @@ test('notes pages: phone layout, theme switch and accessibility', async () => {
     assert.deepEqual(errors, []);
     await ctx.close();
   }
+});
+
+test('every link on the site leads somewhere that exists', async () => {
+  const ctx = await browser.newContext();
+  const page = await ctx.newPage();
+  await page.goto(BASE);
+  const notes = await page.$$eval('#catalog h2 a', as => as.map(a => a.href));
+  const PAGE_IDS = ['home', 'research', 'notes', 'about', 'main'];
+  const broken = [];
+  for (const url of [BASE, ...notes]) {
+    await page.goto(url);
+    for (const { raw, abs } of await page.$$eval('a[href]', as => as.map(a => ({ raw: a.getAttribute('href'), abs: a.href })))) {
+      if (/^(mailto|tel):/.test(raw)) continue;
+      const u = new URL(abs);
+      if (u.origin !== new URL(BASE).origin) continue;   // links to other websites aren't checked
+      if (u.pathname === '/' && u.hash) {
+        if (!PAGE_IDS.includes(u.hash.slice(1))) broken.push(`${url}: "${raw}" is not one of the site's pages`);
+        continue;
+      }
+      const r = await page.request.get(u.origin + u.pathname);
+      if (r.status() !== 200) broken.push(`${url}: "${raw}" returns ${r.status()}`);
+    }
+  }
+  assert.deepEqual(broken, [], 'broken links (for a page on the home page, use "#research", "#notes" and so on)');
+  await ctx.close();
 });
 
 test('unknown addresses get the 404 page', async () => {

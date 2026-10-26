@@ -21,10 +21,9 @@ scripts/                local server and the build step that copies the site int
 Everything you read on the site is in `index.html`, one `<section data-page="…">` per page.
 
 - **A research thread:** copy one `<article class="thread">` block in the Research section and edit it.
-- **A note or book:** each one has a line in the Notes list (`<li class="entry">` in `index.html`) and its own
-  page at `notes/<name>/index.html`. To add one, copy an existing folder in `notes/`, rename it, edit its page,
-  and add a matching `<li class="entry">` that links to it. The subject must be one of the filter buttons
-  (Physics, Statistics, Mathematics, Teaching), or add a new button.
+- **A note or book:** each one has a line in the Notes list (`<li class="entry">` in `index.html`) **and** its
+  own page at `notes/<folder>/index.html`. The tests stop the site from updating if a title in the list links to a
+  page that doesn't exist, or if the page's heading doesn't match the title. See "Adding a note" below.
 - **PDFs for a note (lecture notes, chapters, problem sets):** upload the PDF into that note's folder, e.g.
   `notes/mathematical-statistics/chapter-1.pdf` (on GitHub: open the folder, **Add file → Upload files**). Then,
   in that folder's `index.html`, replace the matching `<span class="doc-link soon">Coming soon</span>` with
@@ -45,6 +44,27 @@ git commit -am "Add new note" && git push
 ```
 
 A push to `main` runs the tests; if they pass, the site is live a minute or two later.
+
+## Adding a note
+
+1. **Create its page.** On GitHub: **Add file → Create new file**, name it `notes/<folder>/index.html`
+   (e.g. `notes/quantum-field-theory/index.html`), paste in the contents of `scripts/note-template.html`, and
+   replace `{{TITLE}}`, `{{SUBJECT}}`, `{{STATUS}}`, `{{DESCRIPTION}}` and `{{SLUG}}` (the folder name).
+   On your computer, one command does this and prints step 2 for you:
+   `node scripts/new-note.mjs quantum-field-theory "Quantum Field Theory" Physics "In progress" "Notes on QFT."`
+2. **List it.** In `index.html`, add an entry to the Notes list with the same title:
+   ```html
+   <li class="entry" data-subject="Physics">
+     <h2><a href="notes/quantum-field-theory/">Quantum Field Theory</a></h2>
+     <p class="meta"><span>Physics</span><span>In progress</span></p>
+     <p>Notes on QFT.</p>
+   </li>
+   ```
+   `data-subject` must match one of the filter buttons above the list (Physics, Math/Stats, Machine Learning,
+   Teaching), or add a button for a new subject.
+3. **Remove a note** by deleting both its entry and its folder.
+
+Links between pages on the home page use `#research`, `#notes`, `#about` (not `research`).
 
 ## What the tests check
 
