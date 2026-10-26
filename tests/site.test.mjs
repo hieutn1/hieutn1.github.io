@@ -74,7 +74,11 @@ test('every device: the intro, then a readable hero with no sideways scrolling o
     assert.ok(h1.x >= 0 && h1.right <= vw + 1, `${name}: headline runs off screen (${h1.x}–${h1.right})`);
     assert.ok(cta.w > 0 && cta.right <= vw + 1, `${name}: the research button is cut off`);
     if (vw >= 700) assert.ok(hole.x > lede.right, `${name}: the black hole (x=${hole.x.toFixed(0)}) should sit right of the paragraph (ends ${lede.right.toFixed(0)})`);
-    else assert.ok(hole.y + hole.r < h1.y, `${name}: the black hole should sit above the headline`);
+    else {
+      assert.ok(hole.y + hole.r < h1.y, `${name}: the black hole should sit above the headline`);
+      const menu = (await rect(page, '.top')).bottom, text = (await rect(page, '#hero-text')).y, f = (hole.y - menu) / (text - menu);
+      assert.ok(f > 0.45 && f < 0.65, `${name}: the black hole should sit about midway between the menu and the text (at ${(f * 100).toFixed(0)}% of the gap)`);
+    }
     for (const p of PAGES) {
       await page.evaluate(id => { location.hash = id; }, p);
       await page.waitForTimeout(150);

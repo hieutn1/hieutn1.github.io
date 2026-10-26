@@ -80,6 +80,7 @@ const Cosmos = (() => {
   const ui = document.getElementById('intro-ui'), sk = document.getElementById('skip');
   const scrim = document.getElementById('scrim'), hero = document.getElementById('hero');
   const heroPin = document.getElementById('hero-pin'), heroLede = document.getElementById('hero-lede');
+  const heroText = document.getElementById('hero-text'), topBar = document.querySelector('.top');
   const BG = '11,14,21';
   const ELEV = 8 * Math.PI / 180, CE = Math.cos(ELEV), SE = Math.sin(ELEV);    // camera 8° above the disk plane
   const ROLL = 10 * Math.PI / 180, CR = Math.cos(ROLL), SR = Math.sin(ROLL);   // spin axis tilted 10° counter-clockwise
@@ -128,7 +129,13 @@ const Cosmos = (() => {
       const pr = heroPin.getBoundingClientRect();
       const textR = pr.width > 0 ? pr.left + heroLede.offsetLeft + heroLede.offsetWidth : W * 0.45, free = Math.max(160, W - textR);
       fr.rx = textR + free * 0.34; fr.ry = H * 0.46; fr.rk = Math.max(8, Math.min(free * 0.95 / 13, H * 0.046));
-    } else { fr.rx = W * 0.5; fr.ry = H * 0.26; fr.rk = Math.max(8, Math.min(W * 0.034, H * 0.03)); }
+    } else {
+      // phones: the black hole sits in the space between the menu and the text below it (page coordinates,
+      // which match the screen until the page scrolls; scrolling is locked during the intro)
+      const menu = topBar.getBoundingClientRect().bottom + scrollY, text = heroText.getBoundingClientRect().top + scrollY;
+      fr.rx = W * 0.5; fr.ry = text > menu + 80 ? menu + 0.55 * (text - menu) : H * 0.26;
+      fr.rk = Math.max(8, Math.min(W * 0.034, H * 0.03));
+    }
   }
   function setV(i, x, y, z, vphi, vr, vz) {
     const R = Math.hypot(x, y) || 1, cx = x / R, sy = y / R;
