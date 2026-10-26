@@ -57,12 +57,19 @@ reduced-motion settings; the pause control; animation stopping when off screen; 
 both themes); page weight and no third-party requests; the page without JavaScript; the 404 page; and
 automatic quality reduction on slow devices.
 
-## Publishing (one-time setup)
+## Publishing
 
-1. In the GitHub repository: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-2. **Settings → Pages → Custom domain:** enter the domain and save. This creates nothing in the repo;
-   the workflow publishes it.
-3. At the domain registrar, add these DNS records (and delete any default "parking" records):
+The site lives at **https://hieutnn.github.io**, published from this repository.
+
+One-time setup: in the repository, **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+After that, every push to `main` runs the tests and, if they pass, publishes the site within a minute or two.
+HTTPS is on automatically for github.io addresses.
+
+### Adding your own domain later (optional)
+
+1. Buy the domain (Cloudflare Registrar or Porkbun sell at close to cost; compare renewal prices).
+2. **Settings → Pages → Custom domain:** enter it and save.
+3. At the registrar, add these DNS records (and delete any default "parking" records):
 
    | Type | Name | Value |
    |---|---|---|
@@ -74,13 +81,13 @@ automatic quality reduction on slow devices.
    | AAAA | @ | 2606:50c0:8001::153 |
    | AAAA | @ | 2606:50c0:8002::153 |
    | AAAA | @ | 2606:50c0:8003::153 |
-   | CNAME | www | *your-github-username*.github.io |
+   | CNAME | www | hieutnn.github.io |
 
    Don't add wildcard (`*`) records.
-4. Back in **Settings → Pages**, once the DNS check passes, tick **Enforce HTTPS**. GitHub issues and
-   renews the certificate itself; the option can take up to a day to become available.
-5. Recommended: verify the domain under your GitHub account's **Settings → Pages → Verified domains**,
-   so nobody else can publish to it if the site is ever switched off.
+4. Once the DNS check passes, tick **Enforce HTTPS** (it can take up to a day to become available).
+5. Replace `https://hieutnn.github.io` with the new address in `index.html` (canonical and og tags),
+   `robots.txt` and `sitemap.xml`.
+6. Recommended: verify the domain under your account's **Settings → Pages → Verified domains**.
 
 ## Upkeep
 
@@ -88,9 +95,9 @@ automatic quality reduction on slow devices.
 - **Dependencies:** the site itself has none at run time. Dependabot opens a pull request once a month when
   the test tools (Playwright, axe-core) or the workflow's GitHub Actions have updates; the tests run on it,
   and you merge it if they pass.
-- **Domain:** turn on auto-renew at the registrar and keep the payment method current. If the domain
-  lapses, the site goes offline at that address (it stays reachable at *username*.github.io).
-- **HTTPS:** renews automatically while the DNS records point at GitHub Pages.
+- **Domain (if you add one):** turn on auto-renew at the registrar and keep the payment method current.
+  If it lapses, the site goes offline at that address but stays reachable at hieutnn.github.io.
+- **HTTPS:** handled by GitHub, including renewals.
 
 ## Notes on the physics
 

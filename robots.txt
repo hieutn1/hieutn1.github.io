@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://hieutnn.github.io/sitemap.xml
