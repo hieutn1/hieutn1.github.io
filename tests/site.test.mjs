@@ -218,6 +218,25 @@ test('the pause control freezes both animations and is remembered', async () => 
   await ctx.close();
 });
 
+test('once settled, the black hole scrolls up with the page', async () => {
+  for (const device of ['Desktop 1440', 'iPhone 15']) {
+    const { ctx, page } = await open(device, { intro: true });
+    await page.waitForTimeout(800);
+    await page.keyboard.press('Space');   // skip the intro; the glide follows
+    await page.waitForTimeout(300);
+    assert.equal(await page.evaluate(() => scrollY), 0, `${device}: skipping the intro must not scroll the page`);
+    await page.waitForFunction(() => getComputedStyle(document.getElementById('cosmos')).position === 'absolute', null, { timeout: 6000 });
+    await page.waitForTimeout(2300);   // let the glide finish
+    const holeY = () => page.evaluate(() => document.getElementById('cosmos').getBoundingClientRect().top + window.__site.hole.y);
+    const y0 = await holeY();
+    await page.evaluate(() => window.scrollTo(0, 300));
+    await page.waitForTimeout(250);
+    const y1 = await holeY();
+    assert.ok(Math.abs((y0 - y1) - 300) < 2, `${device}: scrolling 300 px should move the black hole up 300 px (moved ${(y0 - y1).toFixed(1)})`);
+    await ctx.close();
+  }
+});
+
 test('animation stops when it cannot be seen', async () => {
   const { ctx, page } = await open('Desktop 1440');
   await page.waitForTimeout(600);

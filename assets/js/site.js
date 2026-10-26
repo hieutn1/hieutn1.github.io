@@ -115,7 +115,8 @@ const Cosmos = (() => {
   const LA = document.createElement('canvas'), la = LA.getContext('2d');
   const LB = document.createElement('canvas'), lb = LB.getContext('2d');
   let W = 1, H = 1, dpr = 1, lastW = 0, lastH = 0;
-  let mode = 'rest', t = 0, last = 0, raf = 0, onHome = true, op = 1, revealed = true, glideStart = -1, guard = 0;
+  let mode = 'rest', t = 0, last = 0, raf = 0, onHome = true, inView = true, revealed = true, glideStart = -1, guard = 0;
+  let anchored = false;   // after the intro the canvas belongs to the page and scrolls with the hero
   let workAvg = 0, workFrames = 0, frameCount = 0;
   const shown = { x: 0, y: 0, r: 0 };   // where the shadow was last drawn (for the tests)
   const fr = { ix: 0, iy: 0, ik: 1, rx: 0, ry: 0, rk: 1 };   // intro framing and resting framing: centre and px per r_s
@@ -283,24 +284,32 @@ const Cosmos = (() => {
     if (mode === 'intro') timeline();
     schedule();
   }
-  function running() { return mode === 'intro' || (Motion.on && onHome && op > 0.001 && !document.hidden); }
+  function running() { return mode === 'intro' || (Motion.on && onHome && inView && !document.hidden); }
   function schedule() {
     if (raf) return;
     if (!running()) { last = 0; return; }
     raf = requestAnimationFrame(tick);
   }
   function layoutHero() { if (onHome) { frames(); onScroll(); } }
-  function onScroll() {
-    if (!revealed) op = 1;
-    else if (!onHome) op = 0;
-    else { const hh = hero.offsetHeight || H; op = 1 - clamp((scrollY - 0.35 * hh) / (0.55 * hh), 0, 1); }
-    cv.style.opacity = op; scrim.style.opacity = op;
+  function onScroll() {   // animate only while some of the hero is on screen
+    inView = !revealed || (onHome && hero.getBoundingClientRect().bottom > 0);
     schedule();
   }
+  // During the intro the canvas is fixed to the window. When the page appears it becomes part of the page, at the
+  // top, so the black hole glides into place within the hero and then scrolls up with it (natively, no scroll handler).
+  function anchor(top) {
+    anchored = true;
+    for (const el of [cv, scrim]) { el.style.position = 'absolute'; el.style.top = Math.max(0, top) + 'px'; el.style.height = H + 'px'; }
+    onScroll();
+  }
+  function unanchor() {
+    anchored = false;
+    for (const el of [cv, scrim]) { el.style.position = ''; el.style.top = ''; el.style.height = ''; }
+  }
   function reveal() {
-    revealed = true; root.classList.remove('intro-on');
+    revealed = true; root.classList.remove('intro-on');   // scrolling was locked during the intro, so this is the top
     store.set('hn-intro-seen', '1', true);
-    clearTimeout(guard); onScroll();
+    clearTimeout(guard); anchor(scrollY);
   }
   function clearCanvas() {
     c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'source-over';
@@ -313,6 +322,7 @@ const Cosmos = (() => {
     lastW = w; lastH = h; W = w; H = h;
     dpr = Math.min(COARSE ? 1.5 : 2, window.devicePixelRatio || 1, Math.sqrt(6e6 / (W * H)));   // cap the backing store on huge screens
     cv.width = LA.width = LB.width = Math.round(W * dpr); cv.height = LA.height = LB.height = Math.round(H * dpr);
+    if (anchored) for (const el of [cv, scrim]) el.style.height = H + 'px';
     layoutHero(); clearCanvas();
     if (mode === 'rest' && !Motion.on) still();
   }
@@ -324,6 +334,7 @@ const Cosmos = (() => {
   }
   function playIntro() {
     root.classList.add('intro-on');
+    unanchor();
     mode = 'intro'; revealed = false; t = 0; glideStart = -1;
     initCloud(); size(true);
     cancelAnimationFrame(raf); raf = 0; schedule();
@@ -332,7 +343,7 @@ const Cosmos = (() => {
   }
   function rest() {
     mode = 'rest'; glideStart = -1; revealed = true;
-    initSteady(); size(true);
+    initSteady(); size(true); anchor(0);
     if (!Motion.on) { still(); return; }
     // let the page finish loading and paint its text before the disk starts
     const go = () => setTimeout(schedule, 120);
@@ -351,7 +362,12 @@ const Cosmos = (() => {
   });
   sk.addEventListener('click', e => { e.stopPropagation(); skip(); });
   ui.addEventListener('click', skip);
-  document.addEventListener('keydown', () => { if (mode === 'intro' && !revealed) skip(); });
+  const SCROLL_KEYS = [' ', 'Spacebar', 'PageDown', 'PageUp', 'ArrowDown', 'ArrowUp', 'End', 'Home'];
+  document.addEventListener('keydown', e => {
+    if (mode !== 'intro' || revealed) return;
+    if (SCROLL_KEYS.includes(e.key)) e.preventDefault();   // the key skips the intro; it shouldn't also scroll the page
+    skip();
+  });
   addEventListener('resize', () => size(false));
   addEventListener('scroll', onScroll, { passive: true });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutHero);

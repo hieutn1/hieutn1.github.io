@@ -63,7 +63,8 @@
 
 /* ---------- base ---------- */
 *, *::before, *::after { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; scrollbar-gutter: stable; }
+html.intro-on { overflow: hidden; }   /* nothing to scroll to until the page appears */
 body {
   margin: 0;
   background: var(--bg); color: var(--ink);
