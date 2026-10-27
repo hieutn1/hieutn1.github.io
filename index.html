@@ -83,57 +83,17 @@
       </div>
 
       <div class="after" id="obs-section">
-        <div class="obs-wrap">
+        <div class="obs-wrap" id="binary">
           <div class="obs-text">
             <p class="label">Observatory</p>
-            <h2>Light and matter near a black hole</h2>
-            <p>Bend light with the lens, heat the orbiting ensemble with noise, and launch a pulse to watch a wavefront wrap around the photon sphere.</p>
-            <p class="note"><span class="label">Instrument note</span>Light follows exact null geodesics of the Schwarzschild metric in the equatorial plane, <span class="m">u″ + u = (3/2) r<sub>s</sub> u²</span>, drawn on Flamm's paraboloid, with each wavefront at a single Schwarzschild coordinate time. Matter follows timelike geodesics in proper time, coupled to a Langevin bath with friction and noise of strength <span class="m">σ</span>. Click or tap the sheet to emit a spherical pulse.</p>
+            <h2>Two black holes in orbit</h2>
+            <p>Set how far apart the pair starts and how heavy they are, then watch them spiral together, faster and faster, until they merge into a single black hole.</p>
+            <p class="note"><span class="label">Instrument note</span>The holes follow Kepler's law, <span class="m">Ω² = GM/a³</span>, on a sheet that sags into their combined Newtonian potential, while the gravitational waves they send out drain the orbit at the rate Peters derived. The waves are the leading-order (quadrupole) wave in the orbital plane, <span class="m">h ∝ (μM/ar) cos 2[Φ(t − r/c) − φ]</span>: two spiral arms at twice the orbital frequency, fading as 1/r. Each wave carries the orbit as it was when it left, so the chirp spreads outward. Near the end the holes merge into one about 5% lighter (the rest leaves as waves); it rings once or twice and goes still. In reality it spins, which the sheet can't show. The waves are drawn about 20 times slower than light and taller than life, and long inspirals are sped up so every run shows five to seven orbits; the readouts give the real values.</p>
             <p class="note"><span class="label">Behind the title</span>The accretion disk at the top of the page is a simulation too: test particles in the Paczyński–Wiita potential, which places the innermost stable orbit at 6GM/c², seen 8° above the disk plane, with light from its far side bent up over the hole.</p>
           </div>
           <figure class="observatory">
-            <div class="field" id="field">
-              <canvas id="sheet" role="img" aria-label="A curved spacetime sheet with a light ray bending around a black hole and an ensemble of particles orbiting it."></canvas>
-              <canvas id="flow" aria-hidden="true"></canvas>
-            </div>
-            <div class="panel">
-              <div class="controls">
-                <div class="ctl">
-                  <div class="ctl-head"><label for="rs">Lens strength · <span class="m">r<sub>s</sub></span></label><output id="rs-out" for="rs">0.60</output></div>
-                  <input id="rs" class="lens" type="range" min="0.15" max="1.2" step="0.01" value="0.6">
-                </div>
-                <div class="ctl">
-                  <div class="ctl-head"><label for="sigma">Noise strength · <span class="m">σ</span></label><output id="sigma-out" for="sigma">0.35</output></div>
-                  <input id="sigma" class="noise" type="range" min="0" max="1" step="0.01" value="0.35">
-                </div>
-                <div class="actions">
-                  <button id="emit" class="btn emit" type="button">Launch light pulse</button>
-                  <button id="run" class="btn" type="button">Pause</button>
-                </div>
-              </div>
-              <div class="phase">
-                <div class="ctl-head"><span>Phase space</span><span><span class="m">p<sub>r</sub></span> against <span class="m">r / r<sub>s</sub></span></span></div>
-                <canvas id="phase" role="img" aria-label="Scatter of the particle ensemble in radial phase space."></canvas>
-                <dl class="readouts" aria-live="off">
-                  <div><dt>Captured</dt><dd id="o-cap">0</dd></div>
-                  <div><dt>Photons</dt><dd id="o-ph">0</dd></div>
-                  <div><dt><span class="m">b<sub>c</sub></span></dt><dd id="o-bc">1.56</dd></div>
-                </dl>
-              </div>
-            </div>
-          </figure>
-        </div>
-
-        <div class="obs-wrap flip" id="binary">
-          <div class="obs-text">
-            <p class="label">Binary</p>
-            <h2>Two black holes in orbit</h2>
-            <p>Bring the pair closer or make them heavier: the orbit quickens, and the gravitational waves it sends out grow shorter and stronger.</p>
-            <p class="note"><span class="label">Instrument note</span>The holes follow a circular Kepler orbit, <span class="m">Ω² = GM/a³</span>, and the sheet sags into their combined Newtonian potential. The ripples are the leading-order (quadrupole) wave in the orbital plane, <span class="m">h ∝ (μM/ar) cos 2[Φ(t − r/c) − φ]</span>: two spiral arms at twice the orbital frequency, fading as 1/r. Each ripple carries the orbit as it was when it left, so a change spreads outward at the wave speed. The ripples are drawn about 20 times slower than light and taller than life. The trace is the strain seen from above the orbit; its times and frequencies are real for the masses shown.</p>
-          </div>
-          <figure class="observatory">
-            <div class="field still" id="bin-field">
-              <canvas id="bin-sheet" role="img" aria-label="Two black holes orbiting each other on a curved spacetime sheet, sending out spiral gravitational waves."></canvas>
+            <div class="field" id="bin-field">
+              <canvas id="bin-sheet" role="img" aria-label="Two black holes spiralling together on a curved spacetime sheet, sending out spiral gravitational waves, then merging into one."></canvas>
             </div>
             <div class="panel">
               <div class="controls">
@@ -150,8 +110,8 @@
                 </div>
               </div>
               <div class="phase">
-                <div class="ctl-head"><span>Strain</span><span><span class="m">h<sub>+</sub></span> against <span class="m">t</span></span></div>
-                <canvas id="bin-trace" role="img" aria-label="The gravitational-wave strain over the last few seconds."></canvas>
+                <div class="ctl-head"><span>Wave strain · <span class="m">h</span><sub class="pol">+</sub></span><span>time →</span></div>
+                <canvas id="bin-trace" role="img" aria-label="The gravitational-wave strain over the last few seconds: a chirp that rises to the merger and then rings down."></canvas>
                 <dl class="readouts" aria-live="off">
                   <div><dt>Period</dt><dd id="b-T">0</dd></div>
                   <div><dt>Waves</dt><dd id="b-f">0</dd></div>

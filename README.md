@@ -8,7 +8,7 @@ index.html              all four pages (Home, Research, Notes, About), switched 
 404.html                shown for addresses that don't exist
 assets/css/site.css     styles, colour tokens, self-hosted fonts
 assets/js/physics.js    the physics behind the animations (no page code, so it can be tested)
-assets/js/site.js       page behaviour: intro, black hole, observatory, binary, theme, pause control, routing
+assets/js/site.js       page behaviour: intro, black hole, the binary, theme, pause control, routing
 assets/fonts/           Instrument Serif, Manrope, IBM Plex Mono (SIL Open Font License)
 assets/img/             favicon, home-screen icon, social preview image
 tests/                  physics tests and browser tests
@@ -68,24 +68,25 @@ Links between pages on the home page use `#research`, `#notes`, `#about` (not `r
 
 ## What the tests check
 
-`tests/physics.test.mjs` runs the same code the page runs:
-light is captured inside the critical impact parameter (3√3/2) r_s and escapes outside it; weak-field
-deflection matches 2r_s/b; the Shapiro delay; conservation of energy and angular momentum along light rays and
-orbits; circular orbits stay circular; orbits are stable outside 6M and plunge inside it; perihelion
-precession matches an independent integration of the GR orbit equation; the Langevin bath satisfies
-fluctuation–dissipation; the Paczyński–Wiita potential's innermost stable orbit (3 r_s) and marginally bound
-orbit (2 r_s); gas in the disk circles several times before plunging inside 3 r_s; lens images solve the
+`tests/physics.test.mjs` runs the same code the page runs. For the hero: the shadow's edge is the critical
+impact parameter (3√3/2) r_s; the Paczyński–Wiita potential's innermost stable orbit (3 r_s) and marginally
+bound orbit (2 r_s); gas in the disk circles several times before plunging inside 3 r_s; lens images solve the
 lens equation. For the binary: a directly integrated two-body orbit keeps the Kepler period; the strain formula
 matches the quadrupole moment of that orbit for observers at any inclination and in the orbital plane; the waves
 have twice the orbital frequency, a quadrupole pattern, and the right size for LIGO's first detection; the
-radiated power matches the quadrupole formula and the orbit's energy loss; integrating the shrinking orbit gives
-the Peters merger time; and a change to the orbit spreads outward at the wave speed.
+radiated power matches the quadrupole formula and the orbit's energy loss; the shrinking orbit follows Peters'
+closed form and ends at the frequency numerical relativity finds at peak amplitude; speeding up the early
+inspiral shows the chosen number of orbits and leaves the last ones untouched; the frequency rises smoothly
+into the ringdown; the remnant's mass and spin match numerical relativity, its ringdown matches a Schwarzschild
+hole's and GW150914's, and its horizon obeys the area theorem; waves leave from where the holes were and a
+change to the orbit spreads outward at the wave speed.
 
 `tests/site.test.mjs` opens the site in Chromium on ten screen sizes from an iPhone SE to an ultrawide
-monitor and checks: the intro and its skip button; nothing wider than the screen; touch (tapping, the sheet,
-dragging sliders); keyboard use (skip link, tab order, visible focus, focus moving to each new page);
+monitor and checks: the intro and its skip button; nothing wider than the screen; touch (tapping, dragging
+sliders); keyboard use (skip link, tab order, visible focus, focus moving to each new page);
 reduced-motion settings; the pause control; animation stopping when off screen; the binary's readouts against
-Kepler's law and the Peters formula worked out in SI units; accessibility (axe-core, both themes); page weight and no third-party requests; the page without JavaScript; the 404 page; and
+Kepler's law and the Peters formula worked out in SI units; the binary spiralling in, merging and going still;
+accessibility (axe-core, both themes); page weight and no third-party requests; the page without JavaScript; the 404 page; and
 automatic quality reduction on slow devices.
 
 ## Publishing
@@ -132,16 +133,19 @@ HTTPS is on automatically for github.io addresses.
 
 ## Notes on the physics
 
-- **Observatory (exact):** light follows null geodesics of the Schwarzschild metric in the equatorial plane,
-  timed in Schwarzschild coordinate time; matter follows timelike geodesics in proper time, plus friction and
-  noise from a Langevin bath. The sheet is Flamm's paraboloid, drawn with its height exaggerated by half.
-- **Binary (leading order):** two equal black holes on a circular Kepler orbit; the sheet's depth is their
-  Newtonian potential. The ripples are the quadrupole gravitational wave in the orbital plane,
-  h₊ = −(h₀/2) cos 2(Φ(t − r/c) − φ) with h₀ = 4μM/(ar), evaluated at the retarded time from a stored history of
-  the orbit, so changes travel outward. On screen the waves move about 22 times slower than light (so several
-  wavelengths fit), and their height is exaggerated but capped so the sheet never folds. The gold lines are the
-  two crests. Readouts use G = c = 1 with 100 solar masses as the unit (147.66 km, 0.49255 ms), so they are real
-  values for the masses and radii on the sliders; the tightest setting is the pair's innermost stable orbit, 6GM/c².
+- **Binary (leading order, then a merger):** two equal black holes on a Kepler orbit, on a sheet whose depth
+  is their Newtonian potential. Radiation reaction shrinks the orbit at the Peters rate until the wave frequency
+  reaches M ω₂₂ ≈ 0.36, where numerical relativity finds the peak for equal masses. The holes then merge into a
+  remnant with the mass (0.952 M) and spin (0.686) from numerical-relativity fits, and the waves ring down at its
+  l = m = 2 mode (Berti, Cardoso & Will fits). The ripples are the quadrupole wave in the orbital plane,
+  h₊ ∝ (μM/ar) cos 2(Φ − φ), with Φ taken from a stored history of the orbit at the moment each wave left the
+  holes, so the chirp travels outward. The sign of h₊ depends on the choice of polarisation axes; the gold lines
+  are the ridges that point along the line through the holes. Display choices: the waves move about 20 times
+  slower than light so several fit on the sheet; their height is exaggerated but capped so the sheet never
+  folds; long inspirals are sped up early on (the last orbits shrink at the true rate) so every run shows five to
+  seven orbits; and the film runs faster while the orbit is wide. Readouts use G = c = 1 with 100 solar masses as
+  the unit (147.66 km, 0.49255 ms), so they are real values for the current orbit; the tightest start is the
+  pair's innermost stable orbit, 6GM/c².
 - **Hero disk (a model):** test particles in the Paczyński–Wiita potential, which reproduces the
   Schwarzschild innermost stable and marginally bound orbits. Viscosity is far stronger than in a real
   disk so that inflow is visible, but gas still circles several times before it reaches the inner edge.

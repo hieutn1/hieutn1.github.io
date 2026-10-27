@@ -100,7 +100,7 @@ test('the intro reveals the page after about six seconds and plays once per sess
   await ctx.close();
 });
 
-test('touch: tap to navigate, tap the sheet to emit light, drag the sliders', async () => {
+test('touch: tap to navigate and drag the sliders', async () => {
   const { ctx, page, errors } = await open('Pixel 7');
   await page.tap('a[data-nav="research"]');
   await page.waitForFunction(() => document.documentElement.dataset.page === 'research');
@@ -112,22 +112,17 @@ test('touch: tap to navigate, tap the sheet to emit light, drag the sliders', as
   await page.tap('a[data-nav="home"]');
   await page.waitForFunction(() => document.documentElement.dataset.page === 'home');
 
-  await page.$eval('#field', el => el.scrollIntoView({ block: 'center' }));
-  await page.waitForTimeout(1200);
-  const f = await rect(page, '#field');
-  await page.touchscreen.tap(f.x + f.w * 0.25, f.y + f.h * 0.7);
-  await page.waitForTimeout(400);
-  await page.waitForFunction(() => +document.getElementById('o-ph').textContent > 0, null, { timeout: 3000 });
-
+  await page.$eval('#bin-r', el => el.scrollIntoView({ block: 'center' }));
+  await page.waitForTimeout(600);
   const cdp = await ctx.newCDPSession(page);
-  const s = await rect(page, '#rs');
-  const y = s.y + s.h / 2, x0 = s.x + s.w * ((0.6 - 0.15) / (1.2 - 0.15)), x1 = s.x + s.w * 0.95;
+  const s = await rect(page, '#bin-r');
+  const y = s.y + s.h / 2, x0 = s.x + s.w * ((560 - 450) / (800 - 450)), x1 = s.x + s.w * 0.95;
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x0, y }] });
   for (let i = 1; i <= 8; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x0 + (x1 - x0) * i / 8, y }] });
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  const rs = +(await page.inputValue('#rs'));
-  assert.ok(rs > 1.0, `dragging the lens slider should raise r_s (now ${rs})`);
-  assert.equal(await page.textContent('#o-bc'), (1.5 * Math.sqrt(3) * rs).toFixed(2), 'b_c readout should equal (3√3/2) r_s');
+  const km = +(await page.inputValue('#bin-r'));
+  assert.ok(km >= 750, `dragging the radius slider should widen the orbit (now ${km} km)`);
+  assert.equal(await page.textContent('#bin-r-out'), `${km} km`);
   assert.deepEqual(errors, []);
   await ctx.close();
 });
@@ -150,7 +145,7 @@ test('keyboard: skip link, a sensible focus order with visible focus, and page c
     assert.ok(f.outline, `focus on "${f.id}" should show an outline`);
     if (f.id === 'replay') break;
   }
-  const expected = ['Hieu Nguyen', 'Home', 'Research', 'Notes', 'About', 'theme', 'Explore my research', 'A little about me', 'motion', 'rs', 'sigma', 'emit', 'run', 'bin-r', 'bin-m', 'bin-run', 'replay'];
+  const expected = ['Hieu Nguyen', 'Home', 'Research', 'Notes', 'About', 'theme', 'Explore my research', 'A little about me', 'motion', 'bin-r', 'bin-m', 'bin-run', 'replay'];
   assert.deepEqual(order, expected, 'tab order');
 
   // the skip link jumps past the header
@@ -169,10 +164,10 @@ test('keyboard: skip link, a sensible focus order with visible focus, and page c
   await page.focus('a[data-nav="home"]');
   await page.keyboard.press('Enter');
   await page.waitForFunction(() => document.activeElement && document.activeElement.id === 'h-home');   // the page change moves focus; wait for it
-  await page.focus('#rs');
+  await page.focus('#bin-r');
   for (let i = 0; i < 5; i++) await page.keyboard.press('ArrowRight');
-  assert.equal(await page.inputValue('#rs'), '0.65');
-  assert.equal(await page.textContent('#o-bc'), (1.5 * Math.sqrt(3) * 0.65).toFixed(2));
+  assert.equal(await page.inputValue('#bin-r'), '610');
+  assert.equal(await page.textContent('#bin-r-out'), '610 km');
   await page.focus('#motion');
   await page.keyboard.press('Space');
   assert.equal(await page.textContent('#motion .motion-label'), 'Play animation');
@@ -192,7 +187,6 @@ test('reduced motion: no intro, everything still, and the visitor can opt back i
   await page.waitForTimeout(600);
   assert.equal(await page.evaluate(() => document.documentElement.classList.contains('intro-on')), false, 'no intro');
   assert.equal(await page.textContent('#motion .motion-label'), 'Play animation');
-  assert.equal(await page.textContent('#run'), 'Resume');
   assert.equal(await page.textContent('#bin-run'), 'Resume');
   const f0 = await page.evaluate(() => window.__site.frames), sig0 = await canvasSig(page, '#cosmos');
   await page.waitForTimeout(1200);
@@ -222,8 +216,7 @@ test('the pause control freezes both animations and is remembered', async () => 
   await page.waitForTimeout(1000);
   assert.equal(await page.evaluate(() => window.__site.frames), f0);
   assert.equal(await canvasSig(page, '#cosmos'), sig0);
-  assert.equal(await page.textContent('#run'), 'Resume', 'the observatory pauses too');
-  assert.equal(await page.textContent('#bin-run'), 'Resume', 'and so does the binary');
+  assert.equal(await page.textContent('#bin-run'), 'Resume', 'the binary pauses too');
   const fresh = await ctx.newPage();   // a new tab: a new session, but the same saved preference
   await fresh.goto(BASE);
   await fresh.waitForTimeout(500);
@@ -313,17 +306,33 @@ test('dark theme: the name and page titles use the same white as "The Physics Of
   await ctx.close();
 });
 
-test('the browser runs the tested physics', async () => {
-  const { ctx, page } = await open('Desktop 1440');
-  for (const v of ['0.15', '0.6', '1.2']) {
-    await page.$eval('#rs', (el, val) => { el.value = val; el.dispatchEvent(new Event('input')); }, v);
-    const expected = await page.evaluate(val => window.Physics.criticalImpact(+val).toFixed(2), v);
-    assert.equal(await page.textContent('#o-bc'), expected);
-    assert.equal(expected, (1.5 * Math.sqrt(3) * +v).toFixed(2));
-  }
-  await page.$eval('#field', el => el.scrollIntoView({ block: 'center' }));
-  await page.click('#emit');
-  await page.waitForFunction(() => +document.getElementById('o-ph').textContent > 50, null, { timeout: 3000 });
+test('the binary spirals in faster and faster, merges into one black hole, and then holds still', async () => {
+  const { ctx, page, errors } = await open('Desktop 1440');
+  const set = (sel, v) => page.$eval(sel, (el, val) => { el.value = val; el.dispatchEvent(new Event('input')); }, v);
+  await set('#bin-r', '450'); await set('#bin-m', '50');
+  await page.$eval('#bin-field', el => el.scrollIntoView({ block: 'center' }));
+  const st = () => page.evaluate(() => window.__site.bin);
+  const s0 = await st(), period0 = parseFloat(await page.textContent('#b-T'));
+  assert.equal(s0.merged, false);
+  assert.ok(Math.abs(s0.orbits - 5) < 0.01, `shows five orbits on the way in (${s0.orbits})`);
+  await page.waitForTimeout(6000);
+  const s1 = await st(), period1 = parseFloat(await page.textContent('#b-T'));
+  assert.ok(s1.separation < s0.separation, 'the orbit shrinks');
+  assert.ok(period1 < period0, `and speeds up (${period0} → ${period1} ms)`);
+  await page.waitForFunction(() => window.__site.bin.merged, null, { timeout: 20000 });
+  assert.equal(await page.textContent('#bin-run'), 'Restart');
+  assert.equal(await page.textContent('#b-T'), '—');
+  await page.waitForFunction(() => window.__site.bin.still, null, { timeout: 20000 });
+  const f0 = await page.evaluate(() => window.__site.binFrames), c0 = await canvasSig(page, '#bin-sheet');
+  await page.waitForTimeout(800);
+  assert.equal(await page.evaluate(() => window.__site.binFrames), f0, 'nothing left to animate');
+  assert.equal(await canvasSig(page, '#bin-sheet'), c0, 'a single, still black hole');
+  await page.click('#bin-run');
+  assert.equal(await page.textContent('#bin-run'), 'Pause', 'Restart starts a new pair');
+  assert.equal((await st()).merged, false);
+  await page.waitForTimeout(500);
+  assert.ok(await page.evaluate(() => window.__site.binFrames) > f0 + 10, 'and it moves again');
+  assert.deepEqual(errors, []);
   await ctx.close();
 });
 
@@ -335,7 +344,9 @@ test('the binary: real Kepler numbers, an orbit that moves only when seen, and k
   for (const [km, msun] of [[450, 50], [800, 20], [560, 35]]) {
     await set('#bin-r', String(km)); await set('#bin-m', String(msun));
     const a = 2 * km * 1e3, m = msun * MSUN, M = 2 * m;
-    const T = 2 * Math.PI * Math.sqrt(a ** 3 / (G * M)), tau = (5 / 256) * C ** 5 * a ** 4 / (G ** 3 * m * m * M);
+    const T = 2 * Math.PI * Math.sqrt(a ** 3 / (G * M));
+    const am = (G * M / C ** 2) * (2 / 0.36) ** (2 / 3);   // where 2GMΩ/c³ = 0.36, the frequency at peak amplitude
+    const tau = (5 / 256) * C ** 5 * (a ** 4 - am ** 4) / (G ** 3 * m * m * M);
     const num = async sel => parseFloat(await page.textContent(sel));
     assert.ok(Math.abs(await num('#b-T') - T * 1e3) <= 1, `period at ${km} km, ${msun} Msun: ${await page.textContent('#b-T')} vs ${(T * 1e3).toFixed(1)} ms`);
     assert.ok(Math.abs(await num('#b-f') - 2 / T) <= 1, `wave frequency: ${await page.textContent('#b-f')} vs ${(2 / T).toFixed(1)} Hz`);

@@ -382,310 +382,7 @@ const Cosmos = (() => {
   return { playIntro, rest, setPage, get active() { return NA; }, get frames() { return frameCount; }, get hole() { return { ...shown }; } };
 })();
 
-/* ---------------- the observatory ---------------- */
-const Obs = (() => {
-  const field = document.getElementById('field');
-  const cS = document.getElementById('sheet'), cD = document.getElementById('flow'), cP = document.getElementById('phase');
-  const xS = cS.getContext('2d'), xD = cD.getContext('2d'), xP = cP.getContext('2d');
-  const rsIn = document.getElementById('rs'), sgIn = document.getElementById('sigma');
-  const rsOut = document.getElementById('rs-out'), sgOut = document.getElementById('sigma-out');
-  const oCap = document.getElementById('o-cap'), oPh = document.getElementById('o-ph'), oBc = document.getElementById('o-bc');
-  const runBtn = document.getElementById('run'), emitBtn = document.getElementById('emit');
-
-  // camera and model constants (world units; r_s is set by the lens slider)
-  const ELEV = 33 * Math.PI / 180, CE = Math.cos(ELEV), SE = Math.sin(ELEV), DIST = 27;
-  const KAPPA = 0.5, RREF = 16, RDOM = 15.5;      // embedding exaggeration, reference radius, sheet radius
-  const GAMMA = 0.012, SIM = 12, CVIS = 6.5;       // bath friction, proper time per second, light speed on screen
-  const st = { rs: +rsIn.value, sigma: +sgIn.value };
-  let W = 1, H = 1, dpr = 1, f = 1, cx = 0, cy = 0, s0 = 1, zRef = 0, tok = null, PW = 1, PH = 1;
-  let active = false, visible = false, paused = !Motion.on, raf = 0, last = 0, frame = 0, captured = 0, firstPending = false, staticRaf = 0;
-  const NP = matchMedia('(max-width: 640px)').matches ? 200 : 340;
-  const E = { x: new Float64Array(NP), y: new Float64Array(NP), u: new Float64Array(NP), v: new Float64Array(NP) };
-  const pulses = [];
-  const P = [0, 0, 0];
-  const S = { x: 0, y: 0, u: 0, v: 0 };
-
-  function readTok() {
-    const cs = getComputedStyle(root), g = n => cs.getPropertyValue(n).trim() || '#888888';
-    tok = { grid: g('--grid'), light: g('--light'), matter: g('--matter'), void: g('--void'), ink: g('--ink'), bg: g('--bg'), panel: g('--panel') };
-    const [r, gg, b] = hexRgb(tok.bg);
-    tok.dark = (0.2126 * r + 0.7152 * gg + 0.0722 * b) / 255 < 0.45;
-  }
-  function setZ() { zRef = Phys.flamm(RREF, st.rs); }
-  // Flamm's paraboloid, shifted so the rim sits at zero and exaggerated by KAPPA
-  function hgt(r) { return KAPPA * ((r <= st.rs ? 0 : Phys.flamm(r, st.rs)) - zRef); }
-  function proj(X, Y, Hh, o) {
-    const yc = Hh * CE + Y * SE, zc = DIST + Y * CE - Hh * SE, s = f / zc;
-    o[0] = cx + X * s; o[1] = cy - yc * s; o[2] = s; return o;
-  }
-  function projR(X, Y, o) { return proj(X, Y, hgt(Math.hypot(X, Y)), o); }
-  function toPlane(sx, sy) {
-    const a = (sx - cx) / f, b = (cy - sy) / f;
-    if (SE - b * CE < 0.03) return null;
-    let Hh = 0, X = 0, Y = 0;
-    for (let i = 0; i < 6; i++) {
-      Y = (b * (DIST - Hh * SE) - Hh * CE) / (SE - b * CE);
-      X = a * (DIST + Y * CE - Hh * SE);
-      Hh = hgt(Math.max(Math.hypot(X, Y), st.rs));
-    }
-    return Math.hypot(X, Y) > RDOM ? null : [X, Y];
-  }
-  function trace(x, y, u, v) {
-    const rs = st.rs, k = Phys.nullK(rs, x * v - y * u);
-    S.x = x; S.y = y; S.u = u; S.v = v;
-    const pts = [x, y];
-    for (let n = 0; n < 9000; n++) {
-      const r = Math.hypot(S.x, S.y);
-      if (r < rs * 1.01) break;
-      if (r > 18 && S.x * S.u + S.y * S.v > 0) break;
-      Phys.nullStep(S, k, Phys.nullStepSize(r, rs, Math.hypot(S.u, S.v), 0.002, 0.15)); pts.push(S.x, S.y);
-    }
-    return pts;
-  }
-
-  /* ----- static layer: sheet, horizon, rings, one geodesic ----- */
-  function gridLine(c, k, vertical) {
-    let pen = false, t = -RDOM;
-    while (t <= RDOM) {
-      const X = vertical ? k : t, Y = vertical ? t : k, r = Math.hypot(X, Y);
-      let step;
-      if (r > RDOM || r < st.rs * 1.003) { pen = false; step = 0.1; }
-      else {
-        proj(X, Y, hgt(r), P);
-        if (pen) c.lineTo(P[0], P[1]); else { c.moveTo(P[0], P[1]); pen = true; }
-        step = Math.min(0.14, 0.01 + 0.05 * (r - st.rs));
-      }
-      t += step;
-    }
-  }
-  function ringPath(c, r) {
-    c.beginPath();
-    for (let i = 0; i <= 180; i++) { const a = i / 180 * TAU; proj(r * Math.cos(a), r * Math.sin(a), hgt(r), P); i ? c.lineTo(P[0], P[1]) : c.moveTo(P[0], P[1]); }
-    c.closePath();
-  }
-  function drawSheet() {
-    if (!tok) readTok();
-    setZ();
-    const c = xS, rs = st.rs;
-    c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
-    c.lineWidth = 0.8; c.strokeStyle = rgba(tok.grid, tok.dark ? 0.28 : 0.34);
-    c.beginPath();
-    for (let i = -20; i <= 20; i++) { const k = i * 0.8; gridLine(c, k, true); gridLine(c, k, false); }
-    c.stroke();
-    ringPath(c, rs * 1.004); c.fillStyle = tok.void; c.fill(); c.lineWidth = 0.8; c.strokeStyle = rgba(tok.ink, 0.3); c.stroke();
-    c.setLineDash([1.5, 4]); ringPath(c, Phys.isco(rs)); c.strokeStyle = rgba(tok.ink, 0.5); c.stroke();
-    c.setLineDash([3, 3]); ringPath(c, Phys.photonSphere(rs)); c.strokeStyle = rgba(tok.light, 0.8); c.stroke();
-    c.setLineDash([]);
-    // a single geodesic, passing just outside the critical impact parameter
-    const pts = trace(-17, -Phys.criticalImpact(rs) * 1.06, 1, 0);
-    c.lineWidth = 1; c.strokeStyle = rgba(tok.light, tok.dark ? 0.75 : 0.95);
-    c.beginPath();
-    for (let j = 0; j < pts.length; j += 2) { projR(pts[j], pts[j + 1], P); j ? c.lineTo(P[0], P[1]) : c.moveTo(P[0], P[1]); }
-    c.stroke();
-  }
-  function requestStatic() {
-    if (staticRaf) return;
-    staticRaf = requestAnimationFrame(() => { staticRaf = 0; drawSheet(); if (!raf) render(); });
-  }
-
-  /* ----- matter: timelike geodesics in a Langevin bath ----- */
-  const temp = () => 0.02 * st.sigma * st.sigma;
-  function spawn(i) {
-    const rs = st.rs, M = 0.5 * rs;
-    const rmin = Math.max(3.3 * rs, 2.4), rmax = 10.5;
-    const r = rmin + (rmax - rmin) * Math.pow(Math.random(), 0.9), th = Math.random() * TAU;
-    const vc = Phys.circularSpeed(r, M), vt = Math.sqrt(temp());
-    E.x[i] = r * Math.cos(th); E.y[i] = r * Math.sin(th);
-    E.u[i] = -vc * Math.sin(th) + vt * gauss(); E.v[i] = vc * Math.cos(th) + vt * gauss();
-  }
-  function stepEnsemble(dts) {
-    const rs = st.rs, M = 0.5 * rs, T = temp(), cap = rs * 1.04;
-    for (let i = 0; i < NP; i++) {
-      if (!Phys.timelikeStep(E, i, dts, M, GAMMA, T, cap, gauss)) { captured++; spawn(i); continue; }
-      const x = E.x[i], y = E.y[i], r = Math.hypot(x, y);
-      if (r > 12.5) {   // a reflecting wall keeps the ensemble on the sheet
-        const vr = (x * E.u[i] + y * E.v[i]) / r;
-        if (vr > 0) { E.u[i] -= 2 * vr * x / r; E.v[i] -= 2 * vr * y / r; }
-      }
-    }
-  }
-
-  /* ----- light pulses, advanced in Schwarzschild coordinate time ----- */
-  function mk(x, y, u, v) { return { x, y, u, v, L: x * v - y * u, t: 0, alive: true, tr: [] }; }
-  function addPulse(p) { pulses.push(p); if (pulses.length > 6) pulses.shift(); if (paused) setPaused(false); else schedule(); }
-  function launchPlane() {
-    const n = W < 520 ? 72 : 112, ph = [];
-    for (let i = 0; i < n; i++) ph.push(mk(-16.5, -9 + 18 * i / (n - 1), 1, 0));
-    addPulse({ ph, closed: false, gap: 1.3, T: 0 });
-  }
-  function launchPoint(X, Y) {
-    if (Math.hypot(X, Y) < st.rs * 1.25) return;
-    const n = 144, ph = [];
-    for (let i = 0; i < n; i++) { const a = i / n * TAU; ph.push(mk(X, Y, Math.cos(a), Math.sin(a))); }
-    addPulse({ ph, closed: true, gap: 1.6, T: 0 });
-  }
-  function photonStep(ph, rs) {
-    const r = Math.hypot(ph.x, ph.y);
-    if (r < rs * 1.03 || (r > 19 && ph.x * ph.u + ph.y * ph.v > 0)) { ph.alive = false; return false; }
-    const x0 = ph.x, y0 = ph.y;
-    S.x = ph.x; S.y = ph.y; S.u = ph.u; S.v = ph.v;
-    Phys.nullStep(S, Phys.nullK(rs, ph.L), Phys.nullStepSize(r, rs, Math.hypot(ph.u, ph.v), 0.0015, 0.12));
-    const dt = Phys.nullDt(x0, y0, S.x, S.y, rs);
-    if (dt < 0) { ph.alive = false; return false; }
-    ph.t += dt;
-    ph.x = S.x; ph.y = S.y; ph.u = S.u; ph.v = S.v;
-    return true;
-  }
-  function stepPulses(dt) {
-    const rs = st.rs;
-    for (let i = pulses.length - 1; i >= 0; i--) {
-      const pl = pulses[i]; pl.T += CVIS * dt; let alive = 0;
-      for (const ph of pl.ph) {
-        if (!ph.alive) continue;
-        let guard = 0;
-        while (ph.t < pl.T && guard++ < 400) { if (!photonStep(ph, rs)) break; }
-        if (ph.alive) { ph.tr.push(ph.x, ph.y); if (ph.tr.length > 24) ph.tr.splice(0, 2); alive++; }
-        else ph.tr.length = 0;
-      }
-      if (alive === 0 || pl.T > 90) pulses.splice(i, 1);
-    }
-  }
-
-  /* ----- drawing ----- */
-  function drawPulse(c, pl) {
-    const col = tok.light, n = pl.ph.length;
-    c.strokeStyle = rgba(col, tok.dark ? 0.5 : 0.7); c.lineWidth = 1.1; c.beginPath();
-    let prev = null;
-    for (let j = 0; j <= n; j++) {
-      if (j === n && !pl.closed) break;
-      const ph = pl.ph[j % n];
-      if (!ph.alive) { prev = null; continue; }
-      projR(ph.x, ph.y, P);
-      if (prev && Math.hypot(ph.x - prev.x, ph.y - prev.y) < pl.gap) c.lineTo(P[0], P[1]); else c.moveTo(P[0], P[1]);
-      prev = ph;
-    }
-    c.stroke();
-    c.strokeStyle = rgba(col, tok.dark ? 0.26 : 0.4); c.lineWidth = 0.9; c.beginPath();
-    for (const ph of pl.ph) {
-      const tr = ph.tr; if (tr.length < 4) continue;
-      for (let k = 0; k < tr.length; k += 2) { projR(tr[k], tr[k + 1], P); k ? c.lineTo(P[0], P[1]) : c.moveTo(P[0], P[1]); }
-    }
-    c.stroke();
-    c.fillStyle = rgba(col, 0.95); c.beginPath();
-    for (const ph of pl.ph) {
-      if (!ph.alive) continue;
-      projR(ph.x, ph.y, P); const rad = clamp(1.4 * P[2] / s0, 0.8, 2.6);
-      c.moveTo(P[0] + rad, P[1]); c.arc(P[0], P[1], rad, 0, TAU);
-    }
-    c.fill();
-  }
-  function drawPhase() {
-    const c = xP; c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, PW, PH);
-    const L = 10, R = PW - 10, T = 10, B = PH - 22, rs = st.rs;
-    const lx = q => L + Math.log(q) / Math.log(30) * (R - L);
-    const ly = p => T + (0.5 - p / 0.8) * (B - T);
-    c.lineWidth = 1;
-    c.strokeStyle = rgba(tok.ink, 0.14); c.beginPath(); c.moveTo(L, ly(0)); c.lineTo(R, ly(0)); c.stroke();
-    c.setLineDash([3, 3]); c.strokeStyle = rgba(tok.light, 0.7); c.beginPath(); c.moveTo(lx(1.5), T); c.lineTo(lx(1.5), B); c.stroke();
-    c.setLineDash([1.5, 3]); c.strokeStyle = rgba(tok.ink, 0.4); c.beginPath(); c.moveTo(lx(3), T); c.lineTo(lx(3), B); c.stroke();
-    c.setLineDash([]);
-    c.fillStyle = rgba(tok.ink, 0.6); c.font = '9.5px "IBM Plex Mono", ui-monospace, monospace'; c.textBaseline = 'top';
-    for (const q of [1, 3, 10, 30]) { c.textAlign = q === 1 ? 'left' : q === 30 ? 'right' : 'center'; c.fillText(String(q), lx(q), B + 6); }
-    c.fillStyle = rgba(tok.matter, 0.85);
-    for (let i = 0; i < NP; i++) {
-      const r = Math.hypot(E.x[i], E.y[i]), q = r / rs; if (q < 1 || q > 30) continue;
-      const pr = (E.x[i] * E.u[i] + E.y[i] * E.v[i]) / r;
-      c.fillRect(lx(q) - 1, ly(clamp(pr, -0.4, 0.4)) - 1, 2, 2);
-    }
-  }
-  function render() {
-    if (!tok) readTok();
-    const c = xD; c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
-    c.globalCompositeOperation = 'source-over';
-    c.fillStyle = rgba(tok.matter, tok.dark ? 0.85 : 0.82); c.beginPath();
-    for (let i = 0; i < NP; i++) {
-      projR(E.x[i], E.y[i], P); const rad = clamp(1.25 * P[2] / s0, 0.7, 2.4);
-      c.moveTo(P[0] + rad, P[1]); c.arc(P[0], P[1], rad, 0, TAU);
-    }
-    c.fill();
-    if (tok.dark) c.globalCompositeOperation = 'lighter';
-    for (const pl of pulses) drawPulse(c, pl);
-    c.globalCompositeOperation = 'source-over';
-    drawPhase();
-  }
-  function readouts() {
-    oCap.textContent = captured;
-    let n = 0; for (const pl of pulses) for (const ph of pl.ph) if (ph.alive) n++;
-    oPh.textContent = n;
-  }
-
-  /* ----- loop ----- */
-  function tick(now) {
-    raf = 0;
-    const dt = last ? clamp((now - last) / 1000, 0, 0.05) : 1 / 60; last = now;
-    if (!paused) { stepEnsemble(dt * SIM); stepPulses(dt); }
-    render();
-    if (++frame % 8 === 0) readouts();
-    schedule();
-  }
-  function schedule() {
-    if (raf) return;
-    if (!active || !visible || document.hidden || paused) { last = 0; return; }
-    raf = requestAnimationFrame(tick);
-  }
-  function setPaused(p) {
-    paused = p; runBtn.textContent = p ? 'Resume' : 'Pause';
-    if (!p) schedule(); else readouts();
-  }
-  function resize() {
-    const r = field.getBoundingClientRect();
-    if (r.width < 2) return;
-    W = r.width; H = r.height; dpr = Math.min(2, window.devicePixelRatio || 1);
-    for (const c of [cS, cD]) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
-    f = Math.min(W / 20, H / 13) * DIST; cx = W / 2; cy = H * 0.42; s0 = f / DIST;
-    const pr = cP.getBoundingClientRect(); PW = Math.max(1, pr.width); PH = Math.max(1, pr.height);
-    cP.width = Math.round(PW * dpr); cP.height = Math.round(PH * dpr);
-    drawSheet(); render();
-  }
-  function tryFirst() { if (firstPending && active && visible) { firstPending = false; setTimeout(() => { if (active && !paused) launchPlane(); }, 380); } }
-
-  rsIn.addEventListener('input', () => {
-    st.rs = +rsIn.value; rsOut.textContent = st.rs.toFixed(2);
-    oBc.textContent = Phys.criticalImpact(st.rs).toFixed(2); setZ(); requestStatic();
-  });
-  sgIn.addEventListener('input', () => { st.sigma = +sgIn.value; sgOut.textContent = st.sigma.toFixed(2); });
-  emitBtn.addEventListener('click', launchPlane);
-  runBtn.addEventListener('click', () => setPaused(!paused));
-  field.addEventListener('click', e => {
-    const r = field.getBoundingClientRect(), pt = toPlane(e.clientX - r.left, e.clientY - r.top);
-    if (pt) launchPoint(pt[0], pt[1]);
-  });
-  new ResizeObserver(() => { if (active) resize(); }).observe(field);
-  new IntersectionObserver(es => { visible = es[0].isIntersecting; if (visible) tryFirst(); schedule(); }).observe(field);
-  document.addEventListener('visibilitychange', schedule);
-  const retheme = () => { readTok(); if (active) { drawSheet(); render(); } };
-  new MutationObserver(retheme).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
-  matchMedia('(prefers-color-scheme: light)').addEventListener('change', retheme);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (active) { drawSheet(); render(); } });
-  Motion.subscribe(on => setPaused(!on));
-
-  setZ();
-  for (let i = 0; i < NP; i++) spawn(i);
-  oBc.textContent = Phys.criticalImpact(st.rs).toFixed(2);
-  setPaused(paused);
-
-  return {
-    setActive(on) {
-      active = on;
-      if (on) { resize(); schedule(); tryFirst(); }
-      else if (raf) { cancelAnimationFrame(raf); raf = 0; last = 0; }
-    },
-    firstLight() { if (!Motion.on) return; firstPending = true; tryFirst(); },
-    get frames() { return frame; }
-  };
-})();
-
-/* ---------------- the binary: two black holes and their gravitational waves ---------------- */
+/* ---------------- the observatory: two black holes spiral together and merge ---------------- */
 const Bin = (() => {
   const field = document.getElementById('bin-field');
   if (!field) return { setActive() {}, get frames() { return 0; } };
@@ -700,17 +397,22 @@ const Bin = (() => {
   const KM = 147.6625, MS = 0.4925491, MSUN = 100;
   const ELEV = 33 * Math.PI / 180, CE = Math.cos(ELEV), SE = Math.sin(ELEV), DIST = 27, RDOM = 15.5;
   const DEPTH = 6.5;     // sheet depth per unit of potential
-  const CW = 0.045;      // ripple speed on the sheet (light is 1), slowed so that several wavelengths fit
-  const SIM = 46;        // time units per second on screen
-  const WAVE = 0.85;     // ripple height near the orbit at the strongest setting
-  const WIN = 4 * SIM;   // the trace shows the last four seconds
-  const HMAX = 0.5 * 0.5 / (2 * 450 / KM);   // μM/a at the strongest setting (50 Msun each, 450 km)
-  const H = Phys.makeHistory(900, 0.5);       // 450 time units: enough for the sheet's edge and the trace
-  const st = { R: 0, m: 0, om: 0, q: 0 };
+  const CW = 0.05;       // wave speed on the sheet (light is 1), slowed so that several wavelengths fit
+  const SIM = 46;        // time units per second of film...
+  const WREF = 0.06;     // ...run faster while the orbit is slower than this, so wide orbits don't drag
+  const WAVE = 0.85;     // ripple height near the orbit for the strongest starting setting
+  const NMIN = 5, NMAX = 7;                    // orbits shown from start to merger
+  const HMAX = 0.25 / (2 * 450 / KM);         // μM/a at the strongest start (50 Msun each, 450 km apart from the centre)
+  const TRACE_S = 4, TN = 480;                 // the trace: the last four seconds of film
+  const H = Phys.makeHistory(1400, 0.5);       // 700 time units of waves: more than the sheet's edge needs
+  const P = [0, 0, 0], P2 = [0, 0], O = [0, 0, 0, 0], post = {};
+  const TR = new Float32Array(TN);             // strain samples, newest last
   let W = 1, Hh = 1, dpr = 1, f = 1, cx = 0, cy = 0, TW = 1, TH = 1, tok = null, coarse = false;
   let active = false, visible = false, paused = !Motion.on, raf = 0, last = 0, frame = 0;
-  const P = [0, 0, 0], O = [0, 0];
-  let h1x = 0, h1y = 0, h2x = 0, h2y = 0, rh = 0, potRim = 0;
+  // the run
+  let B = null, a = 0, phase = 0, omega = 0, amp = 0, merged = false, sm = 0, smScreen = 0, still = false, phM = 0, traceClock = 0;
+  // what is drawn this frame
+  let sep = 0, rh = 0, mw = 0, h1x = 0, h1y = 0, h2x = 0, h2y = 0, potRim = 0;
 
   function readTok() {
     const cs = getComputedStyle(root), g = n => cs.getPropertyValue(n).trim() || '#888888';
@@ -718,61 +420,93 @@ const Bin = (() => {
     const [r, gg, b] = hexRgb(tok.bg);
     tok.dark = (0.2126 * r + 0.7152 * gg + 0.0722 * b) / 255 < 0.45;
   }
-  function setParams() {
-    st.R = +rIn.value / KM; st.m = +mIn.value / MSUN;
-    const a = 2 * st.R;
-    st.om = Phys.binaryOmega(st.m, st.m, a);
-    st.q = (st.m * st.m / a) / HMAX;          // strain relative to the strongest setting (μM = m² for equal masses)
-    rh = 2 * st.m; potRim = -2 * st.m / RDOM;
+  const fmtMs = v => (v < 10 ? v.toFixed(1) : Math.round(v)) + ' ms';
+  function readouts() {
+    if (merged) { oT.textContent = oF.textContent = oTau.textContent = '—'; return; }
+    const tau = (Phys.mergerTime(B.m1, B.m2, a) - Phys.mergerTime(B.m1, B.m2, B.am)) * MS;
+    oT.textContent = fmtMs(2 * Math.PI / omega * MS);
+    oF.textContent = Math.round(omega / Math.PI / MS * 1000) + ' Hz';
+    oTau.textContent = tau < 1000 ? fmtMs(tau) : (tau / 1000).toFixed(1) + ' s';
+  }
+  const rate = w => SIM * Math.max(1, WREF / w);    // time units per second of film
+  const strain = (ph, am) => Phys.quadrupoleStrain(0.5, 0.5, 1, 1, 0, ph, P2)[0] * am;   // face-on h₊, here −am·cos 2Φ
+  function label() { runBtn.textContent = merged ? 'Restart' : paused ? 'Resume' : 'Pause'; }
+
+  // A new pair at the sliders' settings, as if it had been orbiting there for a long time
+  function start() {
+    const m = +mIn.value / MSUN, R = +rIn.value / KM;
     rOut.textContent = rIn.value + ' km'; rIn.setAttribute('aria-valuetext', rIn.value + ' kilometres');
     mOut.textContent = mIn.value + ' M☉'; mIn.setAttribute('aria-valuetext', mIn.value + ' solar masses');
-    const T = TAU / st.om * MS, fq = st.om / Math.PI / MS * 1000, tau = Phys.mergerTime(st.m, st.m, a) * MS;
-    oT.textContent = Math.round(T) + ' ms';
-    oF.textContent = Math.round(fq) + ' Hz';
-    oTau.textContent = tau < 1000 ? Math.round(tau) + ' ms' : (tau / 1000).toFixed(1) + ' s';
+    B = Phys.pacedBinary(m, m, 2 * R, NMIN, NMAX);
+    a = B.a0; phase = 0.6; omega = Phys.binaryOmega(m, m, a); amp = B.mu * B.M / a;
+    merged = false; still = false; sm = 0; smScreen = 0;
+    Phys.historyReset(H, phase, omega, amp / HMAX, a / 2);
+    const peak = B.mu * B.M / B.am, dph = omega * rate(omega) * TRACE_S / TN;
+    for (let i = 0; i < TN; i++) TR[i] = strain(phase - (TN - 1 - i) * dph, amp / peak);
+    traceClock = 0;
+    readouts(); label();
   }
-  function place() {
-    const ph = H.phase, c = Math.cos(ph), s = Math.sin(ph);
-    h1x = st.R * c; h1y = st.R * s; h2x = -h1x; h2y = -h1y;
+
+  // Advance the film by dt seconds
+  function advance(dt) {
+    const p0 = phase, a0 = amp, peak = B.mu * B.M / B.am;
+    let T = rate(omega) * dt;
+    if (!merged) {
+      while (T > 0) {
+        const w = Phys.binaryOmega(B.m1, B.m2, a), da = Phys.inspiralRate(B, a);
+        let h = Math.min(T, 0.02 * TAU / w);
+        if (a + da * h <= B.am) h = Math.max(0, (a - B.am) / -da);   // stop at the merger
+        const st = { a, phase }; Phys.inspiralStep(B, st, h); a = st.a; phase = st.phase; T -= h;
+        if (a <= B.am * 1.0000001 || h < 1e-9) { a = B.am; merged = true; phM = phase; label(); readouts(); break; }
+      }
+      omega = Phys.binaryOmega(B.m1, B.m2, a); amp = B.mu * B.M / a;
+    }
+    if (merged) {
+      sm += T; smScreen += dt;
+      Phys.afterMerger(B, sm, post);
+      phase = phM + post.dphase; omega = post.omega; amp = post.amp;
+      if (sm > B.dur && sm * CW > RDOM + 4) still = true;   // the last waves have left the sheet
+    }
+    const sepNow = merged ? B.am * (1 - post.blend) : a;
+    Phys.historyAdvance(H, rate(omega) * dt, phase, omega, amp / HMAX, sepNow / 2);
+    // the trace, sampled evenly in film time
+    if (!merged || smScreen < 0.7) {
+      traceClock += dt;
+      const step = TRACE_S / TN;
+      for (let n = 0; traceClock >= step && n < TN; n++) {
+        traceClock -= step;
+        const fr = 1 - traceClock / dt;
+        TR.copyWithin(0, 1); TR[TN - 1] = strain(p0 + (phase - p0) * fr, (a0 + (amp - a0) * fr) / peak);
+      }
+    }
   }
+
   function proj(X, Y, Z, o) {
     const yc = Z * CE + Y * SE, zc = DIST + Y * CE - Z * SE, s = f / zc;
     o[0] = cx + X * s; o[1] = cy - yc * s; o[2] = s; return o;
   }
+  function place() {
+    const bl = merged ? post.blend : 0;
+    sep = merged ? B.am * (1 - bl) : a;
+    rh = 2 * B.m1 + (B.rp - 2 * B.m1) * bl;           // each horizon grows into the remnant's
+    mw = B.M + (B.Mf - B.M) * bl; potRim = -mw / RDOM;
+    const c = Math.cos(phase), s = Math.sin(phase);
+    h1x = 0.5 * sep * c; h1y = 0.5 * sep * s; h2x = -h1x; h2y = -h1y;
+  }
   // depth of the sheet: the pair's potential, with the rim at zero
-  const well = (X, Y) => DEPTH * (Phys.binaryPotential(X, Y, h1x, h1y, st.m, h2x, h2y, st.m) - potRim);
-  // the ripple at (X, Y): the in-plane strain of the orbit as it was r/c ago, scaled for display
-  const ramp = r => sstep((r - st.R - 0.6) / 2.2);
-  const fall = r => (st.R + 2) / Math.max(r, st.R + 2);
+  const well = (X, Y) => DEPTH * (Phys.binaryPotential(X, Y, h1x, h1y, 0.5 * mw, h2x, h2y, 0.5 * mw) - potRim);
+  // near the pair the field is not yet a wave; the ripple starts just outside the horizons
+  const ramp = r => sstep((r - 0.5 * sep - 0.8 * rh) / 2);
+  const fall = r => (0.5 * sep + 2) / Math.max(r, 0.5 * sep + 2);
+  // display height for relative strain q at angular frequency w: grows with q, never so steep that the sheet folds
+  const height = (q, w) => Math.min(WAVE * Math.sqrt(q), 0.16 * Math.PI * CW / w);
+  // The ripple at (X, Y): the wave now at this distance, as it was emitted. The sign of h₊ depends on the choice
+  // of polarisation axes; we take the one whose ridges point along the line through the holes.
   function ripple(X, Y, r) {
     const rp = ramp(r);
     if (rp <= 0) return 0;
-    Phys.historyAt(H, r / CW, O);
-    return height(O[1]) * rp * fall(r) * Phys.planeStrain(2, O[0], Math.atan2(Y, X));   // −cos 2(Φ − φ)
-  }
-  // Display height: grows with the strain, but never so steep (for the wavelength) that the sheet folds over
-  const height = q => Math.min(WAVE * Math.sqrt(q), 0.16 * Math.PI * CW / st.om);
-  // The two crest lines, where h₊ peaks: φ = Φ(t − r/c) − π/2 − nπ. Brighter where the wave is stronger.
-  const CR = new Float32Array(2 * 400), CA = new Float32Array(400);
-  function drawCrests(c) {
-    const r0 = st.R + 0.6, dr = coarse ? 0.12 : 0.08;
-    for (let arm = 0; arm < 2; arm++) {
-      let n = 0;
-      for (let r = r0; r <= RDOM && n < 400; r += dr, n++) {
-        Phys.historyAt(H, r / CW, O);
-        const s = Math.sqrt(O[1]) * ramp(r), phi = O[0] - Math.PI / 2 - arm * Math.PI;
-        const X = r * Math.cos(phi), Y = r * Math.sin(phi);
-        proj(X, Y, well(X, Y) + height(O[1]) * ramp(r) * fall(r), P);
-        CR[2 * n] = P[0]; CR[2 * n + 1] = P[1]; CA[n] = s * Math.sqrt(fall(r));
-      }
-      for (const [lw, k] of [[3.2, 0.16], [1.1, 0.9]]) {     // a soft glow, then the line
-        c.lineWidth = lw;
-        for (let j = 1; j < n; j++) {
-          c.strokeStyle = rgba(tok.light, (tok.dark ? 1 : 1.1) * k * (0.3 + 0.7 * 0.5 * (CA[j] + CA[j - 1])));
-          c.beginPath(); c.moveTo(CR[2 * j - 2], CR[2 * j - 1]); c.lineTo(CR[2 * j], CR[2 * j + 1]); c.stroke();
-        }
-      }
-    }
+    Phys.historyFront(H, r, CW, O);
+    return height(O[1], O[2]) * rp * fall(r) * -Phys.planeStrain(2, O[0], Math.atan2(Y, X));
   }
 
   /* ----- drawing ----- */
@@ -784,22 +518,53 @@ const Bin = (() => {
       let step;
       if (r > RDOM || dn < rh * 1.003) { pen = false; step = 0.1; }
       else {
-        const w = ripple(X, Y, r);
-        proj(X, Y, well(X, Y) + w, P);
+        proj(X, Y, well(X, Y) + ripple(X, Y, r), P);
         if (pen) c.lineTo(P[0], P[1]); else { c.moveTo(P[0], P[1]); pen = true; }
         step = Math.min(sp, 0.012 + 0.06 * (dn - rh));
       }
       t += step;
     }
   }
-  function horizon(c, hx, hy) {
+  // The two ridges, where the wave peaks: φ = Φ(emitted) − nπ, starting at the holes. Brighter where it is stronger.
+  const CMAX = 3000, CR = new Float32Array(2 * CMAX), CA = new Float32Array(CMAX);
+  function drawCrests(c) {
+    for (let arm = 0; arm < 2; arm++) {
+      let n = 0;
+      for (let r = 0.5 * sep + 0.5 * rh; r <= RDOM && n < CMAX; n++) {
+        Phys.historyFront(H, r, CW, O);
+        const q = O[1], phi = O[0] - arm * Math.PI, X = r * Math.cos(phi), Y = r * Math.sin(phi), rp = ramp(r), fl = fall(r);
+        proj(X, Y, well(X, Y) + height(q, O[2]) * rp * fl, P);
+        CR[2 * n] = P[0]; CR[2 * n + 1] = P[1];
+        CA[n] = (0.3 + 0.7 * Math.min(1, Math.sqrt(q) * rp * Math.sqrt(fl))) * sstep(q / 0.03) * sstep(rp * 3);
+        r += clamp(0.2 * CW / Math.max(O[2], 1e-6), 0.012, 0.08);
+      }
+      for (const [lw, k] of [[3.2, 0.16], [1.1, 0.9]]) {     // a soft glow, then the line
+        c.lineWidth = lw;
+        for (let j = 1; j < n; j++) {
+          const al = (tok.dark ? 1 : 1.1) * k * 0.5 * (CA[j] + CA[j - 1]);
+          if (al < 0.01) continue;
+          c.strokeStyle = rgba(tok.light, Math.min(1, al));
+          c.beginPath(); c.moveTo(CR[2 * j - 2], CR[2 * j - 1]); c.lineTo(CR[2 * j], CR[2 * j + 1]); c.stroke();
+        }
+      }
+    }
+  }
+  // each horizon is drawn level, at the depth of the sheet at its edge (its own well plus the other hole's)
+  function horizonPath(c, hx, hy) {
+    const z = DEPTH * (-0.5 * mw / rh - 0.5 * mw / Math.max(sep, rh) - potRim);
     c.beginPath();
     for (let i = 0; i <= 72; i++) {
-      const an = i / 72 * TAU, X = hx + rh * 1.004 * Math.cos(an), Y = hy + rh * 1.004 * Math.sin(an);
-      proj(X, Y, well(X, Y), P); i ? c.lineTo(P[0], P[1]) : c.moveTo(P[0], P[1]);
+      const an = i / 72 * TAU;
+      proj(hx + rh * 1.004 * Math.cos(an), hy + rh * 1.004 * Math.sin(an), z, P); i ? c.lineTo(P[0], P[1]) : c.moveTo(P[0], P[1]);
     }
     c.closePath();
-    c.fillStyle = tok.void; c.fill(); c.lineWidth = 0.8; c.strokeStyle = rgba(tok.ink, 0.3); c.stroke();
+  }
+  function drawHoles(c) {
+    // outlines first, then the fills, so that two overlapping horizons show a single outline
+    const order = h1y < h2y ? [[h2x, h2y], [h1x, h1y]] : [[h1x, h1y], [h2x, h2y]];
+    c.lineWidth = 0.8; c.strokeStyle = rgba(tok.ink, 0.3); c.fillStyle = tok.void;
+    for (const [x, y] of order) { horizonPath(c, x, y); c.stroke(); }
+    for (const [x, y] of order) { horizonPath(c, x, y); c.fill(); }
   }
   function drawSheet() {
     const c = xS;
@@ -811,23 +576,16 @@ const Bin = (() => {
     for (let i = -n; i <= n; i++) { gridLine(c, i * gap, true, sp); gridLine(c, i * gap, false, sp); }
     c.stroke();
     drawCrests(c);
-    // the nearer hole is drawn last
-    if (h1y < h2y) { horizon(c, h2x, h2y); horizon(c, h1x, h1y); } else { horizon(c, h1x, h1y); horizon(c, h2x, h2y); }
+    drawHoles(c);
   }
   function drawTrace() {
     const c = xT; c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, TW, TH);
-    const L = 10, R = TW - 10, mid = TH / 2, half = TH / 2 - 14;
+    const L = 10, R = TW - 10, mid = TH / 2, half = TH / 2 - 12;
     c.lineWidth = 1; c.strokeStyle = rgba(tok.ink, 0.14);
     c.beginPath(); c.moveTo(L, mid); c.lineTo(R, mid); c.stroke();
-    // h₊ for an observer on the orbit's axis, relative to the strongest setting
+    // h₊ for an observer on the orbit's axis, relative to this run's peak
     c.lineWidth = 1.2; c.strokeStyle = rgba(tok.light, tok.dark ? 0.9 : 1); c.beginPath();
-    const N = Math.max(60, Math.round((R - L) / 1.5));
-    for (let i = 0; i <= N; i++) {
-      Phys.historyAt(H, (1 - i / N) * WIN, O);
-      const y = mid - half * Phys.quadrupoleStrain(0.5, 0.5, 1, 1, 0, O[0], P)[0] * O[1];   // h₀ = 1 here
-      const x = L + (R - L) * i / N;
-      i ? c.lineTo(x, y) : c.moveTo(x, y);
-    }
+    for (let i = 0; i < TN; i++) { const x = L + (R - L) * i / (TN - 1), y = mid - half * TR[i]; i ? c.lineTo(x, y) : c.moveTo(x, y); }
     c.stroke();
   }
   function render() { if (!tok) readTok(); drawSheet(); drawTrace(); }
@@ -836,16 +594,16 @@ const Bin = (() => {
   function tick(now) {
     raf = 0;
     const dt = last ? clamp((now - last) / 1000, 0, 0.05) : 1 / 60; last = now;
-    if (!paused) Phys.historyAdvance(H, dt * SIM, st.om, st.q);
-    render(); frame++;
+    if (!paused && !still) { advance(dt); if (++frame % 6 === 0) readouts(); }
+    render();
     schedule();
   }
   function schedule() {
     if (raf) return;
-    if (!active || !visible || document.hidden || paused) { last = 0; return; }
+    if (!active || !visible || document.hidden || paused || still) { last = 0; return; }
     raf = requestAnimationFrame(tick);
   }
-  function setPaused(p) { paused = p; runBtn.textContent = p ? 'Resume' : 'Pause'; if (!p) schedule(); }
+  function setPaused(p) { paused = p; label(); if (!p) schedule(); }
   function resize() {
     const r = field.getBoundingClientRect();
     if (r.width < 2) return;
@@ -857,16 +615,11 @@ const Bin = (() => {
     cT.width = Math.round(TW * dpr); cT.height = Math.round(TH * dpr);
     render();
   }
-  function onInput() {
-    setParams();
-    // while running, the change spreads outward with the waves; when still, show the new steady pattern at once
-    if (paused || !raf) Phys.historyReset(H, H.phase, st.om, st.q);
-    if (active && !raf) render();
-  }
+  function restart() { start(); if (active) render(); schedule(); }
 
-  rIn.addEventListener('input', onInput);
-  mIn.addEventListener('input', onInput);
-  runBtn.addEventListener('click', () => setPaused(!paused));
+  rIn.addEventListener('input', restart);
+  mIn.addEventListener('input', restart);
+  runBtn.addEventListener('click', () => { if (merged) restart(); else setPaused(!paused); });
   new ResizeObserver(() => { if (active) resize(); }).observe(field);
   new IntersectionObserver(es => { visible = es[0].isIntersecting; schedule(); }).observe(field);
   document.addEventListener('visibilitychange', schedule);
@@ -875,8 +628,7 @@ const Bin = (() => {
   matchMedia('(prefers-color-scheme: light)').addEventListener('change', retheme);
   Motion.subscribe(on => setPaused(!on));
 
-  setParams();
-  Phys.historyReset(H, 0.6, st.om, st.q);
+  start();
   setPaused(paused);
 
   return {
@@ -885,8 +637,10 @@ const Bin = (() => {
       if (on) { resize(); schedule(); }
       else if (raf) { cancelAnimationFrame(raf); raf = 0; last = 0; }
     },
-    get frames() { return frame; }
+    get frames() { return frame; },
+    get state() { return { merged, still, separation: merged ? sep : a, orbits: B ? inspiralShown() : 0 }; }
   };
+  function inspiralShown() { return Phys.inspiralOrbits(B); }
 })();
 
 /* ---------------- research figure: three regimes (schematic) ---------------- */
@@ -944,7 +698,6 @@ function route(fromUser) {
   root.dataset.page = id;
   document.title = PAGES[id];
   for (const a of links) { if (a.dataset.nav === id) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); }
-  Obs.setActive(id === 'home');
   Bin.setActive(id === 'home');
   Cosmos.setPage(id === 'home');
   if (fromUser) {
@@ -964,7 +717,6 @@ document.querySelector('.skip-link').addEventListener('click', e => {
 document.getElementById('replay').addEventListener('click', () => { window.scrollTo(0, 0); Cosmos.playIntro(); });
 
 if (root.classList.contains('intro-on')) Cosmos.playIntro(); else Cosmos.rest();
-Obs.firstLight();
 // read by the browser tests (tests/site.test.mjs)
-window.__site = { get particles() { return Cosmos.active; }, get frames() { return Cosmos.frames; }, get hole() { return Cosmos.hole; }, get obsFrames() { return Obs.frames; }, get binFrames() { return Bin.frames; } };
+window.__site = { get particles() { return Cosmos.active; }, get frames() { return Cosmos.frames; }, get hole() { return Cosmos.hole; }, get binFrames() { return Bin.frames; }, get bin() { return Bin.state; } };
 })();

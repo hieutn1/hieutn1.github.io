@@ -1,9 +1,8 @@
 /*
- * Physics behind the site's two animations.
+ * Physics behind the site's animations: the accretion disk at the top of the page and the binary below it.
  *
  * Everything here is pure (no DOM), so the page and the tests in tests/physics.test.mjs
- * run exactly the same code. Units: G = c = 1, so a black hole of mass M has
- * Schwarzschild radius r_s = 2M.
+ * run exactly the same code. Units: G = c = 1.
  */
 (function (root, factory) {
   const api = factory();
@@ -12,104 +11,11 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  const SQRT3 = Math.sqrt(3);
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  const sstep = v => { v = clamp(v, 0, 1); return v * v * (3 - 2 * v); };
 
-  /* ---------- Schwarzschild landmarks ---------- */
-
-  /** Critical impact parameter b_c = (3√3/2) r_s. Light aimed inside it is captured; it is also the shadow's radius. */
-  const criticalImpact = rs => 1.5 * SQRT3 * rs;
-  /** Unstable circular orbit of light. */
-  const photonSphere = rs => 1.5 * rs;
-  /** Innermost stable circular orbit of matter. */
-  const isco = rs => 3 * rs;
-  /** Flamm's paraboloid z(r) = 2√(r_s (r − r_s)): an embedding of the equatorial slice at constant time. */
-  const flamm = (r, rs) => (r <= rs ? 0 : 2 * Math.sqrt(rs * (r - rs)));
-
-  /* ---------- Light: null geodesics in the equatorial plane ----------
-   * The orbit equation u'' + u = (3/2) r_s u², with u = 1/r, is reproduced exactly by a planar
-   * particle with acceleration a = −k x / r⁵, where k = (3/2) r_s L² and L = x v_y − y v_x.
-   * Its "time" is the affine parameter λ. */
-
-  const nullK = (rs, L) => 1.5 * rs * L * L;
-  const A = { ax: 0, ay: 0 };
-  function nullAccel(x, y, k) {
-    const r2 = x * x + y * y, r = Math.sqrt(r2), c = -k / (r2 * r2 * r);
-    A.ax = c * x; A.ay = c * y;
-  }
-  /** One classical RK4 step of size h. s = {x, y, u, v} is updated in place. */
-  function nullStep(s, k, h) {
-    const x = s.x, y = s.y, u = s.u, v = s.v;
-    nullAccel(x, y, k); const a1x = A.ax, a1y = A.ay;
-    const x2 = x + 0.5 * h * u, y2 = y + 0.5 * h * v, u2 = u + 0.5 * h * a1x, v2 = v + 0.5 * h * a1y;
-    nullAccel(x2, y2, k); const a2x = A.ax, a2y = A.ay;
-    const x3 = x + 0.5 * h * u2, y3 = y + 0.5 * h * v2, u3 = u + 0.5 * h * a2x, v3 = v + 0.5 * h * a2y;
-    nullAccel(x3, y3, k); const a3x = A.ax, a3y = A.ay;
-    const x4 = x + h * u3, y4 = y + h * v3, u4 = u + h * a3x, v4 = v + h * a3y;
-    nullAccel(x4, y4, k);
-    s.x = x + (h / 6) * (u + 2 * u2 + 2 * u3 + u4);
-    s.y = y + (h / 6) * (v + 2 * v2 + 2 * v3 + v4);
-    s.u = u + (h / 6) * (a1x + 2 * a2x + 2 * a3x + A.ax);
-    s.v = v + (h / 6) * (a1y + 2 * a2y + 2 * a3y + A.ay);
-  }
-  /** Step size: fine near the horizon, capped far from it. */
-  const nullStepSize = (r, rs, speed, lo, hi) => clamp(0.05 * (r - rs), lo, hi) / speed;
-  /**
-   * Schwarzschild coordinate time for a short null segment, by the midpoint rule:
-   * ds² = 0 ⇒ dt² = dr²/f² + r² dφ²/f with f = 1 − r_s/r. Returns −1 at the horizon.
-   */
-  function nullDt(x0, y0, x1, y1, rs) {
-    const mx = 0.5 * (x0 + x1), my = 0.5 * (y0 + y1), rm = Math.hypot(mx, my), f = 1 - rs / rm;
-    if (f <= 0.01) return -1;
-    const dx = x1 - x0, dy = y1 - y0, dr = (dx * mx + dy * my) / rm, dq = (dy * mx - dx * my) / rm;
-    return Math.sqrt((dr * dr) / (f * f) + (dq * dq) / f);
-  }
-  /** Conserved along a null geodesic: E² = (dr/dλ)² + (1 − r_s/r) L²/r². */
-  function nullEnergy2(s, rs) {
-    const r = Math.hypot(s.x, s.y), vr = (s.x * s.u + s.y * s.v) / r, L = s.x * s.v - s.y * s.u;
-    return vr * vr + (1 - rs / r) * (L * L) / (r * r);
-  }
-
-  /* ---------- Matter: timelike geodesics, optionally in a Langevin bath ----------
-   * u'' + u = M/L² + 3Mu² is reproduced by a = −(M/r³)(1 + 3L²/r²) x, with proper time τ as "time"
-   * and L = r² dφ/dτ. Radial motion then matches d²r/dτ² = −M/r² + L²/r³ − 3ML²/r⁴ exactly. */
-
-  /** Orbital speed r dφ/dτ of a circular orbit at radius r > 3M. */
-  const circularSpeed = (r, M) => Math.sqrt(M / (r - 3 * M));
-  /** Conserved along a timelike geodesic: E² = (dr/dτ)² + (1 − 2M/r)(1 + L²/r²). */
-  function timelikeEnergy2(x, y, u, v, M) {
-    const r = Math.hypot(x, y), vr = (x * u + y * v) / r, L = x * v - y * u;
-    return vr * vr + (1 - (2 * M) / r) * (1 + (L * L) / (r * r));
-  }
-  /**
-   * Advance particle i of e = {x, y, u, v} (arrays) by proper time dts, in leapfrog (kick–drift–kick)
-   * substeps: second order and symplectic, so orbits neither spiral in nor out numerically.
-   * The bath adds friction γ and Gaussian kicks of size √(2γT h) per component, which by the
-   * fluctuation–dissipation relation hold the velocity variance at T. Returns false if r drops below cap.
-   */
-  function timelikeStep(e, i, dts, M, gamma, T, cap, gauss) {
-    let x = e.x[i], y = e.y[i], u = e.u[i], v = e.v[i];
-    const r0 = Math.sqrt(x * x + y * y);
-    const tdyn = M > 0 ? Math.sqrt((r0 * r0 * r0) / M) : Infinity;
-    const n = Math.min(40, Math.max(1, Math.ceil(dts / (0.02 * tdyn))));
-    const h = dts / n, hh = 0.5 * h, sq = gamma > 0 && T > 0 ? Math.sqrt(2 * gamma * T * h) : 0;
-    for (let k = 0; k < n; k++) {
-      let r2 = x * x + y * y, r = Math.sqrt(r2);
-      if (r < cap) return false;
-      let L = x * v - y * u;   // conserved by gravity: kicks are radial and drifts keep it fixed
-      let a = M > 0 ? (-M / (r2 * r)) * (1 + (3 * L * L) / r2) : 0;
-      u += hh * (a * x - gamma * u); v += hh * (a * y - gamma * v);
-      x += u * h; y += v * h;
-      r2 = x * x + y * y; r = Math.sqrt(r2);
-      if (r < cap) return false;
-      L = x * v - y * u;
-      a = M > 0 ? (-M / (r2 * r)) * (1 + (3 * L * L) / r2) : 0;
-      u += hh * (a * x - gamma * u); v += hh * (a * y - gamma * v);
-      if (sq) { u += sq * gauss(); v += sq * gauss(); }
-    }
-    e.x[i] = x; e.y[i] = y; e.u[i] = u; e.v[i] = v;
-    return true;
-  }
+  /** The shadow of a Schwarzschild hole: light aimed inside impact parameter b_c = (3√3/2) r_s is captured. */
+  const criticalImpact = rs => 1.5 * Math.sqrt(3) * rs;
 
   /* ---------- The accretion disk: Paczyński–Wiita potential, in units of r_s ----------
    * Φ = −GM/(r − 1). This pseudo-Newtonian potential reproduces the Schwarzschild innermost
@@ -199,47 +105,144 @@
     return -m1 / Math.hypot(x - x1, y - y1) - m2 / Math.hypot(x - x2, y - y2);
   }
 
-  /* ---------- Retarded time ----------
-   * A wave reaching distance r now left the source at t − r/c. The history keeps the orbital phase and
-   * the wave amplitude on a fixed time grid, so the field at any distance uses the orbit as it was then,
-   * and a change to the orbit spreads outward at the wave speed instead of appearing everywhere at once. */
-  function makeHistory(n, dt) {
-    return { n, dt, ph: new Float64Array(n), om: new Float64Array(n), amp: new Float64Array(n), head: 0, t: 0, tLast: 0, phase: 0, omega: 0, a: 0 };
+  /* ---------- Inspiral, merger and ringdown ----------
+   * The orbit shrinks by radiation reaction (Peters) until the wave frequency reaches the value numerical
+   * relativity finds at peak amplitude for equal masses, M ω₂₂ ≈ 0.36. The holes then merge; the frequency
+   * rises to the remnant's fundamental ringdown mode and the amplitude decays at its damping time. */
+  const PEAK_MW = 0.36;
+  const peakSeparation = (m1, m2) => (m1 + m2) * Math.pow(2 / PEAK_MW, 2 / 3);   // where 2MΩ = 0.36
+  // Remnant of two non-spinning holes: fits to numerical relativity (Tichy & Marronetti 2008; Buonanno, Kidder & Lehner 2008)
+  function remnant(m1, m2) {
+    const M = m1 + m2, eta = m1 * m2 / (M * M);
+    return {
+      Mf: M * (1 + (Math.sqrt(8 / 9) - 1) * eta - 0.4333 * eta * eta - 0.4392 * eta * eta * eta),
+      chi: 2 * Math.sqrt(3) * eta - 3.871 * eta * eta + 4.028 * eta * eta * eta
+    };
   }
-  function historyReset(H, phase, omega, amp) {
-    H.t = 0; H.tLast = 0; H.phase = phase; H.omega = omega; H.a = amp; H.head = 0;
-    for (let k = 0; k < H.n; k++) { H.ph[k] = phase - omega * k * H.dt; H.om[k] = omega; H.amp[k] = amp; }
+  // The l = m = 2 fundamental ringdown mode of a Kerr hole (fits of Berti, Cardoso & Will 2006)
+  function ringdown(Mf, chi) {
+    const omega = (1.5251 - 1.1568 * Math.pow(1 - chi, 0.1292)) / Mf, Q = 0.7 + 1.4187 * Math.pow(1 - chi, -0.4990);
+    return { omega, tau: 2 * Q / omega };
   }
-  function historyAdvance(H, dt, omega, amp) {
-    const t0 = H.t, p0 = H.phase;
-    H.t += dt; H.phase += omega * dt; H.omega = omega; H.a = amp;
-    while (H.tLast + H.dt <= H.t) {
-      H.tLast += H.dt; H.head = (H.head + H.n - 1) % H.n;      // newest sample sits at head
-      H.ph[H.head] = p0 + omega * (H.tLast - t0); H.om[H.head] = omega; H.amp[H.head] = amp;
-    }
+  const kerrHorizon = (M, chi) => M * (1 + Math.sqrt(1 - chi * chi));
+
+  // A run from separation a0. The shrinking is sped up by K0 at the start, easing to the true rate for the
+  // last orbits (K = 1 at the end), so a long inspiral can be shown in a few orbits without changing how it ends.
+  function makeBinary(m1, m2, a0, K0) {
+    const M = m1 + m2, am = peakSeparation(m1, m2), rem = remnant(m1, m2), rd = ringdown(rem.Mf, rem.chi);
+    return { m1, m2, M, mu: m1 * m2 / M, a0, am, K0, Mf: rem.Mf, chi: rem.chi, wr: rd.omega, tau: rd.tau,
+      rp: kerrHorizon(rem.Mf, rem.chi), wm: binaryOmega(m1, m2, am), tf: 4 * M, dur: 12 * M };
   }
-  // Phase and amplitude as they were `lag` time units ago
-  function historyAt(H, lag, out) {
-    const o = out || [0, 0], tq = H.t - lag;
-    if (tq >= H.tLast) { o[0] = H.phase - H.omega * lag; o[1] = H.a; return o; }
-    const back = (H.tLast - tq) / H.dt, k = Math.floor(back);
-    if (k >= H.n - 1) {
-      const j = (H.head + H.n - 1) % H.n;
-      o[0] = H.ph[j] - H.om[j] * (back - (H.n - 1)) * H.dt; o[1] = H.amp[j]; return o;
-    }
-    const fr = back - k, i0 = (H.head + k) % H.n, i1 = (H.head + k + 1) % H.n;
-    o[0] = H.ph[i0] + (H.ph[i1] - H.ph[i0]) * fr; o[1] = H.amp[i0] + (H.amp[i1] - H.amp[i0]) * fr;
+  const paceK = (B, a) => 1 + (B.K0 - 1) * Math.pow(clamp((a - B.am) / (B.a0 - B.am), 0, 1), 2);
+  const inspiralRate = (B, a) => paceK(B, a) * shrinkRate(B.m1, B.m2, a);
+  // Orbits from a0 to the merger: ∫ Ω / |da/dt| da / 2π (Simpson's rule)
+  function inspiralOrbits(B) {
+    const n = 400, h = (B.a0 - B.am) / n, f = a => binaryOmega(B.m1, B.m2, a) / -inspiralRate(B, a);
+    let sum = f(B.am) + f(B.a0);
+    for (let i = 1; i < n; i++) sum += (i % 2 ? 4 : 2) * f(B.am + i * h);
+    return sum * h / 3 / (2 * Math.PI);
+  }
+  // The pace that shows the true number of orbits when it lies in [nmin, nmax], and the nearest end otherwise
+  function pacedBinary(m1, m2, a0, nmin, nmax) {
+    const B = makeBinary(m1, m2, a0, 1), n = inspiralOrbits(B), want = clamp(n, nmin, nmax);
+    if (want === n) return B;
+    let lo = 0.01, hi = 1000;
+    for (let i = 0; i < 50; i++) { B.K0 = Math.sqrt(lo * hi); if (inspiralOrbits(B) > want) lo = B.K0; else hi = B.K0; }
+    return B;
+  }
+  // One RK4 step of the inspiral, s = {a, phase}
+  function inspiralStep(B, s, h) {
+    const f = a => inspiralRate(B, a), g = a => binaryOmega(B.m1, B.m2, Math.max(a, 1e-9)), a = s.a;
+    const k1 = f(a), k2 = f(a + 0.5 * h * k1), k3 = f(a + 0.5 * h * k2), k4 = f(a + h * k3);
+    s.phase += h * (g(a) + 2 * g(a + 0.5 * h * k1) + 2 * g(a + 0.5 * h * k2) + g(a + h * k3)) / 6;
+    s.a = a + h * (k1 + 2 * k2 + 2 * k3 + k4) / 6;
+  }
+  // After the merger (s time units on): orbital-phase rate (half the wave frequency), phase gained,
+  // strain amplitude (μM/a, so h = 4·amp/r face-on), and how far the two horizons have merged (0 → 1)
+  function afterMerger(B, s, o) {
+    const dw = B.wr / 2 - B.wm, e = Math.exp(-s / B.tf);
+    o.omega = B.wm + dw * (1 - e);
+    o.dphase = B.wm * s + dw * (s - B.tf * (1 - e));
+    o.amp = B.mu * B.M / B.am * Math.exp(-s / B.tau);
+    o.blend = sstep(s / B.dur);
     return o;
   }
 
+  /* ---------- Retarded time ----------
+   * Each wave carries the orbit as it was when it left. The history keeps the orbital phase, its rate, the wave
+   * amplitude and the radius it was emitted from, on a fixed time grid. A wave emitted at t′ from radius r_e(t′)
+   * is now at r_e(t′) + c (t − t′), so the field at any distance uses the orbit as it was then, and a change to
+   * the orbit spreads outward at the wave speed instead of appearing everywhere at once. */
+  function makeHistory(n, dt) {
+    return { n, dt, ph: new Float64Array(n), om: new Float64Array(n), amp: new Float64Array(n), rs: new Float64Array(n),
+      head: 0, t: 0, tLast: 0, phase: 0, omega: 0, a: 0, r: 0 };
+  }
+  function historyReset(H, phase, omega, amp, rs = 0) {
+    H.t = 0; H.tLast = 0; H.phase = phase; H.omega = omega; H.a = amp; H.r = rs; H.head = 0;
+    for (let k = 0; k < H.n; k++) { H.ph[k] = phase - omega * k * H.dt; H.om[k] = omega; H.amp[k] = amp; H.rs[k] = rs; }
+  }
+  // Move on by dt to a state with this phase, rate, amplitude and emission radius (interpolated in between)
+  function historyAdvance(H, dt, phase, omega, amp, rs = 0) {
+    const t0 = H.t, p0 = H.phase, w0 = H.omega, a0 = H.a, r0 = H.r;
+    H.t += dt; H.phase = phase; H.omega = omega; H.a = amp; H.r = rs;
+    while (H.tLast + H.dt <= H.t) {
+      H.tLast += H.dt; H.head = (H.head + H.n - 1) % H.n;      // newest sample sits at head
+      const f = (H.tLast - t0) / dt;
+      H.ph[H.head] = p0 + (phase - p0) * f; H.om[H.head] = w0 + (omega - w0) * f;
+      H.amp[H.head] = a0 + (amp - a0) * f; H.rs[H.head] = r0 + (rs - r0) * f;
+    }
+  }
+  function sample(H, k, fr, o) {   // between grid samples k and k + 1 (older)
+    const i0 = (H.head + k) % H.n, i1 = (H.head + k + 1) % H.n;
+    o[0] = H.ph[i0] + (H.ph[i1] - H.ph[i0]) * fr; o[1] = H.amp[i0] + (H.amp[i1] - H.amp[i0]) * fr;
+    o[2] = H.om[i0] + (H.om[i1] - H.om[i0]) * fr; o[3] = H.rs[i0] + (H.rs[i1] - H.rs[i0]) * fr;
+    return o;
+  }
+  function oldest(H, extra, o) {   // beyond the record: the orbit as it was then, held steady
+    const j = (H.head + H.n - 1) % H.n;
+    o[0] = H.ph[j] - H.om[j] * extra; o[1] = H.amp[j]; o[2] = H.om[j]; o[3] = H.rs[j]; return o;
+  }
+  // [phase, amplitude, rate, emission radius] as they were `lag` time units ago
+  function historyAt(H, lag, out) {
+    const o = out || [0, 0, 0, 0], tq = H.t - lag;
+    if (tq >= H.tLast) {
+      const f = H.t > H.tLast ? (H.t - tq) / (H.t - H.tLast) : 0, j = H.head;
+      o[0] = H.phase + (H.ph[j] - H.phase) * f; o[1] = H.a + (H.amp[j] - H.a) * f;
+      o[2] = H.omega + (H.om[j] - H.omega) * f; o[3] = H.r + (H.rs[j] - H.r) * f;
+      return o;
+    }
+    const back = (H.tLast - tq) / H.dt, k = Math.floor(back);
+    if (k >= H.n - 1) return oldest(H, (back - (H.n - 1)) * H.dt, o);
+    return sample(H, k, back - k, o);
+  }
+  // The same, for the wave that has now reached distance r travelling at speed c
+  function historyFront(H, r, c, out) {
+    const o = out || [0, 0, 0, 0], age0 = H.t - H.tLast;
+    const front = k => H.rs[(H.head + k) % H.n] + c * (age0 + k * H.dt);
+    if (r <= H.r) { o[0] = H.phase; o[1] = H.a; o[2] = H.omega; o[3] = H.r; return o; }
+    const f0 = front(0);
+    if (r < f0) {   // emitted since the newest grid sample
+      const f = (r - H.r) / (f0 - H.r), j = H.head;
+      o[0] = H.phase + (H.ph[j] - H.phase) * f; o[1] = H.a + (H.amp[j] - H.a) * f;
+      o[2] = H.omega + (H.om[j] - H.omega) * f; o[3] = H.r + (H.rs[j] - H.r) * f;
+      return o;
+    }
+    const fl = front(H.n - 1);
+    if (r >= fl) return oldest(H, (r - fl) / c, o);
+    let lo = 0, hi = H.n - 1;                  // fronts grow with age: find the pair that brackets r
+    while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (front(mid) <= r) lo = mid; else hi = mid; }
+    const flo = front(lo);
+    return sample(H, lo, (r - flo) / (front(hi) - flo), o);
+  }
+
   return {
-    criticalImpact, photonSphere, isco, flamm,
-    nullK, nullStep, nullStepSize, nullDt, nullEnergy2,
-    circularSpeed, timelikeEnergy2, timelikeStep,
+    criticalImpact,
     PW_GM, pwPotential, pwCircularSpeed, pwAngularMomentum, diskStep,
     lensImages, growth,
     binaryOmega, chirpMass, strainAmplitude, quadrupoleStrain, planeStrain,
     gwPower, shrinkRate, mergerTime, binaryPotential,
-    makeHistory, historyReset, historyAdvance, historyAt
+    PEAK_MW, peakSeparation, remnant, ringdown, kerrHorizon,
+    makeBinary, pacedBinary, inspiralOrbits, inspiralRate, inspiralStep, afterMerger,
+    makeHistory, historyReset, historyAdvance, historyAt, historyFront
   };
 });

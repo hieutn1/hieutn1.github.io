@@ -10,178 +10,15 @@ const P = require('../assets/js/physics.js');
 const close = (got, want, rel, what) =>
   assert.ok(Math.abs(got - want) <= rel * Math.abs(want), `${what}: got ${got}, expected ${want} within ${rel * 100}%`);
 
-// Seeded Gaussian generator, so the stochastic tests are reproducible.
-function gaussian(seed) {
-  let a = seed >>> 0, spare = null;
-  const uni = () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-  return () => {
-    if (spare !== null) { const s = spare; spare = null; return s; }
-    let u = 0; while (u === 0) u = uni();
-    const m = Math.sqrt(-2 * Math.log(u)), th = 2 * Math.PI * uni();
-    spare = m * Math.sin(th); return m * Math.cos(th);
-  };
-}
+/* ------------------------------------------------------------------ shadow */
 
-// Trace a light ray exactly as the observatory draws one (same step sizes and stopping rules).
-function traceLikePage(x, y, u, v, rs) {
-  const s = { x, y, u, v }, L = x * v - y * u, k = P.nullK(rs, L);
-  for (let n = 0; n < 20000; n++) {
-    const r = Math.hypot(s.x, s.y);
-    if (r < rs * 1.01) return { fate: 'captured', s };
-    if (r > 18 && s.x * s.u + s.y * s.v > 0) return { fate: 'escaped', s };
-    P.nullStep(s, k, P.nullStepSize(r, rs, Math.hypot(s.u, s.v), 0.002, 0.15));
+test("the hero's shadow: light is captured inside b_c = (3√3/2) r_s", () => {
+  // a photon with impact parameter b turns around where b² = r³/(r − r_s); the smallest such b is the edge of the shadow
+  for (const rs of [0.5, 1, 2]) {
+    let best = Infinity;
+    for (let r = 1.01 * rs; r < 10 * rs; r += 1e-5 * rs) best = Math.min(best, Math.sqrt(r ** 3 / (r - rs)));
+    close(P.criticalImpact(rs), best, 1e-6, `b_c for r_s = ${rs}`);
   }
-  return { fate: 'orbiting', s };
-}
-
-/* ------------------------------------------------------------------ light */
-
-test('light aimed inside the critical impact parameter is captured; outside, it escapes', () => {
-  for (const rs of [0.15, 0.6, 1.2]) {
-    const bc = P.criticalImpact(rs);
-    assert.equal(traceLikePage(-17, 0.98 * bc, 1, 0, rs).fate, 'captured', `rs=${rs}, b=0.98 b_c`);
-    assert.equal(traceLikePage(-17, 1.02 * bc, 1, 0, rs).fate, 'escaped', `rs=${rs}, b=1.02 b_c`);
-  }
-});
-
-test('the drawn geodesic (b = 1.06 b_c) escapes after swinging around the hole', () => {
-  const rs = 0.6, { fate, s } = traceLikePage(-17, -1.06 * P.criticalImpact(rs), 1, 0, rs);
-  assert.equal(fate, 'escaped');
-  const deflection = Math.abs(Math.atan2(s.v, s.u));
-  assert.ok(deflection > Math.PI / 2, `deflection ${deflection.toFixed(2)} rad should exceed 90°`);
-});
-
-test('energy and angular momentum are conserved along a null geodesic', () => {
-  const rs = 0.6, s = { x: -17, y: 4 * rs, u: 1, v: 0 };
-  const L0 = s.x * s.v - s.y * s.u, E0 = P.nullEnergy2(s, rs), k = P.nullK(rs, L0);
-  for (let n = 0; n < 4000; n++) {
-    const r = Math.hypot(s.x, s.y);
-    if (r > 18 && s.x * s.u + s.y * s.v > 0) break;
-    P.nullStep(s, k, P.nullStepSize(r, rs, Math.hypot(s.u, s.v), 0.002, 0.15));
-  }
-  close(s.x * s.v - s.y * s.u, L0, 1e-9, 'L');
-  close(P.nullEnergy2(s, rs), E0, 1e-6, 'E²');
-});
-
-test('weak-field deflection matches 2r_s/b + (15π/16)(r_s/b)²', () => {
-  const rs = 1;
-  for (const b of [100, 300, 1000]) {
-    const X = 2000 * b, s = { x: -X, y: b, u: 1, v: 0 }, k = P.nullK(rs, -b);
-    while (s.x < X) P.nullStep(s, k, 0.01 * Math.hypot(s.x, s.y));
-    const alpha = -Math.atan2(s.v, s.u);
-    close(alpha, (2 * rs) / b + ((15 * Math.PI) / 16) * (rs / b) ** 2, 2e-3, `deflection at b=${b} r_s`);
-  }
-});
-
-test('light is delayed near the hole: radial travel time includes the Shapiro term', () => {
-  const rs = 1, r1 = 20, r2 = 2, s = { x: r1, y: 0, u: -1, v: 0 };
-  let t = 0;
-  while (s.x > r2) {
-    const x0 = s.x, y0 = s.y, h = Math.min(P.nullStepSize(s.x, rs, 1, 0.0015, 0.12), s.x - r2);
-    P.nullStep(s, 0, h);
-    t += P.nullDt(x0, y0, s.x, s.y, rs);
-  }
-  close(t, r1 - r2 + rs * Math.log((r1 - rs) / (r2 - rs)), 2e-3, 'coordinate travel time');
-});
-
-test('the photon sphere sits at 1.5 r_s and its impact parameter is the shadow radius', () => {
-  const rs = 1, V = r => (1 - rs / r) / (r * r);   // effective potential for light
-  let best = 0, rBest = 0;
-  for (let r = 1.01; r < 5; r += 1e-4) if (V(r) > best) { best = V(r); rBest = r; }
-  close(rBest, P.photonSphere(rs), 1e-3, 'peak of the light potential');
-  close(1 / Math.sqrt(best), P.criticalImpact(rs), 1e-6, 'b_c = 1/√V_max');
-});
-
-test("Flamm's paraboloid has the radial geometry of the Schwarzschild slice", () => {
-  const rs = 0.6;
-  for (const r of [0.7, 1, 2, 5, 12]) {
-    const e = 1e-6, dz = (P.flamm(r + e, rs) - P.flamm(r - e, rs)) / (2 * e);
-    close(1 + dz * dz, 1 / (1 - rs / r), 1e-5, `g_rr at r=${r}`);
-  }
-});
-
-/* ----------------------------------------------------------------- matter */
-
-const orbit = (r, speedFactor, radialKick = 0) => {
-  const M = 0.3, v = P.circularSpeed(r, M) * speedFactor;
-  return { M, e: { x: [r], y: [0], u: [radialKick], v: [v] } };
-};
-
-test('circular orbits stay circular', () => {
-  const { M, e } = orbit(3, 1);
-  let rmin = Infinity, rmax = 0;
-  for (let n = 0; n < 2500; n++) {   // about 10 orbits at the page's step (0.2 proper time per frame)
-    assert.ok(P.timelikeStep(e, 0, 0.2, M, 0, 0, 2 * M * 1.04, Math.random));
-    const r = Math.hypot(e.x[0], e.y[0]); rmin = Math.min(rmin, r); rmax = Math.max(rmax, r);
-  }
-  assert.ok(rmax / rmin < 1.002, `radius varied by ${((rmax / rmin - 1) * 100).toFixed(2)}%`);
-});
-
-test('energy and angular momentum are conserved on an eccentric timelike orbit', () => {
-  const { M, e } = orbit(4, 1.1);
-  const E0 = P.timelikeEnergy2(e.x[0], e.y[0], e.u[0], e.v[0], M), L0 = e.x[0] * e.v[0] - e.y[0] * e.u[0];
-  for (let n = 0; n < 4000; n++) assert.ok(P.timelikeStep(e, 0, 0.2, M, 0, 0, 0.62, Math.random));
-  close(e.x[0] * e.v[0] - e.y[0] * e.u[0], L0, 1e-9, 'L');
-  close(P.timelikeEnergy2(e.x[0], e.y[0], e.u[0], e.v[0], M), E0, 2e-3, 'E²');
-});
-
-test('orbits are stable outside 6M and unstable inside it', () => {
-  const run = (rOverM, kick) => {
-    const M = 0.3, { e } = orbit(rOverM * M, 1, -kick * P.circularSpeed(rOverM * M, M));
-    for (let n = 0; n < 6000; n++) if (!P.timelikeStep(e, 0, 0.2, M, 0, 0, 2 * M * 1.04, Math.random)) return 'captured';
-    return Math.hypot(e.x[0], e.y[0]) / (rOverM * M);
-  };
-  assert.equal(run(5.4, 0.005), 'captured', 'r = 5.4M');
-  const ratio = run(6.8, 0.005);
-  assert.ok(typeof ratio === 'number' && ratio > 0.9 && ratio < 1.1, `r = 6.8M drifted to ${ratio}`);
-});
-
-test('perihelion precession matches an independent integration of the GR orbit equation', () => {
-  const M = 0.3, rp = 12 * M, v = 1.08 * P.circularSpeed(rp, M), L = rp * v;
-  // Reference: u'' + u = M/L² + 3Mu² integrated in φ with small RK4 steps, periapsis to periapsis.
-  let u = 1 / rp, w = 0, phi = 0;
-  const f = (u) => M / (L * L) - u + 3 * M * u * u, dphi = 1e-4;
-  let started = false;
-  for (;;) {
-    const k1u = w, k1w = f(u), k2u = w + 0.5 * dphi * k1w, k2w = f(u + 0.5 * dphi * k1u);
-    const k3u = w + 0.5 * dphi * k2w, k3w = f(u + 0.5 * dphi * k2u), k4u = w + dphi * k3w, k4w = f(u + dphi * k3u);
-    const wPrev = w;
-    u += (dphi / 6) * (k1u + 2 * k2u + 2 * k3u + k4u); w += (dphi / 6) * (k1w + 2 * k2w + 2 * k3w + k4w); phi += dphi;
-    if (wPrev < 0) started = true;
-    if (started && wPrev > 0 && w <= 0) break;   // u is at a maximum again: periapsis
-  }
-  const expected = phi - 2 * Math.PI;
-  // The page's integrator, periapsis to periapsis in proper time.
-  const e = { x: [rp], y: [0], u: [0], v: [v] };
-  let prev = rp, wentOut = false, falling = false, measured = null, turns = 0, lastAng = 0, prevAng = 0;
-  for (let n = 0; n < 200000 && measured === null; n++) {
-    P.timelikeStep(e, 0, 0.05, M, 0, 0, 0.62, Math.random);
-    const ang = Math.atan2(e.y[0], e.x[0]);
-    if (ang < lastAng - Math.PI) turns++;
-    lastAng = ang;
-    const r = Math.hypot(e.x[0], e.y[0]), unwrapped = ang + 2 * Math.PI * turns;
-    if (r > 1.2 * rp) wentOut = true;
-    if (wentOut && r < prev) falling = true;
-    else if (falling && r > prev) measured = prevAng - 2 * Math.PI;   // the previous sample was the periapsis
-    prev = r; prevAng = unwrapped;
-  }
-  close(measured, expected, 0.02, 'precession per orbit (rad)');   // sampling the periapsis to one step costs <1%
-  assert.ok(expected > 0.3, `precession ${expected} rad should be large this close to the hole`);
-});
-
-test('the Langevin bath holds the velocity variance at T (fluctuation–dissipation)', () => {
-  const N = 3000, gamma = 0.012, sigma = 0.6, T = 0.02 * sigma * sigma;   // the page's γ and T(σ)
-  const e = { x: new Float64Array(N).fill(5), y: new Float64Array(N), u: new Float64Array(N), v: new Float64Array(N) };
-  const g = gaussian(7);
-  for (let n = 0; n < 2500; n++) for (let i = 0; i < N; i++) P.timelikeStep(e, i, 0.2, 0, gamma, T, 0, g);   // 6 relaxation times
-  let s = 0; for (let i = 0; i < N; i++) s += e.u[i] * e.u[i] + e.v[i] * e.v[i];
-  close(s / (2 * N), T, 0.05, '⟨v²⟩ per component');
 });
 
 /* ------------------------------------------------------------------- disk */
@@ -376,19 +213,111 @@ test('binary: radiated power matches the quadrupole formula, and the orbit shrin
 });
 
 test('binary: the waves carry the orbit as it was, and a change spreads outward at the wave speed', () => {
-  const H = P.makeHistory(800, 0.5), w1 = 0.05, w2 = 0.02;
-  P.historyReset(H, 0.3, w1, 1);
-  for (let k = 0; k < 5000; k++) P.historyAdvance(H, 0.77, w1, 1);   // wraps the buffer many times
-  const o = [0, 0];
+  const H = P.makeHistory(800, 0.5), w1 = 0.05, w2 = 0.02, step = (w, amp, rs) => P.historyAdvance(H, 0.77, H.phase + w * 0.77, w, amp, rs);
+  P.historyReset(H, 0.3, w1, 1, 2);
+  for (let k = 0; k < 5000; k++) step(w1, 1, 2);   // wraps the buffer many times
+  const o = [0, 0, 0, 0], c = 0.05;
   for (const lag of [0, 0.2, 13.1, 250, 399, 600]) {
     P.historyAt(H, lag, o);
     close(o[0], H.phase - w1 * lag, 1e-9, `steady phase at lag ${lag}`);
+    // a wave emitted lag ago from radius 2 is now at 2 + c·lag
+    P.historyFront(H, 2 + c * lag, c, o);
+    close(o[0], H.phase - w1 * lag, 1e-9, `steady phase of the front ${c * lag} beyond the orbit`);
   }
-  for (let k = 0; k < 50; k++) P.historyAdvance(H, 0.77, w2, 0.4);    // the orbit widens: slower, weaker
-  const since = 50 * 0.77, freq = lag => { const a = P.historyAt(H, lag, [0, 0])[0], b = P.historyAt(H, lag + 1, [0, 0])[0]; return a - b; };
+  for (let k = 0; k < 50; k++) step(w2, 0.4, 2);    // the orbit widens: slower, weaker
+  const since = 50 * 0.77, freq = lag => P.historyAt(H, lag, [0, 0, 0, 0])[0] - P.historyAt(H, lag + 1, [0, 0, 0, 0])[0];
   close(freq(5), w2, 1e-6, 'recent waves have the new frequency');
   close(freq(since + 20), w1, 1e-6, 'older waves still have the old one');
   assert.equal(P.historyAt(H, 5, o)[1], 0.4); assert.equal(P.historyAt(H, since + 20, o)[1], 1);
-  const before = P.historyAt(H, since - 0.01, [0, 0])[0], after = P.historyAt(H, since + 0.01, [0, 0])[0];
+  assert.equal(P.historyFront(H, 2 + c * 5, c, o)[1], 0.4, 'near the source: the new amplitude');
+  assert.equal(P.historyFront(H, 2 + c * (since + 20), c, o)[1], 1, 'further out: the old one');
+  const before = P.historyAt(H, since - 0.01, [0, 0, 0, 0])[0], after = P.historyAt(H, since + 0.01, [0, 0, 0, 0])[0];
   assert.ok(Math.abs(before - after) < 0.01, 'the phase is continuous across the change');
+});
+
+test('binary: waves leave from where the holes were, and keep moving outward as the orbit shrinks', () => {
+  // emission radius shrinking fast, as in the plunge: fronts must still be ordered and found where they are
+  const H = P.makeHistory(900, 0.5), c = 0.05, dt = 0.31;
+  P.historyReset(H, 0, 0.1, 1, 3);
+  const emitted = [];
+  for (let k = 0; k < 400; k++) {
+    const t = H.t + dt, rs = Math.max(0, 3 - 0.012 * t), w = 0.1 + 0.001 * t;
+    P.historyAdvance(H, dt, H.phase + w * dt, w, 1, rs);
+    if (k % 37 === 0) emitted.push({ t: H.t, phase: H.phase, rs });
+  }
+  for (const e of emitted) {
+    const r = e.rs + c * (H.t - e.t), o = P.historyFront(H, r, c, [0, 0, 0, 0]);
+    close(o[0], e.phase, 2e-3, `the wave emitted at t=${e.t.toFixed(1)} from r=${e.rs.toFixed(2)}, now at r=${r.toFixed(2)}`);
+  }
+});
+
+/* ------------------------------------------------------- inspiral, merger, ringdown */
+
+test('inspiral: the orbit shrinks as Peters says, and the run reaches the merger in the predicted number of orbits', () => {
+  // with the true rate, a⁴ falls linearly, a(t)⁴ = a0⁴ − (256/5) m1 m2 M t, and Φ(t) has a closed form
+  for (const [m, km] of [[0.35, 560], [0.5, 450], [0.2, 800]]) {
+    const a0 = 2 * km / 147.6625, B = P.makeBinary(m, m, a0, 1), M = 2 * m, A = 51.2 * m * m * M, T = a0 ** 4 / A;
+    const s = { a: a0, phase: 0 }; let t = 0;
+    while (true) {
+      const h = 0.02 * 2 * Math.PI / P.binaryOmega(m, m, s.a);
+      if ((s.a ** 4 - A * h) ** 0.25 < B.am) break;
+      P.inspiralStep(B, s, h); t += h;
+    }
+    close(s.a, Math.pow(a0 ** 4 - A * t, 0.25), 1e-6, `a(t) for m=${m}, ${km} km`);
+    const phase = (8 / 5) * Math.sqrt(M) * Math.pow(A, -3 / 8) * (Math.pow(T, 5 / 8) - Math.pow(T - t, 5 / 8));
+    close(s.phase, phase, 1e-6, 'orbital phase');
+    close(s.phase / (2 * Math.PI), P.inspiralOrbits(B), 0.02, 'orbits to the merger (to within the last step)');
+  }
+  // the inspiral ends where numerical relativity puts the peak: M ω₂₂ = 2MΩ = 0.36
+  for (const m of [0.2, 0.35, 0.5]) close(2 * 2 * m * P.binaryOmega(m, m, P.peakSeparation(m, m)), 0.36, 1e-12, 'peak frequency');
+});
+
+test('inspiral: speeding up the early orbits shows the chosen number of orbits and leaves the ending unchanged', () => {
+  for (const [m, km] of [[0.2, 800], [0.35, 560], [0.5, 450]]) {
+    const a0 = 2 * km / 147.6625, B = P.pacedBinary(m, m, a0, 5, 7), n = P.inspiralOrbits(B);
+    const truth = P.inspiralOrbits(P.makeBinary(m, m, a0, 1));
+    if (truth >= 5 && truth <= 7) close(n, truth, 1e-9, 'unchanged when already in range');
+    else close(n, truth > 7 ? 7 : 5, 1e-3, `orbits shown for m=${m}, ${km} km`);
+    // integrating the paced run gives the same count
+    const s = { a: a0, phase: 0 };
+    while (s.a > B.am) P.inspiralStep(B, s, Math.min(0.01 * 2 * Math.PI / P.binaryOmega(m, m, s.a), 0.25 * (s.a - B.am) / -P.inspiralRate(B, s.a) + 1e-6));
+    close(s.phase / (2 * Math.PI), n, 0.01, 'integrated orbits');
+    close(P.inspiralRate(B, B.am), P.shrinkRate(m, m, B.am), 1e-12, 'the last orbits shrink at the true rate');
+  }
+});
+
+test('merger: frequency rises smoothly into the ringdown, and the signal peaks at the merger', () => {
+  const m = 0.35, B = P.makeBinary(m, m, 7.6, 1), o = {};
+  let prevW = 0, prevPh = 0;
+  close(P.afterMerger(B, 0, o).omega, P.binaryOmega(m, m, B.am), 1e-12, 'continuous frequency at the merger');
+  assert.equal(o.dphase, 0); close(o.amp, B.mu * B.M / B.am, 1e-12, 'continuous amplitude');
+  for (let s = 0.5; s < 300; s += 0.5) {
+    P.afterMerger(B, s, o);
+    assert.ok(o.omega >= prevW, 'frequency never falls');
+    assert.ok(o.dphase > prevPh, 'phase keeps advancing');
+    const num = (o.dphase - P.afterMerger(B, s - 1e-4, {}).dphase) / 1e-4;
+    close(num, o.omega, 1e-4, 'phase rate matches the frequency');
+    prevW = o.omega; prevPh = o.dphase;
+  }
+  close(prevW, B.wr / 2, 1e-6, 'ends ringing at the remnant’s mode');
+  assert.ok(o.amp < 1e-9, 'and dies away'); assert.equal(o.blend, 1, 'with one horizon');
+  // the inspiral's amplitude grows up to the merger: μM/a rises as a falls
+  assert.ok(B.mu * B.M / B.am > B.mu * B.M / B.a0);
+});
+
+test('remnant: the numerical-relativity values for equal masses, and the known ringdown of a Schwarzschild hole', () => {
+  const r = P.remnant(1, 1);
+  close(r.Mf / 2, 0.9516, 3e-3, 'final mass (Scheel et al. 2009: 0.9516 M)');
+  close(r.chi, 0.6865, 5e-3, 'final spin (0.6865)');
+  const t = P.remnant(1, 1e-6); close(t.Mf, 1 + 1e-6, 1e-5, 'a test mass changes nothing'); assert.ok(t.chi < 1e-5);
+  // Schwarzschild l = 2: M ω = 0.37367 − 0.08896 i
+  const s = P.ringdown(1, 0);
+  close(s.omega, 0.37367, 0.02, 'Schwarzschild ringdown frequency'); close(1 / s.tau, 0.08896, 0.03, 'and damping rate');
+  // GW150914: remnant of about 68 Msun (as observed) and spin 0.67 rang at about 250 Hz with τ ≈ 4 ms
+  const MSUN_S = 4.925491e-6, g = P.ringdown(67.8 * MSUN_S, 0.67);
+  close(g.omega / (2 * Math.PI), 250, 0.05, 'GW150914 ringdown frequency (Hz)');
+  close(g.tau, 4e-3, 0.1, 'GW150914 damping time (s)');
+  // the merged horizon is bigger in area than the two it came from (Hawking's area theorem)
+  const area = (M, chi) => 8 * Math.PI * M * M * (1 + Math.sqrt(1 - chi * chi));
+  assert.ok(area(r.Mf, r.chi) > 2 * area(1, 0), 'area theorem');
 });
