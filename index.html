@@ -123,6 +123,44 @@
             </div>
           </figure>
         </div>
+
+        <div class="obs-wrap flip" id="binary">
+          <div class="obs-text">
+            <p class="label">Binary</p>
+            <h2>Two black holes in orbit</h2>
+            <p>Bring the pair closer or make them heavier: the orbit quickens, and the gravitational waves it sends out grow shorter and stronger.</p>
+            <p class="note"><span class="label">Instrument note</span>The holes follow a circular Kepler orbit, <span class="m">Ω² = GM/a³</span>, and the sheet sags into their combined Newtonian potential. The ripples are the leading-order (quadrupole) wave in the orbital plane, <span class="m">h ∝ (μM/ar) cos 2[Φ(t − r/c) − φ]</span>: two spiral arms at twice the orbital frequency, fading as 1/r. Each ripple carries the orbit as it was when it left, so a change spreads outward at the wave speed. The ripples are drawn about 20 times slower than light and taller than life. The trace is the strain seen from above the orbit; its times and frequencies are real for the masses shown.</p>
+          </div>
+          <figure class="observatory">
+            <div class="field still" id="bin-field">
+              <canvas id="bin-sheet" role="img" aria-label="Two black holes orbiting each other on a curved spacetime sheet, sending out spiral gravitational waves."></canvas>
+            </div>
+            <div class="panel">
+              <div class="controls">
+                <div class="ctl">
+                  <div class="ctl-head"><label for="bin-r">Orbital radius · <span class="m">r</span></label><output id="bin-r-out" for="bin-r">560 km</output></div>
+                  <input id="bin-r" class="radius" type="range" min="450" max="800" step="10" value="560">
+                </div>
+                <div class="ctl">
+                  <div class="ctl-head"><label for="bin-m">Mass · <span class="m">m</span></label><output id="bin-m-out" for="bin-m">35 M☉</output></div>
+                  <input id="bin-m" class="mass" type="range" min="20" max="50" step="1" value="35">
+                </div>
+                <div class="actions">
+                  <button id="bin-run" class="btn" type="button">Pause</button>
+                </div>
+              </div>
+              <div class="phase">
+                <div class="ctl-head"><span>Strain</span><span><span class="m">h<sub>+</sub></span> against <span class="m">t</span></span></div>
+                <canvas id="bin-trace" role="img" aria-label="The gravitational-wave strain over the last few seconds."></canvas>
+                <dl class="readouts" aria-live="off">
+                  <div><dt>Period</dt><dd id="b-T">0</dd></div>
+                  <div><dt>Waves</dt><dd id="b-f">0</dd></div>
+                  <div><dt>Merges in</dt><dd id="b-tau">0</dd></div>
+                </dl>
+              </div>
+            </div>
+          </figure>
+        </div>
       </div>
     </section>
 

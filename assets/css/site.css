@@ -33,7 +33,7 @@
   color-scheme: dark;
   --bg: #0b0e15;
   --panel: #10141c;
-  --ink: #e8e4da;
+  --ink: #ece8de;     /* the same white as "The Physics Of" */
   --ink-2: #a4a8b2;
   --ink-3: #7a808e;
   --rule: #222734;
@@ -203,6 +203,12 @@ input.lens::-webkit-slider-thumb { border-color: var(--light); }
 input.lens::-moz-range-thumb { border-color: var(--light); }
 input.noise::-webkit-slider-thumb { border-color: var(--matter); }
 input.noise::-moz-range-thumb { border-color: var(--matter); }
+input.mass::-webkit-slider-thumb { border-color: var(--matter); }
+input.mass::-moz-range-thumb { border-color: var(--matter); }
+/* the binary: same instrument, mirrored */
+.obs-wrap.flip { grid-template-columns: minmax(0, 8fr) minmax(0, 4fr); border-top: 1px solid var(--rule); }
+.obs-wrap.flip .obs-text { order: 2; }
+.field.still { cursor: default; }
 .actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .btn { font-family: var(--f-mono); font-size: .7rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ink); background: transparent; border: 1px solid var(--rule); border-radius: 2px; padding: 12px 14px; cursor: pointer; }
 .btn:hover { border-color: var(--ink-3); }
@@ -310,7 +316,8 @@ input.noise::-moz-range-thumb { border-color: var(--matter); }
 
 /* ---------- responsive ---------- */
 @media (max-width: 920px) {
-  .obs-wrap { grid-template-columns: minmax(0, 1fr); }
+  .obs-wrap, .obs-wrap.flip { grid-template-columns: minmax(0, 1fr); }
+  .obs-wrap.flip .obs-text { order: 0; }
   .obs-text { padding-top: 0; }
 }
 @media (max-width: 699px) {

@@ -685,6 +685,210 @@ const Obs = (() => {
   };
 })();
 
+/* ---------------- the binary: two black holes and their gravitational waves ---------------- */
+const Bin = (() => {
+  const field = document.getElementById('bin-field');
+  if (!field) return { setActive() {}, get frames() { return 0; } };
+  const cS = document.getElementById('bin-sheet'), cT = document.getElementById('bin-trace');
+  const xS = cS.getContext('2d'), xT = cT.getContext('2d');
+  const rIn = document.getElementById('bin-r'), mIn = document.getElementById('bin-m');
+  const rOut = document.getElementById('bin-r-out'), mOut = document.getElementById('bin-m-out');
+  const oT = document.getElementById('b-T'), oF = document.getElementById('b-f'), oTau = document.getElementById('b-tau');
+  const runBtn = document.getElementById('bin-run');
+
+  // Units: G = c = 1 with masses in units of 100 Msun, so a length unit is 147.66 km and a time unit 0.49255 ms
+  const KM = 147.6625, MS = 0.4925491, MSUN = 100;
+  const ELEV = 33 * Math.PI / 180, CE = Math.cos(ELEV), SE = Math.sin(ELEV), DIST = 27, RDOM = 15.5;
+  const DEPTH = 6.5;     // sheet depth per unit of potential
+  const CW = 0.045;      // ripple speed on the sheet (light is 1), slowed so that several wavelengths fit
+  const SIM = 46;        // time units per second on screen
+  const WAVE = 0.85;     // ripple height near the orbit at the strongest setting
+  const WIN = 4 * SIM;   // the trace shows the last four seconds
+  const HMAX = 0.5 * 0.5 / (2 * 450 / KM);   // μM/a at the strongest setting (50 Msun each, 450 km)
+  const H = Phys.makeHistory(900, 0.5);       // 450 time units: enough for the sheet's edge and the trace
+  const st = { R: 0, m: 0, om: 0, q: 0 };
+  let W = 1, Hh = 1, dpr = 1, f = 1, cx = 0, cy = 0, TW = 1, TH = 1, tok = null, coarse = false;
+  let active = false, visible = false, paused = !Motion.on, raf = 0, last = 0, frame = 0;
+  const P = [0, 0, 0], O = [0, 0];
+  let h1x = 0, h1y = 0, h2x = 0, h2y = 0, rh = 0, potRim = 0;
+
+  function readTok() {
+    const cs = getComputedStyle(root), g = n => cs.getPropertyValue(n).trim() || '#888888';
+    tok = { grid: g('--grid'), light: g('--light'), void: g('--void'), ink: g('--ink'), bg: g('--bg') };
+    const [r, gg, b] = hexRgb(tok.bg);
+    tok.dark = (0.2126 * r + 0.7152 * gg + 0.0722 * b) / 255 < 0.45;
+  }
+  function setParams() {
+    st.R = +rIn.value / KM; st.m = +mIn.value / MSUN;
+    const a = 2 * st.R;
+    st.om = Phys.binaryOmega(st.m, st.m, a);
+    st.q = (st.m * st.m / a) / HMAX;          // strain relative to the strongest setting (μM = m² for equal masses)
+    rh = 2 * st.m; potRim = -2 * st.m / RDOM;
+    rOut.textContent = rIn.value + ' km'; rIn.setAttribute('aria-valuetext', rIn.value + ' kilometres');
+    mOut.textContent = mIn.value + ' M☉'; mIn.setAttribute('aria-valuetext', mIn.value + ' solar masses');
+    const T = TAU / st.om * MS, fq = st.om / Math.PI / MS * 1000, tau = Phys.mergerTime(st.m, st.m, a) * MS;
+    oT.textContent = Math.round(T) + ' ms';
+    oF.textContent = Math.round(fq) + ' Hz';
+    oTau.textContent = tau < 1000 ? Math.round(tau) + ' ms' : (tau / 1000).toFixed(1) + ' s';
+  }
+  function place() {
+    const ph = H.phase, c = Math.cos(ph), s = Math.sin(ph);
+    h1x = st.R * c; h1y = st.R * s; h2x = -h1x; h2y = -h1y;
+  }
+  function proj(X, Y, Z, o) {
+    const yc = Z * CE + Y * SE, zc = DIST + Y * CE - Z * SE, s = f / zc;
+    o[0] = cx + X * s; o[1] = cy - yc * s; o[2] = s; return o;
+  }
+  // depth of the sheet: the pair's potential, with the rim at zero
+  const well = (X, Y) => DEPTH * (Phys.binaryPotential(X, Y, h1x, h1y, st.m, h2x, h2y, st.m) - potRim);
+  // the ripple at (X, Y): the in-plane strain of the orbit as it was r/c ago, scaled for display
+  const ramp = r => sstep((r - st.R - 0.6) / 2.2);
+  const fall = r => (st.R + 2) / Math.max(r, st.R + 2);
+  function ripple(X, Y, r) {
+    const rp = ramp(r);
+    if (rp <= 0) return 0;
+    Phys.historyAt(H, r / CW, O);
+    return height(O[1]) * rp * fall(r) * Phys.planeStrain(2, O[0], Math.atan2(Y, X));   // −cos 2(Φ − φ)
+  }
+  // Display height: grows with the strain, but never so steep (for the wavelength) that the sheet folds over
+  const height = q => Math.min(WAVE * Math.sqrt(q), 0.16 * Math.PI * CW / st.om);
+  // The two crest lines, where h₊ peaks: φ = Φ(t − r/c) − π/2 − nπ. Brighter where the wave is stronger.
+  const CR = new Float32Array(2 * 400), CA = new Float32Array(400);
+  function drawCrests(c) {
+    const r0 = st.R + 0.6, dr = coarse ? 0.12 : 0.08;
+    for (let arm = 0; arm < 2; arm++) {
+      let n = 0;
+      for (let r = r0; r <= RDOM && n < 400; r += dr, n++) {
+        Phys.historyAt(H, r / CW, O);
+        const s = Math.sqrt(O[1]) * ramp(r), phi = O[0] - Math.PI / 2 - arm * Math.PI;
+        const X = r * Math.cos(phi), Y = r * Math.sin(phi);
+        proj(X, Y, well(X, Y) + height(O[1]) * ramp(r) * fall(r), P);
+        CR[2 * n] = P[0]; CR[2 * n + 1] = P[1]; CA[n] = s * Math.sqrt(fall(r));
+      }
+      for (const [lw, k] of [[3.2, 0.16], [1.1, 0.9]]) {     // a soft glow, then the line
+        c.lineWidth = lw;
+        for (let j = 1; j < n; j++) {
+          c.strokeStyle = rgba(tok.light, (tok.dark ? 1 : 1.1) * k * (0.3 + 0.7 * 0.5 * (CA[j] + CA[j - 1])));
+          c.beginPath(); c.moveTo(CR[2 * j - 2], CR[2 * j - 1]); c.lineTo(CR[2 * j], CR[2 * j + 1]); c.stroke();
+        }
+      }
+    }
+  }
+
+  /* ----- drawing ----- */
+  function gridLine(c, k, vertical, sp) {
+    let pen = false, t = -RDOM;
+    while (t <= RDOM) {
+      const X = vertical ? k : t, Y = vertical ? t : k, r = Math.hypot(X, Y);
+      const dn = Math.min(Math.hypot(X - h1x, Y - h1y), Math.hypot(X - h2x, Y - h2y));
+      let step;
+      if (r > RDOM || dn < rh * 1.003) { pen = false; step = 0.1; }
+      else {
+        const w = ripple(X, Y, r);
+        proj(X, Y, well(X, Y) + w, P);
+        if (pen) c.lineTo(P[0], P[1]); else { c.moveTo(P[0], P[1]); pen = true; }
+        step = Math.min(sp, 0.012 + 0.06 * (dn - rh));
+      }
+      t += step;
+    }
+  }
+  function horizon(c, hx, hy) {
+    c.beginPath();
+    for (let i = 0; i <= 72; i++) {
+      const an = i / 72 * TAU, X = hx + rh * 1.004 * Math.cos(an), Y = hy + rh * 1.004 * Math.sin(an);
+      proj(X, Y, well(X, Y), P); i ? c.lineTo(P[0], P[1]) : c.moveTo(P[0], P[1]);
+    }
+    c.closePath();
+    c.fillStyle = tok.void; c.fill(); c.lineWidth = 0.8; c.strokeStyle = rgba(tok.ink, 0.3); c.stroke();
+  }
+  function drawSheet() {
+    const c = xS;
+    c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, Hh);
+    place();
+    const gap = coarse ? 1 : 0.8, sp = coarse ? 0.2 : 0.14, n = Math.floor(16 / gap);
+    c.lineWidth = 0.8; c.strokeStyle = rgba(tok.grid, tok.dark ? 0.28 : 0.34);
+    c.beginPath();
+    for (let i = -n; i <= n; i++) { gridLine(c, i * gap, true, sp); gridLine(c, i * gap, false, sp); }
+    c.stroke();
+    drawCrests(c);
+    // the nearer hole is drawn last
+    if (h1y < h2y) { horizon(c, h2x, h2y); horizon(c, h1x, h1y); } else { horizon(c, h1x, h1y); horizon(c, h2x, h2y); }
+  }
+  function drawTrace() {
+    const c = xT; c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, TW, TH);
+    const L = 10, R = TW - 10, mid = TH / 2, half = TH / 2 - 14;
+    c.lineWidth = 1; c.strokeStyle = rgba(tok.ink, 0.14);
+    c.beginPath(); c.moveTo(L, mid); c.lineTo(R, mid); c.stroke();
+    // h₊ for an observer on the orbit's axis, relative to the strongest setting
+    c.lineWidth = 1.2; c.strokeStyle = rgba(tok.light, tok.dark ? 0.9 : 1); c.beginPath();
+    const N = Math.max(60, Math.round((R - L) / 1.5));
+    for (let i = 0; i <= N; i++) {
+      Phys.historyAt(H, (1 - i / N) * WIN, O);
+      const y = mid - half * Phys.quadrupoleStrain(0.5, 0.5, 1, 1, 0, O[0], P)[0] * O[1];   // h₀ = 1 here
+      const x = L + (R - L) * i / N;
+      i ? c.lineTo(x, y) : c.moveTo(x, y);
+    }
+    c.stroke();
+  }
+  function render() { if (!tok) readTok(); drawSheet(); drawTrace(); }
+
+  /* ----- loop ----- */
+  function tick(now) {
+    raf = 0;
+    const dt = last ? clamp((now - last) / 1000, 0, 0.05) : 1 / 60; last = now;
+    if (!paused) Phys.historyAdvance(H, dt * SIM, st.om, st.q);
+    render(); frame++;
+    schedule();
+  }
+  function schedule() {
+    if (raf) return;
+    if (!active || !visible || document.hidden || paused) { last = 0; return; }
+    raf = requestAnimationFrame(tick);
+  }
+  function setPaused(p) { paused = p; runBtn.textContent = p ? 'Resume' : 'Pause'; if (!p) schedule(); }
+  function resize() {
+    const r = field.getBoundingClientRect();
+    if (r.width < 2) return;
+    W = r.width; Hh = r.height; dpr = Math.min(2, window.devicePixelRatio || 1);
+    cS.width = Math.round(W * dpr); cS.height = Math.round(Hh * dpr);
+    f = Math.min(W / 20, Hh / 13) * DIST; cx = W / 2; cy = Hh * 0.42;
+    coarse = W < 520;
+    const tr = cT.getBoundingClientRect(); TW = Math.max(1, tr.width); TH = Math.max(1, tr.height);
+    cT.width = Math.round(TW * dpr); cT.height = Math.round(TH * dpr);
+    render();
+  }
+  function onInput() {
+    setParams();
+    // while running, the change spreads outward with the waves; when still, show the new steady pattern at once
+    if (paused || !raf) Phys.historyReset(H, H.phase, st.om, st.q);
+    if (active && !raf) render();
+  }
+
+  rIn.addEventListener('input', onInput);
+  mIn.addEventListener('input', onInput);
+  runBtn.addEventListener('click', () => setPaused(!paused));
+  new ResizeObserver(() => { if (active) resize(); }).observe(field);
+  new IntersectionObserver(es => { visible = es[0].isIntersecting; schedule(); }).observe(field);
+  document.addEventListener('visibilitychange', schedule);
+  const retheme = () => { readTok(); if (active) render(); };
+  new MutationObserver(retheme).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+  matchMedia('(prefers-color-scheme: light)').addEventListener('change', retheme);
+  Motion.subscribe(on => setPaused(!on));
+
+  setParams();
+  Phys.historyReset(H, 0.6, st.om, st.q);
+  setPaused(paused);
+
+  return {
+    setActive(on) {
+      active = on;
+      if (on) { resize(); schedule(); }
+      else if (raf) { cancelAnimationFrame(raf); raf = 0; last = 0; }
+    },
+    get frames() { return frame; }
+  };
+})();
+
 /* ---------------- research figure: three regimes (schematic) ---------------- */
 (function regimes() {
   const svg = document.getElementById('regimes'); if (!svg) return;
@@ -741,6 +945,7 @@ function route(fromUser) {
   document.title = PAGES[id];
   for (const a of links) { if (a.dataset.nav === id) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); }
   Obs.setActive(id === 'home');
+  Bin.setActive(id === 'home');
   Cosmos.setPage(id === 'home');
   if (fromUser) {
     window.scrollTo(0, 0);
@@ -761,5 +966,5 @@ document.getElementById('replay').addEventListener('click', () => { window.scrol
 if (root.classList.contains('intro-on')) Cosmos.playIntro(); else Cosmos.rest();
 Obs.firstLight();
 // read by the browser tests (tests/site.test.mjs)
-window.__site = { get particles() { return Cosmos.active; }, get frames() { return Cosmos.frames; }, get hole() { return Cosmos.hole; }, get obsFrames() { return Obs.frames; } };
+window.__site = { get particles() { return Cosmos.active; }, get frames() { return Cosmos.frames; }, get hole() { return Cosmos.hole; }, get obsFrames() { return Obs.frames; }, get binFrames() { return Bin.frames; } };
 })();

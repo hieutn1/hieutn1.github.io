@@ -7,8 +7,8 @@ one stylesheet and two scripts. GitHub Actions tests it and publishes it to GitH
 index.html              all four pages (Home, Research, Notes, About), switched with #research etc.
 404.html                shown for addresses that don't exist
 assets/css/site.css     styles, colour tokens, self-hosted fonts
-assets/js/physics.js    the physics behind both animations (no page code, so it can be tested)
-assets/js/site.js       page behaviour: intro, black hole, observatory, theme, pause control, routing
+assets/js/physics.js    the physics behind the animations (no page code, so it can be tested)
+assets/js/site.js       page behaviour: intro, black hole, observatory, binary, theme, pause control, routing
 assets/fonts/           Instrument Serif, Manrope, IBM Plex Mono (SIL Open Font License)
 assets/img/             favicon, home-screen icon, social preview image
 tests/                  physics tests and browser tests
@@ -75,13 +75,17 @@ orbits; circular orbits stay circular; orbits are stable outside 6M and plunge i
 precession matches an independent integration of the GR orbit equation; the Langevin bath satisfies
 fluctuation–dissipation; the Paczyński–Wiita potential's innermost stable orbit (3 r_s) and marginally bound
 orbit (2 r_s); gas in the disk circles several times before plunging inside 3 r_s; lens images solve the
-lens equation.
+lens equation. For the binary: a directly integrated two-body orbit keeps the Kepler period; the strain formula
+matches the quadrupole moment of that orbit for observers at any inclination and in the orbital plane; the waves
+have twice the orbital frequency, a quadrupole pattern, and the right size for LIGO's first detection; the
+radiated power matches the quadrupole formula and the orbit's energy loss; integrating the shrinking orbit gives
+the Peters merger time; and a change to the orbit spreads outward at the wave speed.
 
 `tests/site.test.mjs` opens the site in Chromium on ten screen sizes from an iPhone SE to an ultrawide
 monitor and checks: the intro and its skip button; nothing wider than the screen; touch (tapping, the sheet,
 dragging sliders); keyboard use (skip link, tab order, visible focus, focus moving to each new page);
-reduced-motion settings; the pause control; animation stopping when off screen; accessibility (axe-core,
-both themes); page weight and no third-party requests; the page without JavaScript; the 404 page; and
+reduced-motion settings; the pause control; animation stopping when off screen; the binary's readouts against
+Kepler's law and the Peters formula worked out in SI units; accessibility (axe-core, both themes); page weight and no third-party requests; the page without JavaScript; the 404 page; and
 automatic quality reduction on slow devices.
 
 ## Publishing
@@ -131,6 +135,13 @@ HTTPS is on automatically for github.io addresses.
 - **Observatory (exact):** light follows null geodesics of the Schwarzschild metric in the equatorial plane,
   timed in Schwarzschild coordinate time; matter follows timelike geodesics in proper time, plus friction and
   noise from a Langevin bath. The sheet is Flamm's paraboloid, drawn with its height exaggerated by half.
+- **Binary (leading order):** two equal black holes on a circular Kepler orbit; the sheet's depth is their
+  Newtonian potential. The ripples are the quadrupole gravitational wave in the orbital plane,
+  h₊ = −(h₀/2) cos 2(Φ(t − r/c) − φ) with h₀ = 4μM/(ar), evaluated at the retarded time from a stored history of
+  the orbit, so changes travel outward. On screen the waves move about 22 times slower than light (so several
+  wavelengths fit), and their height is exaggerated but capped so the sheet never folds. The gold lines are the
+  two crests. Readouts use G = c = 1 with 100 solar masses as the unit (147.66 km, 0.49255 ms), so they are real
+  values for the masses and radii on the sliders; the tightest setting is the pair's innermost stable orbit, 6GM/c².
 - **Hero disk (a model):** test particles in the Paczyński–Wiita potential, which reproduces the
   Schwarzschild innermost stable and marginally bound orbits. Viscosity is far stronger than in a real
   disk so that inflow is visible, but gas still circles several times before it reaches the inner edge.

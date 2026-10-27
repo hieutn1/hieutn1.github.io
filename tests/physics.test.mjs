@@ -265,3 +265,130 @@ test('the intro black hole grows slowly at first, then fast', () => {
     prevSlope = slope;
   }
 });
+
+/* ------------------------------------------------------- binary black holes */
+
+// Two point masses under Newtonian gravity, integrated directly (independent of the formulas being tested)
+function twoBody(m1, m2, a) {
+  const M = m1 + m2, w = P.binaryOmega(m1, m2, a);
+  return { m1, m2, x1: [m2 / M * a, 0], x2: [-m1 / M * a, 0], v1: [0, m2 / M * a * w], v2: [0, -m1 / M * a * w] };
+}
+function accel(s) {
+  const dx = s.x2[0] - s.x1[0], dy = s.x2[1] - s.x1[1], d3 = Math.pow(dx * dx + dy * dy, 1.5);
+  return [[s.m2 * dx / d3, s.m2 * dy / d3], [-s.m1 * dx / d3, -s.m1 * dy / d3]];
+}
+function leap(s, h) {
+  let [a1, a2] = accel(s);
+  for (let k = 0; k < 2; k++) { s.v1[k] += 0.5 * h * a1[k]; s.v2[k] += 0.5 * h * a2[k]; s.x1[k] += h * s.v1[k]; s.x2[k] += h * s.v2[k]; }
+  [a1, a2] = accel(s);
+  for (let k = 0; k < 2; k++) { s.v1[k] += 0.5 * h * a1[k]; s.v2[k] += 0.5 * h * a2[k]; }
+}
+
+test('binary: the pair keeps a circular orbit with the Kepler period', () => {
+  for (const [m1, m2, a] of [[0.35, 0.35, 6.2], [0.5, 0.2, 9], [0.2, 0.2, 10.8]]) {
+    const s = twoBody(m1, m2, a), T = 2 * Math.PI / P.binaryOmega(m1, m2, a), h = T / 20000;
+    let ang = 0, prev = 0, t = 0, d = 0, dmax = 0;
+    while (ang < 2 * Math.PI) {
+      leap(s, h); t += h;
+      const th = Math.atan2(s.x1[1] - s.x2[1], s.x1[0] - s.x2[0]);
+      d = th - prev; if (d < -Math.PI) d += 2 * Math.PI; ang += d; prev = th;
+      dmax = Math.max(dmax, Math.abs(Math.hypot(s.x1[0] - s.x2[0], s.x1[1] - s.x2[1]) - a));
+    }
+    t -= h * (ang - 2 * Math.PI) / d;   // back up to the moment the angle reached a full turn
+    close(t, T, 1e-6, `period for m1=${m1}, m2=${m2}, a=${a}`);
+    assert.ok(dmax < 1e-6 * a, `separation drifted by ${dmax}`);
+  }
+});
+
+test('binary: the strain formula matches the quadrupole moment of the actual orbit', () => {
+  // h_ij = (2/r) d²I_ij/dt², projected onto the polarisation axes p and q of an observer along n
+  const r = 1000;
+  for (const [m1, m2, a] of [[0.35, 0.35, 6.2], [0.5, 0.2, 9]]) {
+    const s = twoBody(m1, m2, a), T = 2 * Math.PI / P.binaryOmega(m1, m2, a);
+    for (let step = 0; step < 7; step++) {
+      for (let k = 0; k < 900; k++) leap(s, T / 6000);   // move somewhere new along the orbit
+      const [a1, a2] = accel(s), I2 = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+      for (const [m, x, v, ac] of [[s.m1, s.x1, s.v1, a1], [s.m2, s.x2, s.v2, a2]])
+        for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) I2[i][j] += m * (2 * v[i] * v[j] + ac[i] * x[j] + x[i] * ac[j]);
+      const quad = (u, w) => { let q = 0; for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) q += u[i] * I2[i][j] * w[j]; return q; };
+      const phase = Math.atan2(s.x1[1] - s.x2[1], s.x1[0] - s.x2[0]);
+      for (const iota of [0, 0.6, Math.PI / 2, 2.2]) {
+        const p = [Math.cos(iota), 0, -Math.sin(iota)], q = [0, 1, 0];
+        const hp = (quad(p, p) - quad(q, q)) / r, hx = 2 * quad(p, q) / r;
+        const [fp, fx] = P.quadrupoleStrain(m1, m2, a, r, iota, phase);
+        const h0 = P.strainAmplitude(m1, m2, a, r);
+        assert.ok(Math.abs(fp - hp) < 1e-6 * h0 && Math.abs(fx - hx) < 1e-6 * h0, `ι=${iota}: formula (${fp}, ${fx}) vs orbit (${hp}, ${hx})`);
+      }
+      for (const phi of [0, 0.9, 2.5, 4]) {   // observers in the orbital plane, as drawn on the sheet
+        const p = [0, 0, -1], q = [-Math.sin(phi), Math.cos(phi), 0];
+        const hp = (quad(p, p) - quad(q, q)) / r;
+        assert.ok(Math.abs(P.planeStrain(P.strainAmplitude(m1, m2, a, r), phase, phi) - hp) < 1e-6 * P.strainAmplitude(m1, m2, a, r), `in-plane strain at φ=${phi}`);
+      }
+    }
+  }
+});
+
+test('binary: the waves have twice the orbital frequency and a quadrupole pattern', () => {
+  const h0 = 1;
+  for (const ph of [0.1, 1.3, 2.9]) {
+    close(P.planeStrain(h0, ph + Math.PI, 0.4), P.planeStrain(h0, ph, 0.4), 1e-12, 'half an orbit repeats the wave');
+    close(P.planeStrain(h0, ph, 0.4 + Math.PI), P.planeStrain(h0, ph, 0.4), 1e-12, 'opposite directions see the same strain');
+    close(P.planeStrain(h0, ph, 0.4 + Math.PI / 2), -P.planeStrain(h0, ph, 0.4), 1e-12, 'directions 90° apart see opposite strain');
+  }
+  // the chirp-mass form, and the right size for LIGO's first detection (36 + 29 Msun at 410 Mpc, waves at 100 Hz)
+  for (const [m1, m2, a] of [[0.35, 0.35, 6], [0.5, 0.2, 9]])
+    close(P.strainAmplitude(m1, m2, a, 50), 4 * Math.pow(P.chirpMass(m1, m2), 5 / 3) * Math.pow(P.binaryOmega(m1, m2, a), 2 / 3) / 50, 1e-12, 'chirp-mass form');
+  const MSUN = 1476.625, M = 65 * MSUN, w = Math.PI * 100 / 299792458;   // metres, and Ω in 1/m
+  const a = Math.cbrt(M / (w * w)), h = P.strainAmplitude(36 * MSUN, 29 * MSUN, a, 410 * 3.0857e22);
+  assert.ok(h > 5e-22 && h < 3e-21, `GW150914-like strain ${h}`);
+  assert.ok(a > 3e5 && a < 6e5, `separation ${a} m`);
+});
+
+test('binary: radiated power matches the quadrupole formula, and the orbit shrinks to merge in the Peters time', () => {
+  // P = (1/5) <d³Q_ij/dt³ d³Q_ij/dt³>, with Q the traceless quadrupole of the orbit, differentiated numerically
+  for (const [m1, m2, a] of [[0.35, 0.35, 6.2], [0.5, 0.2, 9]]) {
+    const M = m1 + m2, w = P.binaryOmega(m1, m2, a);
+    const Q = t => {
+      const c = Math.cos(w * t), s = Math.sin(w * t), I = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+      for (const [m, R] of [[m1, m2 / M * a], [m2, -m1 / M * a]]) {
+        const x = [R * c, R * s, 0];
+        for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) I[i][j] += m * x[i] * x[j];
+      }
+      const tr = (I[0][0] + I[1][1] + I[2][2]) / 3; for (let i = 0; i < 3; i++) I[i][i] -= tr;
+      return I;
+    };
+    const h = 0.005 / w, t = 0.37 / w, f = [Q(t + 2 * h), Q(t + h), Q(t - h), Q(t - 2 * h)];
+    let sum = 0;
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { const d3 = (f[0][i][j] - 2 * f[1][i][j] + 2 * f[2][i][j] - f[3][i][j]) / (2 * h * h * h); sum += d3 * d3; }
+    close(sum / 5, P.gwPower(m1, m2, a), 1e-4, 'quadrupole power');
+    // the orbit loses exactly that energy: E = −m1 m2 / 2a
+    close(-(m1 * m2 / (2 * a * a)) * P.shrinkRate(m1, m2, a), P.gwPower(m1, m2, a), 1e-12, 'energy balance');
+    // integrate da/dt down to a/1000 and compare with the merger time
+    let A = a, T = 0; const dt = P.mergerTime(m1, m2, a) / 4e5;
+    while (A > a / 1000) {
+      const k1 = P.shrinkRate(m1, m2, A), k2 = P.shrinkRate(m1, m2, A + 0.5 * dt * k1), k3 = P.shrinkRate(m1, m2, A + 0.5 * dt * k2), k4 = P.shrinkRate(m1, m2, A + dt * k3);
+      const dA = dt * (k1 + 2 * k2 + 2 * k3 + k4) / 6;
+      if (A + dA < a / 1000) { T += dt * (A - a / 1000) / -dA; A = a / 1000; break; }
+      A += dA; T += dt;
+    }
+    close(T, P.mergerTime(m1, m2, a) - P.mergerTime(m1, m2, a / 1000), 1e-3, 'merger time');
+  }
+});
+
+test('binary: the waves carry the orbit as it was, and a change spreads outward at the wave speed', () => {
+  const H = P.makeHistory(800, 0.5), w1 = 0.05, w2 = 0.02;
+  P.historyReset(H, 0.3, w1, 1);
+  for (let k = 0; k < 5000; k++) P.historyAdvance(H, 0.77, w1, 1);   // wraps the buffer many times
+  const o = [0, 0];
+  for (const lag of [0, 0.2, 13.1, 250, 399, 600]) {
+    P.historyAt(H, lag, o);
+    close(o[0], H.phase - w1 * lag, 1e-9, `steady phase at lag ${lag}`);
+  }
+  for (let k = 0; k < 50; k++) P.historyAdvance(H, 0.77, w2, 0.4);    // the orbit widens: slower, weaker
+  const since = 50 * 0.77, freq = lag => { const a = P.historyAt(H, lag, [0, 0])[0], b = P.historyAt(H, lag + 1, [0, 0])[0]; return a - b; };
+  close(freq(5), w2, 1e-6, 'recent waves have the new frequency');
+  close(freq(since + 20), w1, 1e-6, 'older waves still have the old one');
+  assert.equal(P.historyAt(H, 5, o)[1], 0.4); assert.equal(P.historyAt(H, since + 20, o)[1], 1);
+  const before = P.historyAt(H, since - 0.01, [0, 0])[0], after = P.historyAt(H, since + 0.01, [0, 0])[0];
+  assert.ok(Math.abs(before - after) < 0.01, 'the phase is continuous across the change');
+});

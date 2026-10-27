@@ -173,11 +173,73 @@
    * size (plus a small seed term): almost nothing at first, then a rush at the end. */
   const growth = (p, a) => (Math.exp(a * clamp(p, 0, 1)) - 1) / (Math.exp(a) - 1);
 
+  /* ---------- A binary black hole (G = c = 1) ----------
+   * Two masses on a circular orbit of separation a, to leading (Newtonian and quadrupole) order.
+   * Kepler: Ω² = M / a³ with M = m1 + m2. The waves come out at twice the orbital frequency with strain
+   * h₀ = 4 μ M / (a r) = 4 𝓜^(5/3) Ω^(2/3) / r at distance r, where μ = m1 m2 / M and 𝓜 is the chirp mass. */
+  const binaryOmega = (m1, m2, a) => Math.sqrt((m1 + m2) / (a * a * a));
+  const chirpMass = (m1, m2) => Math.pow(m1 * m2, 0.6) / Math.pow(m1 + m2, 0.2);
+  function strainAmplitude(m1, m2, a, r) { const M = m1 + m2; return 4 * (m1 * m2 / M) * M / (a * r); }
+  // Strain seen by an observer at inclination ι to the orbit's axis, when the orbital phase (at the retarded
+  // time) is Φ. Polarisation axes: p in the plane containing the axis and the line of sight, q perpendicular to it.
+  function quadrupoleStrain(m1, m2, a, r, iota, phase, out) {
+    const h0 = strainAmplitude(m1, m2, a, r), c = Math.cos(iota), o = out || [0, 0];
+    o[0] = -h0 * 0.5 * (1 + c * c) * Math.cos(2 * phase);
+    o[1] = -h0 * c * Math.sin(2 * phase);
+    return o;
+  }
+  // In the orbital plane, at azimuth φ: only the plus polarisation, h₊ = −(h₀/2) cos 2(Φ − φ)
+  const planeStrain = (h0, phase, phi) => -0.5 * h0 * Math.cos(2 * (phase - phi));
+  // Peters (1964): radiated power, and the time for the orbit to shrink to nothing
+  function gwPower(m1, m2, a) { const M = m1 + m2, mu = m1 * m2 / M; return 6.4 * mu * mu * M * M * M / Math.pow(a, 5); }
+  const shrinkRate = (m1, m2, a) => -12.8 * m1 * m2 * (m1 + m2) / (a * a * a);   // da/dt
+  const mergerTime = (m1, m2, a) => (5 / 256) * Math.pow(a, 4) / (m1 * m2 * (m1 + m2));
+  // The pair's Newtonian potential at (x, y), which also sets the depth of the sheet
+  function binaryPotential(x, y, x1, y1, m1, x2, y2, m2) {
+    return -m1 / Math.hypot(x - x1, y - y1) - m2 / Math.hypot(x - x2, y - y2);
+  }
+
+  /* ---------- Retarded time ----------
+   * A wave reaching distance r now left the source at t − r/c. The history keeps the orbital phase and
+   * the wave amplitude on a fixed time grid, so the field at any distance uses the orbit as it was then,
+   * and a change to the orbit spreads outward at the wave speed instead of appearing everywhere at once. */
+  function makeHistory(n, dt) {
+    return { n, dt, ph: new Float64Array(n), om: new Float64Array(n), amp: new Float64Array(n), head: 0, t: 0, tLast: 0, phase: 0, omega: 0, a: 0 };
+  }
+  function historyReset(H, phase, omega, amp) {
+    H.t = 0; H.tLast = 0; H.phase = phase; H.omega = omega; H.a = amp; H.head = 0;
+    for (let k = 0; k < H.n; k++) { H.ph[k] = phase - omega * k * H.dt; H.om[k] = omega; H.amp[k] = amp; }
+  }
+  function historyAdvance(H, dt, omega, amp) {
+    const t0 = H.t, p0 = H.phase;
+    H.t += dt; H.phase += omega * dt; H.omega = omega; H.a = amp;
+    while (H.tLast + H.dt <= H.t) {
+      H.tLast += H.dt; H.head = (H.head + H.n - 1) % H.n;      // newest sample sits at head
+      H.ph[H.head] = p0 + omega * (H.tLast - t0); H.om[H.head] = omega; H.amp[H.head] = amp;
+    }
+  }
+  // Phase and amplitude as they were `lag` time units ago
+  function historyAt(H, lag, out) {
+    const o = out || [0, 0], tq = H.t - lag;
+    if (tq >= H.tLast) { o[0] = H.phase - H.omega * lag; o[1] = H.a; return o; }
+    const back = (H.tLast - tq) / H.dt, k = Math.floor(back);
+    if (k >= H.n - 1) {
+      const j = (H.head + H.n - 1) % H.n;
+      o[0] = H.ph[j] - H.om[j] * (back - (H.n - 1)) * H.dt; o[1] = H.amp[j]; return o;
+    }
+    const fr = back - k, i0 = (H.head + k) % H.n, i1 = (H.head + k + 1) % H.n;
+    o[0] = H.ph[i0] + (H.ph[i1] - H.ph[i0]) * fr; o[1] = H.amp[i0] + (H.amp[i1] - H.amp[i0]) * fr;
+    return o;
+  }
+
   return {
     criticalImpact, photonSphere, isco, flamm,
     nullK, nullStep, nullStepSize, nullDt, nullEnergy2,
     circularSpeed, timelikeEnergy2, timelikeStep,
     PW_GM, pwPotential, pwCircularSpeed, pwAngularMomentum, diskStep,
-    lensImages, growth
+    lensImages, growth,
+    binaryOmega, chirpMass, strainAmplitude, quadrupoleStrain, planeStrain,
+    gwPower, shrinkRate, mergerTime, binaryPotential,
+    makeHistory, historyReset, historyAdvance, historyAt
   };
 });
