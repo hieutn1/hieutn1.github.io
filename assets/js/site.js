@@ -410,9 +410,13 @@ const Bin = (() => {
   let W = 1, Hh = 1, dpr = 1, f = 1, cx = 0, cy = 0, TW = 1, TH = 1, tok = null, coarse = false;
   let active = false, visible = false, paused = !Motion.on, raf = 0, last = 0, frame = 0;
   // the run
-  let B = null, a = 0, phase = 0, omega = 0, amp = 0, merged = false, sm = 0, smScreen = 0, still = false, phM = 0, traceClock = 0;
+  let B = null, m = 0, a = 0, phase = 0, omega = 0, amp = 0, merged = false, aM = 0, sm = 0, smScreen = 0, still = false, traceClock = 0;
+  // the sliders act on the running system: masses ease to their new value, and a moved orbit is held at the new radius
+  let mT = 0, aT = 0, holding = false, dragging = false, startKm = 0;
+  // where waves leave from: it follows the holes, but moves outward at no more than half the wave speed, so waves never bunch up
+  let rsEmit = 0;
   // what is drawn this frame
-  let sep = 0, rh = 0, mw = 0, h1x = 0, h1y = 0, h2x = 0, h2y = 0, potRim = 0;
+  let sep = 0, rh = 0, mw = 0, h1x = 0, h1y = 0, h2x = 0, h2y = 0, potRim = 0, bar = 0;
 
   function readTok() {
     const cs = getComputedStyle(root), g = n => cs.getPropertyValue(n).trim() || '#888888';
@@ -422,61 +426,104 @@ const Bin = (() => {
   }
   const fmtMs = v => (v < 10 ? v.toFixed(1) : Math.round(v)) + ' ms';
   function readouts() {
-    if (merged) { oT.textContent = oF.textContent = oTau.textContent = '—'; return; }
-    const tau = (Phys.mergerTime(B.m1, B.m2, a) - Phys.mergerTime(B.m1, B.m2, B.am)) * MS;
+    if (merged) {   // ringing: the waves are at the remnant's ringdown frequency until it settles
+      oT.textContent = oTau.textContent = '—';
+      oF.textContent = sm < B.dur + 4 * B.tau ? Math.round(omega / Math.PI / MS * 1000) + ' Hz' : '—';
+      return;
+    }
+    const tau = Math.max(0, Phys.mergerTime(B.m1, B.m2, a) - Phys.mergerTime(B.m1, B.m2, B.am)) * MS;
     oT.textContent = fmtMs(2 * Math.PI / omega * MS);
     oF.textContent = Math.round(omega / Math.PI / MS * 1000) + ' Hz';
     oTau.textContent = tau < 1000 ? fmtMs(tau) : (tau / 1000).toFixed(1) + ' s';
   }
-  const rate = w => SIM * Math.max(1, WREF / w);    // time units per second of film
+  function syncRadius() {   // the radius slider follows the shrinking orbit
+    if (dragging || holding) return;
+    if (merged) { rOut.textContent = '—'; rIn.setAttribute('aria-valuetext', 'merged'); return; }
+    const km = Math.round(0.5 * a * KM);
+    rIn.value = km; rOut.textContent = rIn.value + ' km'; rIn.setAttribute('aria-valuetext', rIn.value + ' kilometres');
+  }
+  // Film speed: faster while the orbit is wide, and in slow motion around the merger so it can be seen
+  function rate() {
+    const g = merged ? 0.3 + 0.7 * sstep((sm - B.dur - 2 * B.tau) / (40 * B.M)) : 1 - 0.7 * sstep((1.8 * B.am - a) / (0.8 * B.am));
+    return SIM * Math.max(1, WREF / omega) * g;
+  }
   const strain = (ph, am) => Phys.quadrupoleStrain(0.5, 0.5, 1, 1, 0, ph, P2)[0] * am;   // face-on h₊, here −am·cos 2Φ
   function label() { runBtn.textContent = merged ? 'Restart' : paused ? 'Resume' : 'Pause'; }
+  // pace the rest of the inspiral from where the orbit is now
+  function repace() { B = a > Phys.peakSeparation(m, m) * 1.001 ? Phys.pacedBinary(m, m, a, NMIN, NMAX) : Phys.makeBinary(m, m, a, 1); }
 
-  // A new pair at the sliders' settings, as if it had been orbiting there for a long time
-  function start() {
-    const m = +mIn.value / MSUN, R = +rIn.value / KM;
-    rOut.textContent = rIn.value + ' km'; rIn.setAttribute('aria-valuetext', rIn.value + ' kilometres');
+  // A pair at the sliders' settings. Fresh: as if it had been orbiting there for a long time.
+  // Otherwise (a new pair after a merger) the old waves carry on outward.
+  function start(fresh) {
+    startKm = +rIn.value; m = mT = +mIn.value / MSUN; a = aT = 2 * startKm / KM;
+    holding = false; merged = false; still = false; sm = 0; smScreen = 0;
+    repace();
+    omega = Phys.binaryOmega(m, m, a); amp = B.mu * B.M / a;
+    if (fresh) {
+      phase = 0.6; rsEmit = a / 2;
+      Phys.historyReset(H, phase, omega, amp / HMAX, rsEmit);
+      const peak = B.mu * B.M / B.am, dph = omega * rate() * TRACE_S / TN;
+      for (let i = 0; i < TN; i++) TR[i] = strain(phase - (TN - 1 - i) * dph, amp / peak);
+      traceClock = 0;
+    }
     mOut.textContent = mIn.value + ' M☉'; mIn.setAttribute('aria-valuetext', mIn.value + ' solar masses');
-    B = Phys.pacedBinary(m, m, 2 * R, NMIN, NMAX);
-    a = B.a0; phase = 0.6; omega = Phys.binaryOmega(m, m, a); amp = B.mu * B.M / a;
-    merged = false; still = false; sm = 0; smScreen = 0;
-    Phys.historyReset(H, phase, omega, amp / HMAX, a / 2);
-    const peak = B.mu * B.M / B.am, dph = omega * rate(omega) * TRACE_S / TN;
-    for (let i = 0; i < TN; i++) TR[i] = strain(phase - (TN - 1 - i) * dph, amp / peak);
-    traceClock = 0;
-    readouts(); label();
+    syncRadius(); readouts(); label();
+  }
+  function merge() { merged = true; aM = a; sm = 0; smScreen = 0; holding = false; label(); readouts(); syncRadius(); }
+  // Apply the sliders at once (when nothing is running, so a still picture shows the new state)
+  function settle() {
+    m = mT;
+    if (!merged) { a = aT; holding = false; repace(); omega = Phys.binaryOmega(m, m, a); amp = B.mu * B.M / a; rsEmit = a / 2; Phys.historyReset(H, phase, omega, amp / HMAX, rsEmit); }
+    else B = Phys.makeBinary(m, m, B.a0, B.K0);
+    readouts();
+    if (active) render();
   }
 
   // Advance the film by dt seconds
   function advance(dt) {
-    const p0 = phase, a0 = amp, peak = B.mu * B.M / B.am;
-    let T = rate(omega) * dt;
+    const p0 = phase, amp0 = amp, peak = B.mu * B.M / B.am;
+    if (mT !== m) {   // the masses ease toward the slider
+      m += (mT - m) * (1 - Math.exp(-dt / 0.25));
+      if (Math.abs(mT - m) < 1e-3) m = mT;
+      B = Phys.makeBinary(m, m, B.a0, B.K0);
+      if (m === mT && !merged && !holding) repace();
+    }
+    const film = rate() * dt;
+    let T = film;
     if (!merged) {
-      while (T > 0) {
-        const w = Phys.binaryOmega(B.m1, B.m2, a), da = Phys.inspiralRate(B, a);
-        let h = Math.min(T, 0.02 * TAU / w);
-        if (a + da * h <= B.am) h = Math.max(0, (a - B.am) / -da);   // stop at the merger
-        const st = { a, phase }; Phys.inspiralStep(B, st, h); a = st.a; phase = st.phase; T -= h;
-        if (a <= B.am * 1.0000001 || h < 1e-9) { a = B.am; merged = true; phM = phase; label(); readouts(); break; }
+      if (holding) {   // the orbit is moved to the new radius, then left to evolve from there
+        a += (aT - a) * (1 - Math.exp(-dt / 0.15));
+        phase += Phys.binaryOmega(m, m, a) * T; T = 0;
+        if (!dragging && Math.abs(aT - a) < 1e-3 * aT) { a = aT; holding = false; if (a > B.am) repace(); }
+        if (a <= B.am) merge();
+      } else {
+        while (T > 0) {
+          const w = Phys.binaryOmega(m, m, a), da = Phys.inspiralRate(B, a);
+          let h = Math.min(T, 0.02 * TAU / w);
+          if (a + da * h <= B.am) h = Math.max(0, (a - B.am) / -da);   // stop at the merger
+          const st = { a, phase }; Phys.inspiralStep(B, st, h); a = st.a; phase = st.phase; T -= h;
+          if (a <= B.am * 1.0000001 || h < 1e-9) { a = Math.min(a, B.am); merge(); break; }
+        }
       }
-      omega = Phys.binaryOmega(B.m1, B.m2, a); amp = B.mu * B.M / a;
+      if (!merged) { omega = Phys.binaryOmega(m, m, a); amp = B.mu * B.M / a; }
     }
     if (merged) {
       sm += T; smScreen += dt;
       Phys.afterMerger(B, sm, post);
-      phase = phM + post.dphase; omega = post.omega; amp = post.amp;
-      if (sm > B.dur && sm * CW > RDOM + 4) still = true;   // the last waves have left the sheet
+      omega = post.omega; amp = post.amp; phase += omega * T;
+      if (sm > B.dur + 6 * B.tau && sm * CW > RDOM + 4) still = true;   // rung down, and the last waves have left the sheet
     }
-    const sepNow = merged ? B.am * (1 - post.blend) : a;
-    Phys.historyAdvance(H, rate(omega) * dt, phase, omega, amp / HMAX, sepNow / 2);
-    // the trace, sampled evenly in film time
-    if (!merged || smScreen < 0.7) {
+    const sepNow = merged ? aM * (1 - post.blend) : a;
+    rsEmit = Math.min(sepNow / 2, rsEmit + 0.5 * CW * film);
+    Phys.historyAdvance(H, film, phase, omega, amp / HMAX, rsEmit);
+    // the trace, sampled evenly in film time; it stops once the ringing has died away
+    if (!merged || smScreen < 2.5) {
       traceClock += dt;
       const step = TRACE_S / TN;
       for (let n = 0; traceClock >= step && n < TN; n++) {
         traceClock -= step;
         const fr = 1 - traceClock / dt;
-        TR.copyWithin(0, 1); TR[TN - 1] = strain(p0 + (phase - p0) * fr, (a0 + (amp - a0) * fr) / peak);
+        TR.copyWithin(0, 1); TR[TN - 1] = strain(p0 + (phase - p0) * fr, (amp0 + (amp - amp0) * fr) / peak);
       }
     }
   }
@@ -487,14 +534,23 @@ const Bin = (() => {
   }
   function place() {
     const bl = merged ? post.blend : 0;
-    sep = merged ? B.am * (1 - bl) : a;
-    rh = 2 * B.m1 + (B.rp - 2 * B.m1) * bl;           // each horizon grows into the remnant's
+    sep = merged ? aM * (1 - bl) : a;
+    rh = 2 * m + (B.rp - 2 * m) * bl;                 // each horizon grows into the remnant's
     mw = B.M + (B.Mf - B.M) * bl; potRim = -mw / RDOM;
+    // the newly formed hole is a spinning bar that rings down: its stretch, lined up with the old pair's axis
+    bar = merged ? 0.35 * Math.exp(-sm / B.tau) * bl : 0;
     const c = Math.cos(phase), s = Math.sin(phase);
     h1x = 0.5 * sep * c; h1y = 0.5 * sep * s; h2x = -h1x; h2y = -h1y;
   }
-  // depth of the sheet: the pair's potential, with the rim at zero
-  const well = (X, Y) => DEPTH * (Phys.binaryPotential(X, Y, h1x, h1y, 0.5 * mw, h2x, h2y, 0.5 * mw) - potRim);
+  // depth of the sheet: the pair's potential, plus the near field of the ringing remnant, with the rim at zero
+  function well(X, Y) {
+    let v = Phys.binaryPotential(X, Y, h1x, h1y, 0.5 * mw, h2x, h2y, 0.5 * mw) - potRim;
+    if (bar > 1e-4) {
+      const d = Math.max(Math.hypot(X, Y), rh), q = bar * rh;
+      v -= mw * q * q * Math.cos(2 * (Math.atan2(Y, X) - phase)) / (d * d * d);
+    }
+    return DEPTH * v;
+  }
   // near the pair the field is not yet a wave; the ripple starts just outside the horizons
   const ramp = r => sstep((r - 0.5 * sep - 0.8 * rh) / 2);
   const fall = r => (0.5 * sep + 2) / Math.max(r, 0.5 * sep + 2);
@@ -514,7 +570,8 @@ const Bin = (() => {
     let pen = false, t = -RDOM;
     while (t <= RDOM) {
       const X = vertical ? k : t, Y = vertical ? t : k, r = Math.hypot(X, Y);
-      const dn = Math.min(Math.hypot(X - h1x, Y - h1y), Math.hypot(X - h2x, Y - h2y));
+      let dn = Math.min(Math.hypot(X - h1x, Y - h1y), Math.hypot(X - h2x, Y - h2y));
+      if (merged && sep < rh) dn = Math.min(dn, r - rh * stretch() * Math.cos(2 * (Math.atan2(Y, X) - phase)));
       let step;
       if (r > RDOM || dn < rh * 1.003) { pen = false; step = 0.1; }
       else {
@@ -529,19 +586,21 @@ const Bin = (() => {
   const CMAX = 3000, CR = new Float32Array(2 * CMAX), CA = new Float32Array(CMAX);
   function drawCrests(c) {
     for (let arm = 0; arm < 2; arm++) {
-      let n = 0;
+      let n = 0, prev = NaN;
       for (let r = 0.5 * sep + 0.5 * rh; r <= RDOM && n < CMAX; n++) {
         Phys.historyFront(H, r, CW, O);
         const q = O[1], phi = O[0] - arm * Math.PI, X = r * Math.cos(phi), Y = r * Math.sin(phi), rp = ramp(r), fl = fall(r);
+        const jump = Math.abs(Math.atan2(Math.sin(phi - prev), Math.cos(phi - prev))) > 0.5; prev = phi;
         proj(X, Y, well(X, Y) + height(q, O[2]) * rp * fl, P);
         CR[2 * n] = P[0]; CR[2 * n + 1] = P[1];
-        CA[n] = (0.3 + 0.7 * Math.min(1, Math.sqrt(q) * rp * Math.sqrt(fl))) * sstep(q / 0.03) * sstep(rp * 3);
+        CA[n] = jump ? -1 : (0.3 + 0.7 * Math.min(1, Math.sqrt(q) * rp * Math.sqrt(fl))) * sstep(q / 0.03) * sstep(rp * 3);
         r += clamp(0.2 * CW / Math.max(O[2], 1e-6), 0.012, 0.08);
       }
       for (const [lw, k] of [[3.2, 0.16], [1.1, 0.9]]) {     // a soft glow, then the line
         c.lineWidth = lw;
         for (let j = 1; j < n; j++) {
-          const al = (tok.dark ? 1 : 1.1) * k * 0.5 * (CA[j] + CA[j - 1]);
+          if (CA[j] < 0) continue;   // a break in the wave train: don't join across it
+          const al = (tok.dark ? 1 : 1.1) * k * 0.5 * (CA[j] + Math.max(0, CA[j - 1]));
           if (al < 0.01) continue;
           c.strokeStyle = rgba(tok.light, Math.min(1, al));
           c.beginPath(); c.moveTo(CR[2 * j - 2], CR[2 * j - 1]); c.lineTo(CR[2 * j], CR[2 * j + 1]); c.stroke();
@@ -559,12 +618,26 @@ const Bin = (() => {
     }
     c.closePath();
   }
+  // the common horizon: one shape, stretched along the pair's axis while it forms and rings, then round
+  const stretch = () => Math.min(0.6, bar + 0.5 * sep / rh);
+  function remnantPath(c) {
+    const e = stretch(), z = DEPTH * (-mw / rh - potRim);
+    c.beginPath();
+    for (let i = 0; i <= 96; i++) {
+      const an = i / 96 * TAU, rr = rh * 1.004 * (1 + e * Math.cos(2 * (an - phase)));
+      proj(rr * Math.cos(an), rr * Math.sin(an), z, P); i ? c.lineTo(P[0], P[1]) : c.moveTo(P[0], P[1]);
+    }
+    c.closePath();
+  }
   function drawHoles(c) {
-    // outlines first, then the fills, so that two overlapping horizons show a single outline
+    // outlines first, then the fills, so that overlapping horizons show a single outline
     const order = h1y < h2y ? [[h2x, h2y], [h1x, h1y]] : [[h1x, h1y], [h2x, h2y]];
+    const common = merged && sep < rh, pair = !merged || post.blend < 1;
     c.lineWidth = 0.8; c.strokeStyle = rgba(tok.ink, 0.3); c.fillStyle = tok.void;
-    for (const [x, y] of order) { horizonPath(c, x, y); c.stroke(); }
-    for (const [x, y] of order) { horizonPath(c, x, y); c.fill(); }
+    if (pair) for (const [x, y] of order) { horizonPath(c, x, y); c.stroke(); }
+    if (common) { remnantPath(c); c.stroke(); }
+    if (pair) for (const [x, y] of order) { horizonPath(c, x, y); c.fill(); }
+    if (common) { remnantPath(c); c.fill(); }
   }
   function drawSheet() {
     const c = xS;
@@ -594,7 +667,7 @@ const Bin = (() => {
   function tick(now) {
     raf = 0;
     const dt = last ? clamp((now - last) / 1000, 0, 0.05) : 1 / 60; last = now;
-    if (!paused && !still) { advance(dt); if (++frame % 6 === 0) readouts(); }
+    if (!paused && !still) { advance(dt); if (++frame % 6 === 0) { readouts(); syncRadius(); } }
     render();
     schedule();
   }
@@ -615,11 +688,27 @@ const Bin = (() => {
     cT.width = Math.round(TW * dpr); cT.height = Math.round(TH * dpr);
     render();
   }
-  function restart() { start(); if (active) render(); schedule(); }
-
-  rIn.addEventListener('input', restart);
-  mIn.addEventListener('input', restart);
-  runBtn.addEventListener('click', () => { if (merged) restart(); else setPaused(!paused); });
+  const running = () => raf !== 0 || (active && visible && !paused && !still && !document.hidden);
+  rIn.addEventListener('input', () => {
+    rOut.textContent = rIn.value + ' km'; rIn.setAttribute('aria-valuetext', rIn.value + ' kilometres');
+    startKm = +rIn.value;
+    if (merged) start(false);                        // a new pair forms; the old waves carry on outward
+    else { aT = 2 * startKm / KM; holding = true; }
+    if (!running()) settle();
+    schedule();
+  });
+  mIn.addEventListener('input', () => {
+    mT = +mIn.value / MSUN;
+    mOut.textContent = mIn.value + ' M☉'; mIn.setAttribute('aria-valuetext', mIn.value + ' solar masses');
+    if (!running()) settle();
+  });
+  rIn.addEventListener('pointerdown', () => { dragging = true; });
+  addEventListener('pointerup', () => { dragging = false; });
+  addEventListener('pointercancel', () => { dragging = false; });
+  runBtn.addEventListener('click', () => {
+    if (merged) { rIn.value = startKm; start(true); if (active) render(); schedule(); }
+    else setPaused(!paused);
+  });
   new ResizeObserver(() => { if (active) resize(); }).observe(field);
   new IntersectionObserver(es => { visible = es[0].isIntersecting; schedule(); }).observe(field);
   document.addEventListener('visibilitychange', schedule);
@@ -628,7 +717,7 @@ const Bin = (() => {
   matchMedia('(prefers-color-scheme: light)').addEventListener('change', retheme);
   Motion.subscribe(on => setPaused(!on));
 
-  start();
+  start(true);
   setPaused(paused);
 
   return {
@@ -638,7 +727,7 @@ const Bin = (() => {
       else if (raf) { cancelAnimationFrame(raf); raf = 0; last = 0; }
     },
     get frames() { return frame; },
-    get state() { return { merged, still, separation: merged ? sep : a, orbits: B ? inspiralShown() : 0 }; }
+    get state() { return { merged, still, separation: merged ? sep : a, mass: m, orbits: B ? inspiralShown() : 0 }; }
   };
   function inspiralShown() { return Phys.inspiralOrbits(B); }
 })();

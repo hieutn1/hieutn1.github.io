@@ -85,7 +85,7 @@ change to the orbit spreads outward at the wave speed.
 monitor and checks: the intro and its skip button; nothing wider than the screen; touch (tapping, dragging
 sliders); keyboard use (skip link, tab order, visible focus, focus moving to each new page);
 reduced-motion settings; the pause control; animation stopping when off screen; the binary's readouts against
-Kepler's law and the Peters formula worked out in SI units; the binary spiralling in, merging and going still;
+Kepler's law and the Peters formula worked out in SI units; the binary spiralling in, merging and going still; the sliders acting on the running pair;
 accessibility (axe-core, both themes); page weight and no third-party requests; the page without JavaScript; the 404 page; and
 automatic quality reduction on slow devices.
 
@@ -142,8 +142,12 @@ HTTPS is on automatically for github.io addresses.
   holes, so the chirp travels outward. The sign of h₊ depends on the choice of polarisation axes; the gold lines
   are the ridges that point along the line through the holes. Display choices: the waves move about 20 times
   slower than light so several fit on the sheet; their height is exaggerated but capped so the sheet never
-  folds; long inspirals are sped up early on (the last orbits shrink at the true rate) so every run shows five to
-  seven orbits; and the film runs faster while the orbit is wide. Readouts use G = c = 1 with 100 solar masses as
+  folds; long inspirals are sped up early on (the last orbits shrink at the true rate) so a run shows five to
+  seven orbits; the film runs faster while the orbit is wide and in slow motion around the merger. The new hole
+  is drawn as a spinning bar, with its near field, that rings down at the mode's frequency and damping time.
+  The sliders act on the running pair: a moved orbit is held at the new radius and then left to evolve, masses
+  ease to their new value, and the waves carry each change outward (their source moves outward no faster than
+  half the wave speed, so they never bunch up). After a merger, the radius slider forms a new pair. Readouts use G = c = 1 with 100 solar masses as
   the unit (147.66 km, 0.49255 ms), so they are real values for the current orbit; the tightest start is the
   pair's innermost stable orbit, 6GM/c².
 - **Hero disk (a model):** test particles in the Paczyński–Wiita potential, which reproduces the
