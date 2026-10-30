@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.20">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>1&nbsp; Scientific Computing in Python – Computational Physics</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./02-integration.html" rel="next">
+<link href="./index.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-da0f4d964b336c7357bd1e6e7fe8ee30.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-42a672b7a9700d1436569573ce3dcc0e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/quarto-contrib/livecells-0.2.0/livecells.css" rel="stylesheet">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script>window.LIVECELLS_CONFIG = {"server": "http://127.0.0.1:8888", "kernelName": "python3", "pyodide": "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/", "packages": ["numpy", "scipy", "matplotlib"]};</script>
+  <script defer="" src="mathjax/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./01-scientific-computing.html"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Scientific Computing in Python</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto"><div class="quarto-sidebar-header"><div class="sidebar-header-item">
+<p><a href="../">← Course page</a></p>
+</div></div>
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Computational Physics</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01-scientific-computing.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Scientific Computing in Python</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02-integration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Numerical and Monte Carlo Integration</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03-equations-of-motion.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Equations of Motion</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04-schrodinger.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">The Schrödinger Equation</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active" data-toc-expanded="1">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#sec-speed" id="toc-sec-speed" class="nav-link active" data-scroll-target="#sec-speed"><span class="header-section-number">1.1</span> Why Speed Is A Problem</a>
+  <ul class="collapse">
+  <li><a href="#sec-two-languages" id="toc-sec-two-languages" class="nav-link" data-scroll-target="#sec-two-languages"><span class="header-section-number">1.1.1</span> Two kinds of languages</a></li>
+  <li><a href="#sec-overhead" id="toc-sec-overhead" class="nav-link" data-scroll-target="#sec-overhead"><span class="header-section-number">1.1.2</span> Seeing the overhead</a></li>
+  </ul></li>
+  <li><a href="#sec-numbers" id="toc-sec-numbers" class="nav-link" data-scroll-target="#sec-numbers"><span class="header-section-number">1.2</span> Numbers Inside The Machine</a>
+  <ul class="collapse">
+  <li><a href="#sec-twos-complement" id="toc-sec-twos-complement" class="nav-link" data-scroll-target="#sec-twos-complement"><span class="header-section-number">1.2.1</span> Integers and two’s complement</a></li>
+  <li><a href="#sec-wraparound" id="toc-sec-wraparound" class="nav-link" data-scroll-target="#sec-wraparound"><span class="header-section-number">1.2.2</span> Wraparound</a></li>
+  <li><a href="#sec-floats" id="toc-sec-floats" class="nav-link" data-scroll-target="#sec-floats"><span class="header-section-number">1.2.3</span> Floating-point numbers</a></li>
+  <li><a href="#sec-epsilon" id="toc-sec-epsilon" class="nav-link" data-scroll-target="#sec-epsilon"><span class="header-section-number">1.2.4</span> Spacing, rounding and machine epsilon</a></li>
+  <li><a href="#sec-point-one" id="toc-sec-point-one" class="nav-link" data-scroll-target="#sec-point-one"><span class="header-section-number">1.2.5</span> Why 0.1 + 0.2 is not 0.3</a></li>
+  <li><a href="#sec-cancellation" id="toc-sec-cancellation" class="nav-link" data-scroll-target="#sec-cancellation"><span class="header-section-number">1.2.6</span> Catastrophic cancellation</a></li>
+  <li><a href="#sec-special-values" id="toc-sec-special-values" class="nav-link" data-scroll-target="#sec-special-values"><span class="header-section-number">1.2.7</span> Special values</a></li>
+  </ul></li>
+  <li><a href="#sec-arrays" id="toc-sec-arrays" class="nav-link" data-scroll-target="#sec-arrays"><span class="header-section-number">1.3</span> Arrays</a>
+  <ul class="collapse">
+  <li><a href="#sec-numpy-arrays" id="toc-sec-numpy-arrays" class="nav-link" data-scroll-target="#sec-numpy-arrays"><span class="header-section-number">1.3.1</span> NumPy arrays</a></li>
+  <li><a href="#sec-memory-layout" id="toc-sec-memory-layout" class="nav-link" data-scroll-target="#sec-memory-layout"><span class="header-section-number">1.3.2</span> Memory layout</a></li>
+  <li><a href="#sec-views" id="toc-sec-views" class="nav-link" data-scroll-target="#sec-views"><span class="header-section-number">1.3.3</span> Views and copies</a></li>
+  <li><a href="#sec-broadcasting" id="toc-sec-broadcasting" class="nav-link" data-scroll-target="#sec-broadcasting"><span class="header-section-number">1.3.4</span> Broadcasting</a></li>
+  <li><a href="#sec-linear-algebra" id="toc-sec-linear-algebra" class="nav-link" data-scroll-target="#sec-linear-algebra"><span class="header-section-number">1.3.5</span> Linear algebra</a></li>
+  <li><a href="#sec-periodic" id="toc-sec-periodic" class="nav-link" data-scroll-target="#sec-periodic"><span class="header-section-number">1.3.6</span> Remainders and periodic boundaries</a></li>
+  </ul></li>
+  <li><a href="#sec-functions" id="toc-sec-functions" class="nav-link" data-scroll-target="#sec-functions"><span class="header-section-number">1.4</span> Functions, State And Speed</a>
+  <ul class="collapse">
+  <li><a href="#sec-scope" id="toc-sec-scope" class="nav-link" data-scroll-target="#sec-scope"><span class="header-section-number">1.4.1</span> Scope, and why globals are slow</a></li>
+  <li><a href="#sec-closures" id="toc-sec-closures" class="nav-link" data-scroll-target="#sec-closures"><span class="header-section-number">1.4.2</span> Closures and a random number generator</a></li>
+  <li><a href="#sec-habits" id="toc-sec-habits" class="nav-link" data-scroll-target="#sec-habits"><span class="header-section-number">1.4.3</span> Habits for fast numerical Python</a></li>
+  </ul></li>
+  <li><a href="#sec-oscillator-example" id="toc-sec-oscillator-example" class="nav-link" data-scroll-target="#sec-oscillator-example"><span class="header-section-number">1.5</span> A Worked Example: The Harmonic Oscillator</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span id="sec-scientific-computing" class="quarto-section-identifier"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Scientific Computing in Python</span></span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>Before we can simulate anything, we have to be a little bit honest about what a computer actually does with our numbers, and about why the same physics written two slightly different ways can run a hundred times faster or slower. Neither of these is the fun part of computational physics, I’ll admit, but in my experience almost every strange bug I’ve ever had in a simulation (an energy that slowly drifts, a probability that comes out as −10⁻¹⁷, a code that takes all night for no good reason) traces back to one of the two. So this chapter is the toolbox, and the later chapters are where we get to use it.</p>
+<p>The PY502 lectures do all of this in Julia, and I’ll keep coming back to how Julia handles things, because Julia was designed by people who thought very hard about exactly these problems and so it’s often the clearest way to explain them. But our code will be Python with NumPy, since that’s what runs in the browser (and what most of you will end up using anyway).</p>
+<div id="e5fff1b1" class="cell lc-autorun" data-execution_count="1">
+<details class="code-fold">
+<summary>Setup: imports and the helper used by the exercise checks</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># [Setup] Run once. Imports what this chapter uses and defines the helper that every check cell calls.</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> struct</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> check(name, test):</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Run test(), which returns True or False, and report the result without ever raising."""</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        ok <span class="op">=</span> test()</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> <span class="pp">NotImplementedError</span>:</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: not attempted yet"</span>)</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> <span class="pp">Exception</span> <span class="im">as</span> err:</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: your code raised </span><span class="sc">{</span><span class="bu">type</span>(err)<span class="sc">.</span><span class="va">__name__</span><span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>err<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: "</span> <span class="op">+</span> (<span class="st">"passed"</span> <span class="cf">if</span> ok <span class="cf">else</span> <span class="st">"not yet. Something is off, see the output above."</span>))</span></code></pre></div>
+</details>
+</div>
+<section id="sec-speed" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="sec-speed"><span class="header-section-number">1.1</span> Why Speed Is A Problem</h2>
+<section id="sec-two-languages" class="level3" data-number="1.1.1">
+<h3 data-number="1.1.1" class="anchored" data-anchor-id="sec-two-languages"><span class="header-section-number">1.1.1</span> Two kinds of languages</h3>
+<p>A processor only understands machine instructions, things like “add the integers sitting in these two registers” or “load eight bytes from this address,” and so any program written in a language a human can read has to get translated into those instructions at some point. Programming languages differ mostly in <em>when</em> that translation happens.</p>
+<p>In a compiled language like C, C++ or Fortran, a compiler reads the whole program once, before it ever runs, and produces a file full of machine code. To do that well the compiler needs to know the type of every variable in advance (if it knows <code>x</code> is a 64-bit float, then <code>x*x</code> turns into a single hardware multiply), and so you pay for the speed with rigidity: types are fixed, there’s a separate build step, and pulling in a plotting library can mean an afternoon of fighting with linker flags.</p>
+<p>In an interpreted language like Python, a program called the interpreter reads our code and carries it out line by line as it goes, and nothing is fixed in advance. A variable can hold an integer on one line and a string on the next, and the interpreter figures out what <code>x*x</code> means every single time it gets there. That’s wonderful when we’re poking at data, but it’s terrible for a tight loop, because the interpreter repeats the same “okay, what type is <code>x</code> this time?” bookkeeping on every iteration, and a loop that runs a billion times pays that overhead a billion times.</p>
+<p>The standard workaround in the Python world is to write the fast parts in C or Fortran and call them from Python, which is exactly how NumPy works. The people who designed Julia called this the <em>two-language problem</em> (Bezanson et al., 2017): we prototype in one language, rewrite the slow part in another, and then maintain both forever. For a physicist whose inner loop basically <em>is</em> the research, that’s a real burden, since the interesting code ends up being the part that’s hardest to read and change. Julia’s answer is to compile each function the first time it’s called, specialized to the types of the arguments it actually received, so you write code that looks like Python and get machine code that looks like C. Python’s answer (for us, anyway) is to push every loop we can down into NumPy, which is already compiled, and that’s what most of this section is about.</p>
+</section>
+<section id="sec-overhead" class="level3" data-number="1.1.2">
+<h3 data-number="1.1.2" class="anchored" data-anchor-id="sec-overhead"><span class="header-section-number">1.1.2</span> Seeing the overhead</h3>
+<p>Let’s just measure it. Here’s the sum <span class="math inline">\(\sum_{k=1}^{n} 1/k^2\)</span>, which converges to <span class="math inline">\(\pi^2/6\)</span>, written as an ordinary Python loop and then with NumPy.</p>
+<div id="3fc6ef7d" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> basel_loop(n):</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    s <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, n <span class="op">+</span> <span class="dv">1</span>):</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>        s <span class="op">+=</span> <span class="fl">1.0</span> <span class="op">/</span> (k <span class="op">*</span> k)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> s</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> basel_numpy(n):</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    k <span class="op">=</span> np.arange(<span class="dv">1</span>, n <span class="op">+</span> <span class="dv">1</span>, dtype<span class="op">=</span>np.float64)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.<span class="bu">sum</span>(<span class="fl">1.0</span> <span class="op">/</span> k<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="dv">1_000_000</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> f <span class="kw">in</span> (basel_loop, basel_numpy):</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    t0 <span class="op">=</span> time.perf_counter()</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    s <span class="op">=</span> f(n)</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    t1 <span class="op">=</span> time.perf_counter()</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>f<span class="sc">.</span><span class="va">__name__</span><span class="sc">:12s}</span><span class="ss"> </span><span class="sc">{</span>s<span class="sc">:.15f}</span><span class="ss">   </span><span class="sc">{</span><span class="fl">1e3</span> <span class="op">*</span> (t1 <span class="op">-</span> t0)<span class="sc">:7.2f}</span><span class="ss"> ms"</span>)</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span><span class="st">'pi^2/6'</span><span class="sc">:12s}</span><span class="ss"> </span><span class="sc">{</span>math<span class="sc">.</span>pi<span class="op">**</span><span class="dv">2</span> <span class="op">/</span> <span class="dv">6</span><span class="sc">:.15f}</span><span class="ss">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>basel_loop   1.644933066848770     52.56 ms
+basel_numpy  1.644933066848726     37.77 ms
+pi^2/6       1.644934066848226</code></pre>
+</div>
+</div>
+<p>On a laptop the NumPy version is something like fifty times faster (in the browser the ratio is different but the point stands). Nothing clever happened. NumPy did exactly the same arithmetic, it just did it in a compiled loop that knows from the start that every element is a 64-bit float. (Notice also that both answers differ from <span class="math inline">\(\pi^2/6\)</span> in the seventh digit. That’s not roundoff, it’s just that we stopped the sum at <span class="math inline">\(n = 10^6\)</span> and the tail <span class="math inline">\(\sum_{k&gt;n} 1/k^2 \approx 1/n\)</span> is exactly that big.)</p>
+<p>This is the first and most important habit for fast numerical Python: <strong>express the work as operations on whole arrays</strong>, so the loop happens inside NumPy. People call this <em>vectorizing</em>. When a loop really can’t be vectorized (a time-stepping loop where each step needs the previous one is the classic case), the options are to keep the loop short, to move the inner work into arrays, or to reach for a compiler like Numba, which does for one Python function what Julia does for all of them. We’ll mostly get away with the first two.</p>
+<div id="ex-1-1-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 1.1.1 (Vectorize a sum)</strong></span> The alternating harmonic series <span class="math inline">\(\sum_{k=1}^{n} (-1)^{k+1}/k\)</span> converges to <span class="math inline">\(\ln 2\)</span>. Write <code>alternating(n)</code> without any Python loop (use <code>np.arange</code> and array arithmetic). The check compares your answer with a slow loop and with <span class="math inline">\(\ln 2\)</span>, using the fact that the error of a truncated alternating series is about <span class="math inline">\(1/(2n)\)</span>.</p>
+</div>
+<div id="65e872c1" class="cell lc-exercise" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> alternating(n):</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Return sum_{k=1}^n (-1)^(k+1) / k, computed without a Python loop."""</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="caa80a67" class="cell lc-check" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    slow <span class="op">=</span> <span class="bu">sum</span>((<span class="op">-</span><span class="dv">1</span>) <span class="op">**</span> (k <span class="op">+</span> <span class="dv">1</span>) <span class="op">/</span> k <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">2001</span>))</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    a <span class="op">=</span> alternating(<span class="dv">2000</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    b <span class="op">=</span> alternating(<span class="dv">10</span><span class="op">**</span><span class="dv">6</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"n = 2000:   yours </span><span class="sc">{</span>a<span class="sc">:.15f}</span><span class="ss">   loop </span><span class="sc">{</span>slow<span class="sc">:.15f}</span><span class="ss">"</span>)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"n = 10^6:   yours </span><span class="sc">{</span>b<span class="sc">:.15f}</span><span class="ss">   ln 2 </span><span class="sc">{</span>math<span class="sc">.</span>log(<span class="dv">2</span>)<span class="sc">:.15f}</span><span class="ss">   error </span><span class="sc">{</span><span class="bu">abs</span>(b <span class="op">-</span> math.log(<span class="dv">2</span>))<span class="sc">:.2e}</span><span class="ss">"</span>)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">abs</span>(a <span class="op">-</span> slow) <span class="op">&lt;</span> <span class="fl">1e-12</span> <span class="kw">and</span> <span class="bu">abs</span>(b <span class="op">-</span> math.log(<span class="dv">2</span>)) <span class="op">&lt;</span> <span class="fl">1e-6</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 1.1.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 1.1.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-numbers" class="level2" data-number="1.2">
+<h2 data-number="1.2" class="anchored" data-anchor-id="sec-numbers"><span class="header-section-number">1.2</span> Numbers Inside The Machine</h2>
+<p>Every number in a simulation is a finite string of bits. Most of the time we can forget this, and the trouble is that the times we can’t forget it tend to show up as wrong physics rather than as error messages. So let’s spend a little time on how integers and real numbers are actually stored.</p>
+<section id="sec-twos-complement" class="level3" data-number="1.2.1">
+<h3 data-number="1.2.1" class="anchored" data-anchor-id="sec-twos-complement"><span class="header-section-number">1.2.1</span> Integers and two’s complement</h3>
+<p>A machine word is a row of <span class="math inline">\(B\)</span> bits, where <span class="math inline">\(B\)</span> is usually 64 (sometimes 8, 16 or 32). Label the bits by an index <span class="math inline">\(i\)</span> running from <span class="math inline">\(0\)</span> on the right to <span class="math inline">\(B-1\)</span> on the left and write each one as <span class="math inline">\(b_i \in \{0, 1\}\)</span>. Read as an <em>unsigned</em> integer, the word means the ordinary binary expansion <span class="math display">\[
+U = \sum_{i=0}^{B-1} b_i\, 2^i, \qquad 0 \le U \le 2^B - 1 .
+\]</span> For signed integers we need some way to represent negative numbers, and almost every computer on the planet uses <em>two’s complement</em>, where the leftmost bit counts with a negative weight, <span class="math display">\[
+I = \sum_{i=0}^{B-2} b_i\, 2^i \;-\; b_{B-1}\, 2^{B-1}, \qquad -2^{B-1} \le I \le 2^{B-1} - 1 .
+\]</span> When the sign bit <span class="math inline">\(b_{B-1}\)</span> is zero the two formulas agree, and when it’s one the signed value is just the unsigned value minus <span class="math inline">\(2^B\)</span>. Comparing the two term by term gives the key relation <span class="math display">\[
+I = U - b_{B-1}\, 2^B \quad\Longrightarrow\quad I \equiv U \pmod{2^B}.
+\]</span> This is the real reason two’s complement won (and not, as I used to think, some historical accident). The signed and unsigned readings of the same bits are always the same number modulo <span class="math inline">\(2^B\)</span>, so addition, subtraction and multiplication modulo <span class="math inline">\(2^B\)</span> give the right bits no matter which reading we have in mind, and the hardware only needs one adder circuit for both.</p>
+<p>The rule for negating a number drops out of the same idea. Write <span class="math inline">\(\tilde{x}\)</span> for the word with every bit of <span class="math inline">\(x\)</span> flipped. Then <span class="math inline">\(x\)</span> and <span class="math inline">\(\tilde{x}\)</span> have no 1 bits in common and together have a 1 in every position, so as unsigned numbers they add up to <span class="math inline">\(2^B - 1\)</span>, which modulo <span class="math inline">\(2^B\)</span> is <span class="math inline">\(-1\)</span>: <span class="math display">\[
+x + \tilde{x} \equiv -1 \pmod{2^B} \quad\Longrightarrow\quad -x \equiv \tilde{x} + 1 .
+\]</span> Flip all the bits and add one. We can look at the bits with <code>np.binary_repr</code>, and see the same bytes read both ways by asking NumPy to reinterpret them with <code>.view</code>.</p>
+<div id="2ef45576" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> x <span class="kw">in</span> [<span class="dv">5</span>, <span class="op">-</span><span class="dv">5</span>, <span class="op">-</span><span class="dv">1</span>, <span class="dv">127</span>, <span class="op">-</span><span class="dv">128</span>]:</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    b <span class="op">=</span> np.array(x, dtype<span class="op">=</span>np.int8)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>x<span class="sc">:5d}</span><span class="ss">  bits </span><span class="sc">{</span>np<span class="sc">.</span>binary_repr(x, width<span class="op">=</span><span class="dv">8</span>)<span class="sc">}</span><span class="ss">   same bits as uint8: </span><span class="sc">{</span>b<span class="sc">.</span>view(np.uint8)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(np.iinfo(np.int8))</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    5  bits 00000101   same bits as uint8: 5
+   -5  bits 11111011   same bits as uint8: 251
+   -1  bits 11111111   same bits as uint8: 255
+  127  bits 01111111   same bits as uint8: 127
+ -128  bits 10000000   same bits as uint8: 128
+Machine parameters for int8
+---------------------------------------------------------------
+min = -128
+max = 127
+---------------------------------------------------------------
+</code></pre>
+</div>
+</div>
+<p>Notice that <span class="math inline">\(-5\)</span> is <span class="math inline">\(11111011\)</span>, which is <span class="math inline">\(00000101\)</span> flipped (<span class="math inline">\(11111010\)</span>) plus one, and that <span class="math inline">\(-5\)</span> read as unsigned is <span class="math inline">\(251 = 256 - 5\)</span>, exactly as the congruence says. Notice also that the range is lopsided: there’s one more negative number than positive ones (zero takes up a slot on the nonnegative side), and so the most negative integer has no positive partner and negating it wraps right back to itself.</p>
+<div id="af39ac33" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.array([np.iinfo(np.int64).<span class="bu">min</span>])</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(x, <span class="op">-</span>x, np.<span class="bu">abs</span>(x))      <span class="co"># yes, abs returns a negative number here</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[-9223372036854775808] [-9223372036854775808] [-9223372036854775808]</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-wraparound" class="level3" data-number="1.2.2">
+<h3 data-number="1.2.2" class="anchored" data-anchor-id="sec-wraparound"><span class="header-section-number">1.2.2</span> Wraparound</h3>
+<p>Because the arithmetic is modulo <span class="math inline">\(2^B\)</span>, going past the largest value wraps around to the smallest. Here’s where Python and NumPy part ways, and it catches everyone at least once. Python’s own integers have no fixed size (they grow as big as they need to, which is lovely and slow), but NumPy’s integers are fixed-size machine integers, and NumPy does <em>not</em> check for overflow inside arrays.</p>
+<div id="ed253796" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> np.array([<span class="dv">2</span><span class="op">**</span><span class="dv">32</span> <span class="op">-</span> <span class="dv">1</span>], dtype<span class="op">=</span>np.uint32)     <span class="co"># all 32 bits set</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(a <span class="op">+</span> np.uint32(<span class="dv">1</span>))                         <span class="co"># (2^32 - 1 + 1) mod 2^32 = 0</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> np.array([<span class="dv">2</span><span class="op">**</span><span class="dv">31</span> <span class="op">-</span> <span class="dv">1</span>], dtype<span class="op">=</span>np.int32)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(b <span class="op">+</span> np.int32(<span class="dv">1</span>))                          <span class="co"># 0111...1 + 1 = 1000...0, the most negative int32</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="dv">2</span><span class="op">**</span><span class="dv">64</span>)                                    <span class="co"># a Python int: exact, no wraparound</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(np.array([<span class="dv">10</span>], dtype<span class="op">=</span>np.int64) <span class="op">**</span> <span class="dv">19</span>)     <span class="co"># 10^19 doesn't fit, so we get 10^19 - 2^64</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[0]
+[-2147483648]
+18446744073709551616
+[-8446744073709551616]</code></pre>
+</div>
+</div>
+<p>Julia makes the same choice as NumPy (no overflow checks in integer arithmetic) and for the same reason: a check on every addition would block exactly the compiler optimizations that make numerical loops fast. In statistical physics this comes up more often than you’d think. A combinatorial factor like <span class="math inline">\(30!\)</span> is about <span class="math inline">\(2.7 \times 10^{32}\)</span>, way past <span class="math inline">\(2^{63} \approx 9.2 \times 10^{18}\)</span>, and the usual fix is not to compute the number at all but its logarithm, with <code>math.lgamma</code> (since <span class="math inline">\(\ln n! = \ln\Gamma(n+1)\)</span>).</p>
+<div id="1200ee7e" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(math.factorial(<span class="dv">30</span>))                         <span class="co"># exact, but a slow Python int</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(np.prod(np.arange(<span class="dv">1</span>, <span class="dv">31</span>, dtype<span class="op">=</span>np.int64)))  <span class="co"># silently wrong</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(math.exp(math.lgamma(<span class="dv">31</span>)))                  <span class="co"># via the log, as a float</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>265252859812191058636308480000000
+-8764578968847253504
+2.6525285981219316e+32</code></pre>
+</div>
+</div>
+<p>One more trap with unsigned types while we’re here. If a loop counter is unsigned and counts down past zero, it doesn’t become negative, it becomes enormous. My advice is to use plain signed integers for anything that counts or indexes, and to save unsigned types for bit manipulation (we’ll see a good use of them in a random number generator later in the chapter).</p>
+<div id="ex-1-2-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 1.2.1 (Two’s complement by hand)</strong></span> Write <code>twos_complement(x, B)</code> that returns the <span class="math inline">\(B\)</span>-bit two’s complement bit string of the integer <span class="math inline">\(x\)</span> (assume <span class="math inline">\(-2^{B-1} \le x &lt; 2^{B-1}\)</span>), without calling <code>np.binary_repr</code>. Use the congruence <span class="math inline">\(I \equiv U \pmod{2^B}\)</span>: the bits of a negative <span class="math inline">\(x\)</span> are the ordinary binary digits of <span class="math inline">\(x + 2^B\)</span>. The check compares with NumPy for every 8-bit integer and a few 16-bit ones.</p>
+</div>
+<div id="2a4e5176" class="cell lc-exercise" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> twos_complement(x, B):</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Return the B-bit two's complement representation of x as a string of '0' and '1'."""</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="792da8ee" class="cell lc-check" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    ok <span class="op">=</span> <span class="bu">all</span>(twos_complement(x, <span class="dv">8</span>) <span class="op">==</span> np.binary_repr(x, width<span class="op">=</span><span class="dv">8</span>) <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">range</span>(<span class="op">-</span><span class="dv">128</span>, <span class="dv">128</span>))</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> x <span class="kw">in</span> [<span class="op">-</span><span class="dv">32768</span>, <span class="op">-</span><span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">12345</span>, <span class="dv">32767</span>]:</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>        mine <span class="op">=</span> twos_complement(x, <span class="dv">16</span>)</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>x<span class="sc">:7d}</span><span class="ss">  </span><span class="sc">{</span>mine<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>        ok <span class="op">=</span> ok <span class="kw">and</span> mine <span class="op">==</span> np.binary_repr(x, width<span class="op">=</span><span class="dv">16</span>)</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ok</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 1.2.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 1.2.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-floats" class="level3" data-number="1.2.3">
+<h3 data-number="1.2.3" class="anchored" data-anchor-id="sec-floats"><span class="header-section-number">1.2.3</span> Floating-point numbers</h3>
+<p>Most real numbers have infinitely many binary digits, so a computer can only store an approximation, and the way every modern machine does it is binary scientific notation, standardized as IEEE 754 (Goldberg, 1991). Any nonzero real number can be written as <span class="math inline">\(\pm m \times 2^e\)</span> with <span class="math inline">\(1 \le m &lt; 2\)</span>, the binary version of writing <span class="math inline">\(6.02 \times 10^{23}\)</span>. In binary the leading digit of <span class="math inline">\(m\)</span> is <em>always</em> 1, so there’s no point storing it (that free bit is called the hidden bit). What actually gets stored is a sign bit <span class="math inline">\(s\)</span>, a stored exponent <span class="math inline">\(E\)</span>, and <span class="math inline">\(p\)</span> fraction bits <span class="math inline">\(f_1 \ldots f_p\)</span> after the binary point: <span class="math display">\[
+x = (-1)^s \times 2^{\,E - \text{bias}} \times \Big( 1 + \sum_{k=1}^{p} f_k\, 2^{-k} \Big).
+\]</span> The exponent is stored as an unsigned number with a bias subtracted (1023 for double precision), and <span class="math inline">\(E\)</span> runs from <span class="math inline">\(1\)</span> to <span class="math inline">\(2046\)</span> for ordinary numbers. The two leftover values are reserved: <span class="math inline">\(E = 0\)</span> holds zero and the tiny <em>subnormal</em> numbers, and <span class="math inline">\(E = 2047\)</span> holds infinities and NaN. Here’s the bookkeeping for the three formats you’ll actually meet (the PY502 slides list <span class="math inline">\(p = 53\)</span> for double precision, which is the precision <em>including</em> the hidden bit, so 52 bits are stored and <span class="math inline">\(1 + 11 + 52 = 64\)</span>, as it has to be).</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Type</th>
+<th>Total bits</th>
+<th>Exponent bits</th>
+<th>Stored fraction bits</th>
+<th>Precision</th>
+<th>eps</th>
+<th>Decimal digits</th>
+<th>Largest value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>float16</code></td>
+<td>16</td>
+<td>5</td>
+<td>10</td>
+<td>11</td>
+<td>9.8e-4</td>
+<td>about 3</td>
+<td>65504</td>
+</tr>
+<tr class="even">
+<td><code>float32</code></td>
+<td>32</td>
+<td>8</td>
+<td>23</td>
+<td>24</td>
+<td>1.2e-7</td>
+<td>about 7</td>
+<td>3.4e38</td>
+</tr>
+<tr class="odd">
+<td><code>float64</code></td>
+<td>64</td>
+<td>11</td>
+<td>52</td>
+<td>53</td>
+<td>2.2e-16</td>
+<td>about 16</td>
+<td>1.8e308</td>
+</tr>
+</tbody>
+</table>
+<p>We can look at the three fields directly by packing a float into 8 bytes with Python’s <code>struct</code> module and reading the bits.</p>
+<div id="c51af1cf" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fields(x):</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    bits <span class="op">=</span> <span class="bu">format</span>(struct.unpack(<span class="st">"&gt;Q"</span>, struct.pack(<span class="st">"&gt;d"</span>, x))[<span class="dv">0</span>], <span class="st">"064b"</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> bits[<span class="dv">0</span>], bits[<span class="dv">1</span>:<span class="dv">12</span>], bits[<span class="dv">12</span>:]</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> x <span class="kw">in</span> [<span class="fl">1.0</span>, <span class="op">-</span><span class="fl">2.5</span>, <span class="fl">0.1</span>]:</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    s, e, f <span class="op">=</span> fields(x)</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>x<span class="sc">:5}</span><span class="ss">: sign </span><span class="sc">{</span>s<span class="sc">}</span><span class="ss">  exponent </span><span class="sc">{</span>e<span class="sc">}</span><span class="ss"> (= </span><span class="sc">{</span><span class="bu">int</span>(e, <span class="dv">2</span>) <span class="op">-</span> <span class="dv">1023</span><span class="sc">:+d}</span><span class="ss">)  fraction </span><span class="sc">{</span>f[:<span class="dv">20</span>]<span class="sc">}</span><span class="ss">..."</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  1.0: sign 0  exponent 01111111111 (= +0)  fraction 00000000000000000000...
+ -2.5: sign 1  exponent 10000000000 (= +1)  fraction 01000000000000000000...
+  0.1: sign 0  exponent 01111111011 (= -4)  fraction 10011001100110011001...</code></pre>
+</div>
+</div>
+<p>For <span class="math inline">\(1.0\)</span> we have <span class="math inline">\(m = 1\)</span> and <span class="math inline">\(e = 0\)</span>, so the stored exponent is the bias itself, <span class="math inline">\(1023 = 01111111111\)</span>, and the fraction is empty. For <span class="math inline">\(-2.5\)</span> we write <span class="math inline">\(2.5 = 10.1_2 = 1.01_2 \times 2^1\)</span>, so the sign bit is 1, the stored exponent is <span class="math inline">\(1 + 1023 = 1024 = 10000000000\)</span>, and the fraction is the “01” after the binary point followed by zeros. And <span class="math inline">\(0.1\)</span> has a fraction that goes <span class="math inline">\(1001\,1001\,1001\ldots\)</span> forever and has to be cut off, which is where all the trouble starts.</p>
+</section>
+<section id="sec-epsilon" class="level3" data-number="1.2.4">
+<h3 data-number="1.2.4" class="anchored" data-anchor-id="sec-epsilon"><span class="header-section-number">1.2.4</span> Spacing, rounding and machine epsilon</h3>
+<p>The fraction formula tells us exactly how floats are spread out on the number line. Fix the exponent at some <span class="math inline">\(e\)</span>. The fraction can take <span class="math inline">\(2^{52}\)</span> equally spaced values, so the floats in <span class="math inline">\([2^e, 2^{e+1})\)</span> are evenly spaced with gap <span class="math inline">\(2^{e-52}\)</span>, and every time we cross a power of two the gap doubles. So floats are dense near zero and sparse far away, with (roughly) constant <em>relative</em> spacing. The gap just above 1 is called <em>machine epsilon</em>, <span class="math inline">\(\epsilon = 2^{-52} \approx 2.2 \times 10^{-16}\)</span>, and <code>np.spacing(x)</code> gives the gap at any <span class="math inline">\(x\)</span>.</p>
+<div id="b2886586" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(np.finfo(np.float64).eps, np.spacing(<span class="fl">1.0</span>))</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(np.spacing(<span class="fl">1e16</span>))            <span class="co"># the gap between consecutive floats near 10^16</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="fl">1e16</span> <span class="op">+</span> <span class="dv">1</span> <span class="op">==</span> <span class="fl">1e16</span>)            <span class="co"># adding 1 is less than half a gap, so it rounds away</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2.220446049250313e-16 2.220446049250313e-16
+2.0
+True</code></pre>
+</div>
+</div>
+<p>Every arithmetic operation produces the exact result rounded to the nearest float, and since the nearest float is at most half a gap away, the relative error of a single operation is bounded by the <em>unit roundoff</em> <span class="math inline">\(u = \epsilon/2 = 2^{-53}\)</span>: <span class="math display">\[
+\mathrm{fl}(a \circ b) = (a \circ b)(1 + \delta), \qquad |\delta| \le u \approx 1.1 \times 10^{-16}.
+\]</span> This is the standard model used all over numerical analysis (Higham, 2002), and it’s worth remembering in this form, since it says that each operation is fine on its own, and all the danger comes from how errors combine.</p>
+</section>
+<section id="sec-point-one" class="level3" data-number="1.2.5">
+<h3 data-number="1.2.5" class="anchored" data-anchor-id="sec-point-one"><span class="header-section-number">1.2.5</span> Why 0.1 + 0.2 is not 0.3</h3>
+<p>The decimal number 0.1 is a repeating fraction in binary, <span class="math inline">\(0.000110011001100\ldots_2\)</span>, just like <span class="math inline">\(1/3\)</span> repeats in decimal, so the float we call <code>0.1</code> is really just the float nearest to it. Python’s <code>decimal</code> module can show us the exact value of that float.</p>
+<div id="538148c0" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decimal <span class="im">import</span> Decimal</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(Decimal(<span class="fl">0.1</span>))</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="fl">0.1</span> <span class="op">+</span> <span class="fl">0.2</span>, <span class="fl">0.1</span> <span class="op">+</span> <span class="fl">0.2</span> <span class="op">==</span> <span class="fl">0.3</span>, math.isclose(<span class="fl">0.1</span> <span class="op">+</span> <span class="fl">0.2</span>, <span class="fl">0.3</span>))</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>0.1000000000000000055511151231257827021181583404541015625
+0.30000000000000004 False True</code></pre>
+</div>
+</div>
+<p>The lesson is to never test floats for exact equality unless you <em>know</em> the values are exactly representable, and to use <code>math.isclose</code> or <code>np.isclose</code> instead (with an explicit <code>abs_tol</code> when comparing against zero, since a relative tolerance means nothing at zero). This matters for a really common physics pattern, the time loop:</p>
+<div id="898a6af9" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>t, dt <span class="op">=</span> <span class="fl">0.0</span>, <span class="fl">0.1</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> n <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">10</span>):</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    t <span class="op">+=</span> dt</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(t)                    <span class="co"># 0.9999999999999999, not 1.0</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>t, dt, steps <span class="op">=</span> <span class="fl">0.0</span>, <span class="fl">1e-3</span>, <span class="dv">10</span><span class="op">**</span><span class="dv">6</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> n <span class="kw">in</span> <span class="bu">range</span>(steps):</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    t <span class="op">+=</span> dt</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(t, steps <span class="op">*</span> dt)        <span class="co"># a million roundings vs one</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>0.9999999999999999
+999.9999999832651 1000.0</code></pre>
+</div>
+</div>
+<p>Each addition rounds, and the errors pile up, so over millions of steps the accumulated time drifts noticeably. Computing <code>t = n * dt</code> from the integer step counter avoids the drift completely, because then only one rounding happens. (It sounds like a tiny thing, but if your forcing is <span class="math inline">\(\cos(\Omega t)\)</span> and you run for <span class="math inline">\(10^8\)</span> steps, it’s the difference between the right answer and a phase error you’ll spend a week looking for.)</p>
+</section>
+<section id="sec-cancellation" class="level3" data-number="1.2.6">
+<h3 data-number="1.2.6" class="anchored" data-anchor-id="sec-cancellation"><span class="header-section-number">1.2.6</span> Catastrophic cancellation</h3>
+<p>The single most dangerous operation in floating point is subtracting two nearly equal numbers. Each input carries a relative error of about <span class="math inline">\(u\)</span>, but their difference can be tiny, so those absolute errors become huge <em>relative to the result</em>. The classic example is <span class="math inline">\((1 - \cos x)/x^2\)</span>, which goes to <span class="math inline">\(1/2\)</span> as <span class="math inline">\(x \to 0\)</span>.</p>
+<div id="b8bd2320" class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> x <span class="kw">in</span> [<span class="fl">1e-2</span>, <span class="fl">1e-4</span>, <span class="fl">1e-6</span>, <span class="fl">1e-8</span>]:</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    naive <span class="op">=</span> (<span class="dv">1</span> <span class="op">-</span> math.cos(x)) <span class="op">/</span> x<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    stable <span class="op">=</span> <span class="dv">2</span> <span class="op">*</span> math.sin(x <span class="op">/</span> <span class="dv">2</span>) <span class="op">**</span> <span class="dv">2</span> <span class="op">/</span> x<span class="op">**</span><span class="dv">2</span>         <span class="co"># same function, since 1 - cos x = 2 sin^2(x/2)</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"x = </span><span class="sc">{</span>x<span class="sc">:.0e}</span><span class="ss">   naive </span><span class="sc">{</span>naive<span class="sc">:.16f}</span><span class="ss">   rewritten </span><span class="sc">{</span>stable<span class="sc">:.16f}</span><span class="ss">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>x = 1e-02   naive 0.4999958333473664   rewritten 0.4999958333472221
+x = 1e-04   naive 0.4999999969612645   rewritten 0.4999999995833334
+x = 1e-06   naive 0.5000444502911705   rewritten 0.4999999999999583
+x = 1e-08   naive 0.0000000000000000   rewritten 0.5000000000000000</code></pre>
+</div>
+</div>
+<p>The first formula loses more and more digits and then <em>all</em> of them: <span class="math inline">\(\cos(10^{-8}) = 1 - 5 \times 10^{-17}\)</span>, and that difference from 1 is smaller than half the float spacing near 1, so <code>cos</code> returns exactly <code>1.0</code>. Rewriting the expression so no subtraction of nearby numbers happens fixes it completely. This is also why every numerical library provides <code>expm1(x)</code> for <span class="math inline">\(e^x - 1\)</span> and <code>log1p(x)</code> for <span class="math inline">\(\ln(1 + x)\)</span>: for small <span class="math inline">\(x\)</span> the naive formulas throw away the answer before they compute it.</p>
+<div id="cec7e7ce" class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(math.log(<span class="dv">1</span> <span class="op">+</span> <span class="fl">1e-17</span>), math.log1p(<span class="fl">1e-17</span>))</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(math.exp(<span class="fl">1e-10</span>) <span class="op">-</span> <span class="dv">1</span>, math.expm1(<span class="fl">1e-10</span>))</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>0.0 1e-17
+1.000000082740371e-10 1.00000000005e-10</code></pre>
+</div>
+</div>
+<div id="ex-1-2-2" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 1.2.2 (A quadratic formula that doesn’t cancel)</strong></span> The roots of <span class="math inline">\(ax^2 + bx + c\)</span> are <span class="math inline">\((-b \pm \sqrt{b^2 - 4ac})/(2a)\)</span>. When <span class="math inline">\(b^2 \gg |4ac|\)</span>, one of the two signs subtracts nearly equal numbers. Write <code>roots(a, b, c)</code> returning both real roots (assume <span class="math inline">\(b^2 &gt; 4ac\)</span>) accurately. Hint: compute the root that <em>doesn’t</em> cancel, <span class="math inline">\(q = -\tfrac{1}{2}\big(b + \operatorname{sign}(b)\sqrt{b^2 - 4ac}\big)\)</span>, gives <span class="math inline">\(x_1 = q/a\)</span>, and then use <span class="math inline">\(x_1 x_2 = c/a\)</span> for the other one. The check uses <span class="math inline">\(x^2 + 10^8 x + 1\)</span>, whose small root is very close to <span class="math inline">\(-10^{-8}\)</span>.</p>
+</div>
+<div id="c8224388" class="cell lc-exercise" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> roots(a, b, c):</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Return the two real roots of a x^2 + b x + c, both computed without cancellation."""</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="4232d4f9" class="cell lc-check" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>    naive <span class="op">=</span> (<span class="op">-</span><span class="fl">1e8</span> <span class="op">+</span> math.sqrt(<span class="fl">1e16</span> <span class="op">-</span> <span class="dv">4</span>)) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    r <span class="op">=</span> <span class="bu">sorted</span>(roots(<span class="fl">1.0</span>, <span class="fl">1e8</span>, <span class="fl">1.0</span>))</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>    small <span class="op">=</span> <span class="op">-</span><span class="fl">1e-8</span> <span class="op">-</span> <span class="fl">1e-24</span>                       <span class="co"># the exact small root to this precision</span></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"naive small root  </span><span class="sc">{</span>naive<span class="sc">:.17e}</span><span class="ss">   relative error </span><span class="sc">{</span><span class="bu">abs</span>(naive <span class="op">/</span> small <span class="op">-</span> <span class="dv">1</span>)<span class="sc">:.1e}</span><span class="ss">"</span>)</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"your small root   </span><span class="sc">{</span>r[<span class="dv">1</span>]<span class="sc">:.17e}</span><span class="ss">   relative error </span><span class="sc">{</span><span class="bu">abs</span>(r[<span class="dv">1</span>] <span class="op">/</span> small <span class="op">-</span> <span class="dv">1</span>)<span class="sc">:.1e}</span><span class="ss">"</span>)</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>    r2 <span class="op">=</span> <span class="bu">sorted</span>(roots(<span class="fl">2.0</span>, <span class="op">-</span><span class="fl">3.0</span>, <span class="fl">1.0</span>))          <span class="co"># roots 0.5 and 1</span></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">abs</span>(r[<span class="dv">1</span>] <span class="op">/</span> small <span class="op">-</span> <span class="dv">1</span>) <span class="op">&lt;</span> <span class="fl">1e-14</span> <span class="kw">and</span> <span class="bu">abs</span>(r[<span class="dv">0</span>] <span class="op">/</span> <span class="op">-</span><span class="fl">1e8</span> <span class="op">-</span> <span class="dv">1</span>) <span class="op">&lt;</span> <span class="fl">1e-14</span> <span class="kw">and</span> np.allclose(r2, [<span class="fl">0.5</span>, <span class="fl">1.0</span>])</span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 1.2.2"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 1.2.2: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-special-values" class="level3" data-number="1.2.7">
+<h3 data-number="1.2.7" class="anchored" data-anchor-id="sec-special-values"><span class="header-section-number">1.2.7</span> Special values</h3>
+<p>IEEE 754 also reserves bit patterns for a few values that aren’t ordinary numbers.</p>
+<div id="028306ea" class="cell" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> np.errstate(divide<span class="op">=</span><span class="st">"ignore"</span>, invalid<span class="op">=</span><span class="st">"ignore"</span>):</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(np.float64(<span class="dv">1</span>) <span class="op">/</span> <span class="fl">0.0</span>, np.float64(<span class="op">-</span><span class="dv">1</span>) <span class="op">/</span> <span class="fl">0.0</span>, np.float64(<span class="dv">0</span>) <span class="op">/</span> <span class="fl">0.0</span>)</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(np.nan <span class="op">==</span> np.nan, np.isnan(np.nan))</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="fl">0.0</span> <span class="op">==</span> <span class="op">-</span><span class="fl">0.0</span>, math.copysign(<span class="dv">1</span>, <span class="op">-</span><span class="fl">0.0</span>))</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(np.finfo(np.float64).<span class="bu">max</span>, np.finfo(np.float64).tiny, np.nextafter(<span class="fl">0.0</span>, <span class="fl">1.0</span>))</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>big <span class="op">=</span> np.float64(<span class="fl">1e200</span>)</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> np.errstate(over<span class="op">=</span><span class="st">"ignore"</span>):</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(np.sqrt(big<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> big<span class="op">**</span><span class="dv">2</span>), np.hypot(big, big))</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>inf -inf nan
+False True
+True -1.0
+1.7976931348623157e+308 2.2250738585072014e-308 5e-324
+inf 1.414213562373095e+200</code></pre>
+</div>
+</div>
+<p>(Plain Python raises an error for <code>1/0.0</code> and for overflow, which is why I used NumPy floats there.) A NaN compares unequal to everything, including itself, and it spreads through every operation it touches, so a NaN showing up in a simulation is almost always a bug and it’s worth checking for one at the end of every run. The signed zero looks like a curiosity, but it records which side of zero a result underflowed from, which matters for branch cuts of complex functions. And the smallest positive float, about <span class="math inline">\(5 \times 10^{-324}\)</span>, is way below <code>tiny</code> (the smallest <em>normal</em> float), because between zero and <code>tiny</code> IEEE fills in subnormal numbers that give up precision to extend the range. The last line shows why <code>hypot</code> exists: squaring <span class="math inline">\(10^{200}\)</span> overflows to infinity even though the answer is a perfectly reasonable number.</p>
+</section>
+</section>
+<section id="sec-arrays" class="level2" data-number="1.3">
+<h2 data-number="1.3" class="anchored" data-anchor-id="sec-arrays"><span class="header-section-number">1.3</span> Arrays</h2>
+<p>With numbers in hand, we can build the things a simulation is made of. Arrays hold the state, functions transform it, and the way an array sits in memory turns out to matter almost as much as the arithmetic we do on it.</p>
+<section id="sec-numpy-arrays" class="level3" data-number="1.3.1">
+<h3 data-number="1.3.1" class="anchored" data-anchor-id="sec-numpy-arrays"><span class="header-section-number">1.3.1</span> NumPy arrays</h3>
+<p>A NumPy array has a fixed element type (<code>dtype</code>) and a fixed shape, which is exactly what lets NumPy hand it to compiled code without asking questions. There are a lot of ways to make one.</p>
+<div id="7e178fd7" class="cell" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>v <span class="op">=</span> np.array([<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>])          <span class="co"># float64 vector</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>A <span class="op">=</span> np.array([[<span class="dv">1</span>, <span class="dv">2</span>], [<span class="dv">3</span>, <span class="dv">4</span>]])         <span class="co"># int64 matrix</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>z <span class="op">=</span> np.zeros(<span class="dv">100</span>)</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>M <span class="op">=</span> np.zeros((<span class="dv">3</span>, <span class="dv">4</span>))</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>R <span class="op">=</span> np.random.default_rng(<span class="dv">1</span>).random((<span class="dv">3</span>, <span class="dv">3</span>))     <span class="co"># uniform in [0, 1)</span></span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>w <span class="op">=</span> np.empty(<span class="dv">10</span>)                       <span class="co"># allocated but not initialized, contents are garbage</span></span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>sq <span class="op">=</span> np.arange(<span class="dv">1</span>, <span class="dv">6</span>) <span class="op">**</span> <span class="dv">2</span></span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(v.dtype, A.dtype, M.shape, sq)</span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(A[<span class="dv">1</span>, :], A[:, <span class="dv">0</span>])                <span class="co"># second row, first column (indices start at 0!)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>float64 int64 (3, 4) [ 1  4  9 16 25]
+[3 4] [1 3]</code></pre>
+</div>
+</div>
+<p><code>np.empty</code> is the fastest because it skips filling the memory, but the contents are whatever garbage was there before, so only use it when every element is about to be overwritten. And the obvious one for anyone coming from Julia, Fortran or MATLAB: Python indices start at 0, and the last element of an array of length <span class="math inline">\(n\)</span> is <code>x[n-1]</code> (or <code>x[-1]</code>).</p>
+</section>
+<section id="sec-memory-layout" class="level3" data-number="1.3.2">
+<h3 data-number="1.3.2" class="anchored" data-anchor-id="sec-memory-layout"><span class="header-section-number">1.3.2</span> Memory layout</h3>
+<p>Computer memory is one long line of addresses, so a matrix has to be flattened somehow. NumPy, like C, stores a matrix in <em>row-major</em> order by default: one row after another, so for an <span class="math inline">\(m \times n\)</span> matrix the element <span class="math inline">\((i, j)\)</span> lands at position <span class="math display">\[
+k = i\,n + j
+\]</span> in the flattened list (counting from zero). Moving along a row (<span class="math inline">\(j \to j+1\)</span>) steps one address, and moving down a column (<span class="math inline">\(i \to i+1\)</span>) jumps <span class="math inline">\(n\)</span> addresses. Julia, Fortran and MATLAB do the opposite, <em>column-major</em>, which is why the Julia version of these notes tells you to put the first index in the innermost loop and I’m going to tell you the reverse.</p>
+<p>This matters because of how processors fetch memory. A read from main memory brings in a whole <em>cache line</em>, typically 64 bytes or eight float64’s, so if the next thing we touch is the neighboring address, it’s already sitting in cache and is essentially free, and if it’s <span class="math inline">\(n\)</span> addresses away, it probably isn’t. NumPy tells us how far apart neighbors are through <code>strides</code>, the number of bytes to jump along each axis, and we can watch the cost of going the wrong way.</p>
+<div id="2869de74" class="cell" data-execution_count="21">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>big <span class="op">=</span> np.random.default_rng(<span class="dv">0</span>).random((<span class="dv">3000</span>, <span class="dv">3000</span>))</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"strides (bytes):"</span>, big.strides)</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> time_it(f, repeat<span class="op">=</span><span class="dv">3</span>):</span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>    best <span class="op">=</span> <span class="bu">float</span>(<span class="st">"inf"</span>)</span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(repeat):</span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>        t0 <span class="op">=</span> time.perf_counter()<span class="op">;</span> f()<span class="op">;</span> best <span class="op">=</span> <span class="bu">min</span>(best, time.perf_counter() <span class="op">-</span> t0)</span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fl">1e3</span> <span class="op">*</span> best</span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"sum of each row    </span><span class="sc">{</span>time_it(<span class="kw">lambda</span>: [big[i, :].<span class="bu">sum</span>() <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">3000</span>)])<span class="sc">:7.1f}</span><span class="ss"> ms"</span>)</span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"sum of each column </span><span class="sc">{</span>time_it(<span class="kw">lambda</span>: [big[:, j].<span class="bu">sum</span>() <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">3000</span>)])<span class="sc">:7.1f}</span><span class="ss"> ms"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>strides (bytes): (24000, 8)
+sum of each row       11.1 ms
+sum of each column    66.1 ms</code></pre>
+</div>
+</div>
+<p>Same arithmetic, same answer, and the column version is noticeably slower because every element it touches lives in a different cache line. That kind of bug never shows up in the output, only in the run time, which is exactly why it’s worth knowing about.</p>
+</section>
+<section id="sec-views" class="level3" data-number="1.3.3">
+<h3 data-number="1.3.3" class="anchored" data-anchor-id="sec-views"><span class="header-section-number">1.3.3</span> Views and copies</h3>
+<p>Basic slicing in NumPy (with <code>:</code> and integer steps) returns a <em>view</em>, a new array object that looks at the same memory. That’s great for speed, but it means that writing into a slice writes into the original, which is the exact opposite of what Julia does by default (there, <code>a[1, :]</code> makes a copy, and you have to ask for a view). Fancy indexing, with a list of indices or a boolean mask, makes a copy instead.</p>
+<div id="d53526d3" class="cell" data-execution_count="22">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> np.arange(<span class="fl">12.0</span>).reshape(<span class="dv">3</span>, <span class="dv">4</span>)</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>row <span class="op">=</span> a[<span class="dv">0</span>, :]            <span class="co"># a view</span></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>row[<span class="dv">0</span>] <span class="op">=</span> <span class="op">-</span><span class="fl">1.0</span>            <span class="co"># ...so this changes a</span></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>picked <span class="op">=</span> a[[<span class="dv">0</span>, <span class="dv">2</span>], :]    <span class="co"># fancy indexing: a copy</span></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>picked[:] <span class="op">=</span> <span class="fl">0.0</span>          <span class="co"># a is unchanged by this</span></span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(a)</span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(np.shares_memory(a, row), np.shares_memory(a, picked))</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[[-1.  1.  2.  3.]
+ [ 4.  5.  6.  7.]
+ [ 8.  9. 10. 11.]]
+True False</code></pre>
+</div>
+</div>
+<p>If you want an independent copy of a slice, say so with <code>.copy()</code>. (I’ve lost more time to an accidental view than I’d like to admit, usually a “previous state” array in a time loop that quietly turned out to be the current state.)</p>
+</section>
+<section id="sec-broadcasting" class="level3" data-number="1.3.4">
+<h3 data-number="1.3.4" class="anchored" data-anchor-id="sec-broadcasting"><span class="header-section-number">1.3.4</span> Broadcasting</h3>
+<p>Arithmetic between arrays of different shapes follows the <em>broadcasting</em> rules: compare the shapes from the right, and any axis of length 1 (or a missing axis) gets stretched to match. This lets us build whole tables without loops. For instance, the matrix of pairwise distances between <span class="math inline">\(N\)</span> points in the plane:</p>
+<div id="a8120e2b" class="cell" data-execution_count="23">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>pts <span class="op">=</span> np.random.default_rng(<span class="dv">2</span>).random((<span class="dv">5</span>, <span class="dv">2</span>))</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>diff <span class="op">=</span> pts[:, <span class="va">None</span>, :] <span class="op">-</span> pts[<span class="va">None</span>, :, :]       <span class="co"># shape (5, 1, 2) - (1, 5, 2) -&gt; (5, 5, 2)</span></span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>dist <span class="op">=</span> np.sqrt((diff<span class="op">**</span><span class="dv">2</span>).<span class="bu">sum</span>(axis<span class="op">=-</span><span class="dv">1</span>))</span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(dist.<span class="bu">round</span>(<span class="dv">3</span>))</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[[0.    0.59  0.547 0.254 0.359]
+ [0.59  0.    0.672 0.627 0.781]
+ [0.547 0.672 0.    0.79  0.333]
+ [0.254 0.627 0.79  0.    0.609]
+ [0.359 0.781 0.333 0.609 0.   ]]</code></pre>
+</div>
+</div>
+<p>This is the NumPy cousin of Julia’s dot syntax, where <code>f.(x, y')</code> applies <code>f</code> elementwise across a whole grid. One thing to keep in mind is that broadcasting materializes the full intermediate array (here <span class="math inline">\(5 \times 5 \times 2\)</span>), so for a million points you’d be making a <span class="math inline">\(10^{12}\)</span>-element temporary, and you’d want a smarter algorithm.</p>
+</section>
+<section id="sec-linear-algebra" class="level3" data-number="1.3.5">
+<h3 data-number="1.3.5" class="anchored" data-anchor-id="sec-linear-algebra"><span class="header-section-number">1.3.5</span> Linear algebra</h3>
+<p>The <code>@</code> operator is matrix multiplication and <code>*</code> is elementwise, and <code>np.linalg</code> has everything else. A practical warning first: to solve a linear system <span class="math inline">\(A x = y\)</span>, almost never compute <code>inv(A) @ y</code>. The function <code>np.linalg.solve(A, y)</code> solves the system directly through an LU factorization, which takes about a third of the arithmetic and is more accurate in floating point (Higham, 2002).</p>
+<div id="88bee37a" class="cell" data-execution_count="24">
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">3</span>)</span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>A <span class="op">=</span> rng.random((<span class="dv">300</span>, <span class="dv">300</span>)) <span class="op">+</span> <span class="dv">300</span> <span class="op">*</span> np.eye(<span class="dv">300</span>)</span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> rng.random(<span class="dv">300</span>)</span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>x1 <span class="op">=</span> np.linalg.solve(A, y)</span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>x2 <span class="op">=</span> np.linalg.inv(A) <span class="op">@</span> y</span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(np.<span class="bu">abs</span>(A <span class="op">@</span> x1 <span class="op">-</span> y).<span class="bu">max</span>(), np.<span class="bu">abs</span>(A <span class="op">@</span> x2 <span class="op">-</span> y).<span class="bu">max</span>())</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>1.2212453270876722e-15 1.3322676295501878e-15</code></pre>
+</div>
+</div>
+<p>Eigenvalue problems are where linear algebra meets quantum mechanics most directly (we’ll lean on this heavily in <a href="04-schrodinger.html" class="quarto-xref"><span>Chapter 4</span></a>), so here’s a small example with a known answer. A particle hopping on a chain of <span class="math inline">\(N\)</span> sites with amplitude <span class="math inline">\(t\)</span> has a Hamiltonian matrix with <span class="math inline">\(-t\)</span> just above and below the diagonal, and its exact eigenvalues are <span class="math inline">\(-2t\cos\big(k\pi/(N+1)\big)\)</span> for <span class="math inline">\(k = 1, \ldots, N\)</span>, which lets us test the numerics.</p>
+<div id="4476dd9d" class="cell" data-execution_count="25">
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>N, t <span class="op">=</span> <span class="dv">6</span>, <span class="fl">1.0</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>H <span class="op">=</span> np.diag(<span class="op">-</span>t <span class="op">*</span> np.ones(N <span class="op">-</span> <span class="dv">1</span>), <span class="dv">1</span>) <span class="op">+</span> np.diag(<span class="op">-</span>t <span class="op">*</span> np.ones(N <span class="op">-</span> <span class="dv">1</span>), <span class="op">-</span><span class="dv">1</span>)</span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>E <span class="op">=</span> np.linalg.eigvalsh(H)                        <span class="co"># eigvalsh: for symmetric/Hermitian matrices</span></span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>exact <span class="op">=</span> np.sort(<span class="op">-</span><span class="dv">2</span> <span class="op">*</span> t <span class="op">*</span> np.cos(np.arange(<span class="dv">1</span>, N <span class="op">+</span> <span class="dv">1</span>) <span class="op">*</span> np.pi <span class="op">/</span> (N <span class="op">+</span> <span class="dv">1</span>)))</span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(E)</span>
+<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"max difference:"</span>, np.<span class="bu">abs</span>(E <span class="op">-</span> exact).<span class="bu">max</span>())</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[-1.80193774 -1.2469796  -0.44504187  0.44504187  1.2469796   1.80193774]
+max difference: 1.5543122344752192e-15</code></pre>
+</div>
+</div>
+<p>The difference is around <span class="math inline">\(10^{-15}\)</span>, which is just roundoff. Notice that we called <code>eigvalsh</code> rather than <code>eigvals</code>: telling the library the matrix is symmetric lets it use a faster and more accurate algorithm, and it guarantees real eigenvalues. (In Julia you’d wrap the matrix in <code>Symmetric(H)</code> and the same function would automatically pick the better algorithm, which is a nice example of what Julia calls multiple dispatch.)</p>
+</section>
+<section id="sec-periodic" class="level3" data-number="1.3.6">
+<h3 data-number="1.3.6" class="anchored" data-anchor-id="sec-periodic"><span class="header-section-number">1.3.6</span> Remainders and periodic boundaries</h3>
+<p>Integer division has a choice to make when the quotient is negative: should <span class="math inline">\(-7/3\)</span> round to <span class="math inline">\(-2\)</span> or to <span class="math inline">\(-3\)</span>? Both choices come with a matching remainder satisfying <span class="math inline">\(x = qy + r\)</span>. Truncating toward zero (C’s <code>/</code> and <code>%</code>, NumPy’s <code>np.fmod</code>) forces the remainder to have the sign of <span class="math inline">\(x\)</span>, while flooring toward <span class="math inline">\(-\infty\)</span> (Python’s <code>//</code> and <code>%</code>, <code>np.mod</code>) forces it to have the sign of <span class="math inline">\(y\)</span>.</p>
+<div id="474f146e" class="cell" data-execution_count="26">
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> x <span class="kw">in</span> [<span class="dv">7</span>, <span class="op">-</span><span class="dv">7</span>]:</span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"x = </span><span class="sc">{</span>x<span class="sc">:3d}</span><span class="ss">, y = 3:  floor  </span><span class="sc">{</span>x <span class="op">//</span> <span class="dv">3</span><span class="sc">:3d}</span><span class="ss"> </span><span class="sc">{</span>x <span class="op">%</span> <span class="dv">3</span><span class="sc">:3d}</span><span class="ss">    truncate  </span><span class="sc">{</span><span class="bu">int</span>(x <span class="op">/</span> <span class="dv">3</span>)<span class="sc">:3d}</span><span class="ss"> </span><span class="sc">{</span><span class="bu">int</span>(math.fmod(x, <span class="dv">3</span>))<span class="sc">:3d}</span><span class="ss">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>x =   7, y = 3:  floor    2   1    truncate    2   1
+x =  -7, y = 3:  floor   -3   2    truncate   -2  -1</code></pre>
+</div>
+</div>
+<p>For negative numbers this difference is everything, and the floored version is almost always what a physicist wants. The textbook case is periodic boundary conditions: on a ring of <span class="math inline">\(L\)</span> sites the neighbor to the left of site <span class="math inline">\(0\)</span> should be site <span class="math inline">\(L-1\)</span>, and <code>(0 - 1) % L</code> gives exactly that, while <code>math.fmod</code> would give <span class="math inline">\(-1\)</span>. (Happily, Python’s <code>%</code> already does the right thing, unlike C and Fortran, which is one of the few places where Python is more physicist-friendly out of the box.) For continuous coordinates in a periodic box of side <span class="math inline">\(L\)</span>, the related trick is the <em>minimum image convention</em>, <code>dx -= L * np.round(dx / L)</code>, which maps any separation into the range <span class="math inline">\([-L/2, L/2]\)</span>.</p>
+<div id="ex-1-3-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 1.3.1 (Neighbors on a periodic lattice)</strong></span> Label the sites of an <span class="math inline">\(L \times L\)</span> square lattice with periodic boundaries by <span class="math inline">\(s = x + L y\)</span> for <span class="math inline">\(x, y \in \{0, \ldots, L-1\}\)</span> (so <span class="math inline">\(x\)</span> varies fastest). Write <code>neighbor_table(L)</code> returning an integer array of shape <code>(L*L, 4)</code> whose row <span class="math inline">\(s\)</span> holds the right, left, up and down neighbors of site <span class="math inline">\(s\)</span>, in that order. Do it with array operations and <code>%</code>, not a double loop. Tables like this are the backbone of every lattice Monte Carlo code.</p>
+</div>
+<div id="da6755a7" class="cell lc-exercise" data-execution_count="27">
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> neighbor_table(L):</span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Return an (L*L, 4) int array: right, left, up, down neighbours of each site s = x + L*y."""</span></span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="e7305cd0" class="cell lc-check" data-execution_count="28">
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>    L <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>    nb <span class="op">=</span> neighbor_table(L)</span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(nb[:<span class="dv">5</span>])</span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>    ok <span class="op">=</span> nb.shape <span class="op">==</span> (<span class="dv">16</span>, <span class="dv">4</span>)</span>
+<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> s <span class="kw">in</span> <span class="bu">range</span>(L <span class="op">*</span> L):</span>
+<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a>        x, y <span class="op">=</span> s <span class="op">%</span> L, s <span class="op">//</span> L</span>
+<span id="cb50-8"><a href="#cb50-8" aria-hidden="true" tabindex="-1"></a>        want <span class="op">=</span> [(x <span class="op">+</span> <span class="dv">1</span>) <span class="op">%</span> L <span class="op">+</span> L <span class="op">*</span> y, (x <span class="op">-</span> <span class="dv">1</span>) <span class="op">%</span> L <span class="op">+</span> L <span class="op">*</span> y, x <span class="op">+</span> L <span class="op">*</span> ((y <span class="op">+</span> <span class="dv">1</span>) <span class="op">%</span> L), x <span class="op">+</span> L <span class="op">*</span> ((y <span class="op">-</span> <span class="dv">1</span>) <span class="op">%</span> L)]</span>
+<span id="cb50-9"><a href="#cb50-9" aria-hidden="true" tabindex="-1"></a>        ok <span class="op">=</span> ok <span class="kw">and</span> <span class="bu">list</span>(nb[s]) <span class="op">==</span> want</span>
+<span id="cb50-10"><a href="#cb50-10" aria-hidden="true" tabindex="-1"></a>    nb7 <span class="op">=</span> neighbor_table(<span class="dv">7</span>)</span>
+<span id="cb50-11"><a href="#cb50-11" aria-hidden="true" tabindex="-1"></a>    ok <span class="op">=</span> ok <span class="kw">and</span> <span class="bu">all</span>(nb7[nb7[s, <span class="dv">0</span>], <span class="dv">1</span>] <span class="op">==</span> s <span class="cf">for</span> s <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">49</span>))      <span class="co"># right then left comes back</span></span>
+<span id="cb50-12"><a href="#cb50-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ok</span>
+<span id="cb50-13"><a href="#cb50-13" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 1.3.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 1.3.1: not attempted yet</code></pre>
+</div>
+</div>
+<div id="ex-1-3-2" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 1.3.2 (A particle on a ring)</strong></span> Close the chain from <a href="#sec-linear-algebra" class="quarto-xref"><span>Section 1.3.5</span></a> into a ring by also connecting site <span class="math inline">\(N-1\)</span> back to site <span class="math inline">\(0\)</span>. Write <code>ring_hamiltonian(N, t)</code> that builds this <span class="math inline">\(N \times N\)</span> matrix. Then figure out (on paper, try a plane wave <span class="math inline">\(\psi_j = e^{ikj}\)</span>) what the exact eigenvalues should be. The check compares <code>np.linalg.eigvalsh</code> of your matrix with <span class="math inline">\(-2t\cos(2\pi m/N)\)</span>, <span class="math inline">\(m = 0, \ldots, N-1\)</span>, and also checks that most of the levels come in degenerate pairs, which is the left and right moving waves with the same energy.</p>
+</div>
+<div id="bbcf9de2" class="cell lc-exercise" data-execution_count="29">
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ring_hamiltonian(N, t):</span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Return the N x N tight-binding Hamiltonian of a ring with hopping amplitude t."""</span></span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="4a20a748" class="cell lc-check" data-execution_count="30">
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>    N, t <span class="op">=</span> <span class="dv">8</span>, <span class="fl">1.0</span></span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>    H <span class="op">=</span> ring_hamiltonian(N, t)</span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>    E <span class="op">=</span> np.linalg.eigvalsh(H)</span>
+<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a>    exact <span class="op">=</span> np.sort(<span class="op">-</span><span class="dv">2</span> <span class="op">*</span> t <span class="op">*</span> np.cos(<span class="dv">2</span> <span class="op">*</span> np.pi <span class="op">*</span> np.arange(N) <span class="op">/</span> N))</span>
+<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(np.<span class="bu">round</span>(E, <span class="dv">6</span>))</span>
+<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>    pairs <span class="op">=</span> np.<span class="bu">sum</span>(np.isclose(np.diff(E), <span class="dv">0</span>, atol<span class="op">=</span><span class="fl">1e-10</span>))</span>
+<span id="cb53-8"><a href="#cb53-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.allclose(H, H.T) <span class="kw">and</span> np.allclose(E, exact) <span class="kw">and</span> pairs <span class="op">==</span> N <span class="op">//</span> <span class="dv">2</span> <span class="op">-</span> <span class="dv">1</span></span>
+<span id="cb53-9"><a href="#cb53-9" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 1.3.2"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 1.3.2: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-functions" class="level2" data-number="1.4">
+<h2 data-number="1.4" class="anchored" data-anchor-id="sec-functions"><span class="header-section-number">1.4</span> Functions, State And Speed</h2>
+<section id="sec-scope" class="level3" data-number="1.4.1">
+<h3 data-number="1.4.1" class="anchored" data-anchor-id="sec-scope"><span class="header-section-number">1.4.1</span> Scope, and why globals are slow</h3>
+<p>The <em>scope</em> of a variable is the part of the program where its name is visible. Python looks names up in the order local, enclosing function, global, built-in (people call it LEGB), and a function that only <em>reads</em> a global name just finds it there, while a function that <em>assigns</em> to a name makes it local unless you say <code>global x</code>. So the same name can mean different things in different functions without any conflict, which is what lets every function have its own <code>i</code> and <code>n</code>.</p>
+<p>Scope also turns out to be tied to speed, in a way that surprises people. In Julia, the single most common reason code is slow is a loop sitting at global scope, because a non-constant global could be rebound to anything of any type at any moment, so the compiler can’t assume a type for it and every access becomes a slow dynamic lookup. Python is interpreted either way, but it shows a milder version of the same effect: local variables live in a fast array inside the function’s frame, while globals are looked up in a dictionary every time.</p>
+<div id="06b7dc1e" class="cell" data-execution_count="31">
+<div class="sourceCode cell-code" id="cb55"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a>total <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> accumulate_global(n):</span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">global</span> total</span>
+<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a>    total <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(n):</span>
+<span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a>        total <span class="op">+=</span> k</span>
+<span id="cb55-7"><a href="#cb55-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> total</span>
+<span id="cb55-8"><a href="#cb55-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-9"><a href="#cb55-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> accumulate_local(n):</span>
+<span id="cb55-10"><a href="#cb55-10" aria-hidden="true" tabindex="-1"></a>    s <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb55-11"><a href="#cb55-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(n):</span>
+<span id="cb55-12"><a href="#cb55-12" aria-hidden="true" tabindex="-1"></a>        s <span class="op">+=</span> k</span>
+<span id="cb55-13"><a href="#cb55-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> s</span>
+<span id="cb55-14"><a href="#cb55-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-15"><a href="#cb55-15" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> f <span class="kw">in</span> (accumulate_global, accumulate_local):</span>
+<span id="cb55-16"><a href="#cb55-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>f<span class="sc">.</span><span class="va">__name__</span><span class="sc">:18s}</span><span class="ss"> </span><span class="sc">{</span>time_it(<span class="kw">lambda</span>: f(<span class="dv">10</span><span class="op">**</span><span class="dv">6</span>))<span class="sc">:7.1f}</span><span class="ss"> ms"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>accumulate_global     51.5 ms
+accumulate_local      36.6 ms</code></pre>
+</div>
+</div>
+<p>So the habit is the same in both languages: put the work inside functions, pass data in as arguments, and keep globals for constants.</p>
+</section>
+<section id="sec-closures" class="level3" data-number="1.4.2">
+<h3 data-number="1.4.2" class="anchored" data-anchor-id="sec-closures"><span class="header-section-number">1.4.2</span> Closures and a random number generator</h3>
+<p>Some functions need to remember something between calls. The obvious example is a random number generator: we call it with no arguments and it returns a different number every time, so it must keep an internal state somewhere. Where should that state live, without passing it around as an argument and without making it an unprotected global? One answer (the one the PY502 slides use, with Julia’s <code>let</code> block) is a <em>closure</em>: a function defined inside another function captures the variables of that scope and keeps them alive for as long as the inner function exists.</p>
+<p>We’ll use this to build the oldest practical generator there is, the <em>linear congruential generator</em> (LCG), <span class="math display">\[
+x_{n+1} = (a\,x_n + c) \bmod m .
+\]</span> With <span class="math inline">\(m = 2^{64}\)</span> we never have to write the mod at all, because unsigned 64-bit arithmetic <em>is</em> arithmetic modulo <span class="math inline">\(2^{64}\)</span> (<a href="#sec-wraparound" class="quarto-xref"><span>Section 1.2.2</span></a>), so the wraparound that’s usually a bug becomes the algorithm. (In pure Python, whose integers never wrap, we have to mask with <code>&amp; (2**64 - 1)</code> ourselves, which is the same thing.)</p>
+<div id="ebb0b314" class="cell" data-execution_count="32">
+<div class="sourceCode cell-code" id="cb57"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_lcg(seed<span class="op">=</span><span class="dv">1</span>, a<span class="op">=</span><span class="dv">6364136223846793005</span>, c<span class="op">=</span><span class="dv">1442695040888963407</span>):</span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a>    mask <span class="op">=</span> <span class="dv">2</span><span class="op">**</span><span class="dv">64</span> <span class="op">-</span> <span class="dv">1</span></span>
+<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a>    state <span class="op">=</span> seed <span class="op">&amp;</span> mask</span>
+<span id="cb57-4"><a href="#cb57-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> ran64():</span>
+<span id="cb57-5"><a href="#cb57-5" aria-hidden="true" tabindex="-1"></a>        <span class="kw">nonlocal</span> state                      <span class="co"># assign to the captured variable, not a new local</span></span>
+<span id="cb57-6"><a href="#cb57-6" aria-hidden="true" tabindex="-1"></a>        state <span class="op">=</span> (a <span class="op">*</span> state <span class="op">+</span> c) <span class="op">&amp;</span> mask      <span class="co"># x_{n+1} = (a x_n + c) mod 2^64</span></span>
+<span id="cb57-7"><a href="#cb57-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> state</span>
+<span id="cb57-8"><a href="#cb57-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> ranfloat():</span>
+<span id="cb57-9"><a href="#cb57-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> (ran64() <span class="op">&gt;&gt;</span> <span class="dv">11</span>) <span class="op">*</span> <span class="fl">2.0</span><span class="op">**-</span><span class="dv">53</span>   <span class="co"># the top 53 bits, as a float in [0, 1)</span></span>
+<span id="cb57-10"><a href="#cb57-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ran64, ranfloat</span>
+<span id="cb57-11"><a href="#cb57-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-12"><a href="#cb57-12" aria-hidden="true" tabindex="-1"></a>ran64, ranfloat <span class="op">=</span> make_lcg(seed<span class="op">=</span><span class="dv">2026</span>)</span>
+<span id="cb57-13"><a href="#cb57-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>([ran64() <span class="op">%</span> <span class="dv">10</span> <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">10</span>)])</span>
+<span id="cb57-14"><a href="#cb57-14" aria-hidden="true" tabindex="-1"></a>u <span class="op">=</span> np.array([ranfloat() <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">100_000</span>)])</span>
+<span id="cb57-15"><a href="#cb57-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"mean </span><span class="sc">{</span>u<span class="sc">.</span>mean()<span class="sc">:.4f}</span><span class="ss"> (expect 0.5), variance </span><span class="sc">{</span>u<span class="sc">.</span>var()<span class="sc">:.4f}</span><span class="ss"> (expect </span><span class="sc">{</span><span class="dv">1</span><span class="op">/</span><span class="dv">12</span><span class="sc">:.4f}</span><span class="ss">)"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[3, 8, 3, 6, 1, 0, 1, 8, 1, 4]
+mean 0.5000 (expect 0.5), variance 0.0832 (expect 0.0833)</code></pre>
+</div>
+</div>
+<p>Nobody outside can reset <code>state</code> by accident, which is the whole point. Now let’s see why the details are the way they are.</p>
+<p>A good generator should visit all <span class="math inline">\(2^{64}\)</span> states before it repeats. For a power-of-two modulus, the Hull-Dobell theorem says this full period happens exactly when <span class="math inline">\(c\)</span> is odd and <span class="math inline">\(a - 1\)</span> is divisible by 4 (Knuth, Vol. 2, §3.2.1.2). Our <span class="math inline">\(c\)</span> ends in 7, so it’s odd, and <span class="math inline">\(a\)</span> ends in 05, so <span class="math inline">\(a \equiv 1 \pmod 4\)</span>. Both hold (these are the constants Knuth chose for his MMIX computer).</p>
+<p>And why throw away the low 11 bits? Because the low bits of a power-of-two LCG are terrible, and the argument is short. Reducing the recursion modulo <span class="math inline">\(2^{k+1}\)</span> gives <em>another</em> LCG whose state can take at most <span class="math inline">\(2^{k+1}\)</span> values, so bit <span class="math inline">\(k\)</span> of the output has period at most <span class="math inline">\(2^{k+1}\)</span>. The lowest bit has period 2 and just alternates <span class="math inline">\(0, 1, 0, 1, \ldots\)</span> (you can see the last digits above aren’t exactly random-looking either). Only the high bits are anything like random, so we shift right by 11 to keep the top 53, and multiplying by <span class="math inline">\(2^{-53}\)</span> turns that into a float in <span class="math inline">\([0, 1)\)</span>. Since float64 has exactly 53 bits of precision, every one of those values is represented exactly.</p>
+<div id="98c7c217" class="cell" data-execution_count="33">
+<div class="sourceCode cell-code" id="cb59"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a>ran64, _ <span class="op">=</span> make_lcg(seed<span class="op">=</span><span class="dv">7</span>)</span>
+<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"lowest bit:"</span>, [ran64() <span class="op">&amp;</span> <span class="dv">1</span> <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">16</span>)])</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>lowest bit: [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]</code></pre>
+</div>
+</div>
+<p>For real work we use NumPy’s generators, <code>np.random.default_rng()</code>, which uses an algorithm called PCG64 (O’Neill, 2014). It’s fast, has a period of <span class="math inline">\(2^{128}\)</span>, and passes the standard statistical test batteries that a plain LCG fails. The LCG is here because it teaches so much in so few lines. We’ll come back to random numbers, and to how bad an LCG can look, in <a href="02-integration.html#sec-pseudorandom" class="quarto-xref"><span>Section 2.4.3</span></a>.</p>
+<div id="ex-1-4-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 1.4.1 (The period of a tiny LCG)</strong></span> Write <code>lcg_period(a, c, m, x0=0)</code> that iterates <span class="math inline">\(x_{n+1} = (a x_n + c) \bmod m\)</span> from <span class="math inline">\(x_0\)</span> and returns the length of the cycle it eventually falls into. The check verifies the Hull-Dobell prediction for <span class="math inline">\(m = 64\)</span>: full period <span class="math inline">\(64\)</span> exactly when <span class="math inline">\(c\)</span> is odd and <span class="math inline">\(a \equiv 1 \pmod 4\)</span>.</p>
+</div>
+<div id="90e97e39" class="cell lc-exercise" data-execution_count="34">
+<div class="sourceCode cell-code" id="cb61"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> lcg_period(a, c, m, x0<span class="op">=</span><span class="dv">0</span>):</span>
+<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Return the length of the cycle that x -&gt; (a x + c) mod m eventually enters, starting from x0."""</span></span>
+<span id="cb61-3"><a href="#cb61-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb61-4"><a href="#cb61-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="fd7b52cc" class="cell lc-check" data-execution_count="35">
+<div class="sourceCode cell-code" id="cb62"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a>    m <span class="op">=</span> <span class="dv">64</span></span>
+<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a>    ok <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a>    full <span class="op">=</span> []</span>
+<span id="cb62-5"><a href="#cb62-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> a <span class="kw">in</span> <span class="bu">range</span>(m):</span>
+<span id="cb62-6"><a href="#cb62-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> c <span class="kw">in</span> <span class="bu">range</span>(m):</span>
+<span id="cb62-7"><a href="#cb62-7" aria-hidden="true" tabindex="-1"></a>            p <span class="op">=</span> lcg_period(a, c, m)</span>
+<span id="cb62-8"><a href="#cb62-8" aria-hidden="true" tabindex="-1"></a>            predicted <span class="op">=</span> (c <span class="op">%</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">1</span>) <span class="kw">and</span> (a <span class="op">%</span> <span class="dv">4</span> <span class="op">==</span> <span class="dv">1</span>)</span>
+<span id="cb62-9"><a href="#cb62-9" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> (p <span class="op">==</span> m) <span class="op">!=</span> predicted:</span>
+<span id="cb62-10"><a href="#cb62-10" aria-hidden="true" tabindex="-1"></a>                <span class="bu">print</span>(<span class="ss">f"a = </span><span class="sc">{</span>a<span class="sc">}</span><span class="ss">, c = </span><span class="sc">{</span>c<span class="sc">}</span><span class="ss">: period </span><span class="sc">{</span>p<span class="sc">}</span><span class="ss">, Hull-Dobell says full period is </span><span class="sc">{</span>predicted<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb62-11"><a href="#cb62-11" aria-hidden="true" tabindex="-1"></a>                ok <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb62-12"><a href="#cb62-12" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> p <span class="op">==</span> m <span class="kw">and</span> c <span class="op">==</span> <span class="dv">1</span>:</span>
+<span id="cb62-13"><a href="#cb62-13" aria-hidden="true" tabindex="-1"></a>                full.append(a)</span>
+<span id="cb62-14"><a href="#cb62-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"multipliers with full period for c = 1:"</span>, full)</span>
+<span id="cb62-15"><a href="#cb62-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ok <span class="kw">and</span> lcg_period(<span class="dv">5</span>, <span class="dv">1</span>, <span class="dv">8</span>) <span class="op">==</span> <span class="dv">8</span> <span class="kw">and</span> lcg_period(<span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">8</span>) <span class="op">==</span> <span class="dv">1</span></span>
+<span id="cb62-16"><a href="#cb62-16" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 1.4.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 1.4.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-habits" class="level3" data-number="1.4.3">
+<h3 data-number="1.4.3" class="anchored" data-anchor-id="sec-habits"><span class="header-section-number">1.4.3</span> Habits for fast numerical Python</h3>
+<p>Here’s what all of this adds up to, as a list of habits. Most of them have an exact Julia twin in the PY502 slides, which I think is a sign that they’re really about computers rather than about any one language.</p>
+<ol type="1">
+<li><strong>Vectorize.</strong> Push loops into NumPy (<a href="#sec-overhead" class="quarto-xref"><span>Section 1.1.2</span></a>). When you can’t, keep the Python loop as the <em>outer</em> loop over something small (time steps, say) and make each step an array operation.</li>
+<li><strong>Put work in functions, and don’t lean on globals</strong> (<a href="#sec-scope" class="quarto-xref"><span>Section 1.4.1</span></a>).</li>
+<li><strong>Respect memory order.</strong> With NumPy’s default layout, the last index should vary fastest (<a href="#sec-memory-layout" class="quarto-xref"><span>Section 1.3.2</span></a>).</li>
+<li><strong>Avoid needless allocation.</strong> Allocate work arrays once outside a time loop and update them in place, with <code>out=</code> arguments or augmented assignment like <code>x += dt * v</code>, which writes into <code>x</code> instead of creating a new array.</li>
+<li><strong>Watch your dtypes.</strong> An integer array silently stays integer (<code>np.array([1, 2]) / 2</code> is fine, but <code>a = np.array([1, 2]); a[0] = 0.5</code> stores 0), and mixing float32 into float64 code quietly costs you accuracy. This is Python’s version of Julia’s “type stability”.</li>
+<li><strong>Measure, don’t guess.</strong> Time things more than once (the first run often includes one-off costs), and look at the best time, not the first one.</li>
+</ol>
+</section>
+</section>
+<section id="sec-oscillator-example" class="level2" data-number="1.5">
+<h2 data-number="1.5" class="anchored" data-anchor-id="sec-oscillator-example"><span class="header-section-number">1.5</span> A Worked Example: The Harmonic Oscillator</h2>
+<p>Let’s end by putting the pieces together in a small but honest physics computation, which is also a preview of <a href="03-equations-of-motion.html" class="quarto-xref"><span>Chapter 3</span></a>. We integrate Newton’s equation for a harmonic oscillator, <span class="math inline">\(\ddot{x} = -\omega^2 x\)</span>, with two methods and keep track of the energy <span class="math inline">\(E = \tfrac{1}{2}v^2 + \tfrac{1}{2}\omega^2 x^2\)</span>, which the exact motion conserves.</p>
+<p>First a little analysis, so we know what the code <em>should</em> print. The forward Euler method updates the position and velocity using only the old values, <span class="math display">\[
+x_{n+1} = x_n + v_n\,\Delta t, \qquad v_{n+1} = v_n - \omega^2 x_n\,\Delta t .
+\]</span> Substitute these into <span class="math inline">\(2E_{n+1} = v_{n+1}^2 + \omega^2 x_{n+1}^2\)</span>. The cross terms <span class="math inline">\(\pm 2\omega^2 x_n v_n \Delta t\)</span> cancel and what’s left factorizes, <span class="math display">\[
+2E_{n+1} = v_n^2 + \omega^2 x_n^2 + \omega^2\Delta t^2\left(v_n^2 + \omega^2 x_n^2\right) = (1 + \omega^2\Delta t^2)\, 2E_n .
+\]</span> So Euler multiplies the energy by exactly <span class="math inline">\(1 + \omega^2\Delta t^2\)</span> every single step. With <span class="math inline">\(\omega = 1\)</span>, <span class="math inline">\(\Delta t = 0.01\)</span> and <span class="math inline">\(10^4\)</span> steps (a total time of 100) that’s <span class="math inline">\((1.0001)^{10000} \approx e\)</span>. The energy grows without bound, and no amount of waiting makes it settle down.</p>
+<p>The velocity Verlet method instead takes a half step in velocity, a full step in position, and another half step in velocity using the new force. We’ll derive it properly in <a href="03-equations-of-motion.html#sec-velocity-verlet" class="quarto-xref"><span>Section 3.2.3</span></a>, but for now we can just try it.</p>
+<div id="ae6e9f90" class="cell" data-execution_count="36">
+<div class="sourceCode cell-code" id="cb64"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> euler_step(x, v, dt, w):</span>
+<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> x <span class="op">+</span> v <span class="op">*</span> dt, v <span class="op">-</span> w<span class="op">**</span><span class="dv">2</span> <span class="op">*</span> x <span class="op">*</span> dt</span>
+<span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb64-4"><a href="#cb64-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> verlet_step(x, v, dt, w):</span>
+<span id="cb64-5"><a href="#cb64-5" aria-hidden="true" tabindex="-1"></a>    vh <span class="op">=</span> v <span class="op">-</span> <span class="fl">0.5</span> <span class="op">*</span> w<span class="op">**</span><span class="dv">2</span> <span class="op">*</span> x <span class="op">*</span> dt</span>
+<span id="cb64-6"><a href="#cb64-6" aria-hidden="true" tabindex="-1"></a>    xn <span class="op">=</span> x <span class="op">+</span> vh <span class="op">*</span> dt</span>
+<span id="cb64-7"><a href="#cb64-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> xn, vh <span class="op">-</span> <span class="fl">0.5</span> <span class="op">*</span> w<span class="op">**</span><span class="dv">2</span> <span class="op">*</span> xn <span class="op">*</span> dt</span>
+<span id="cb64-8"><a href="#cb64-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb64-9"><a href="#cb64-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> simulate(step, x0<span class="op">=</span><span class="fl">1.0</span>, v0<span class="op">=</span><span class="fl">0.0</span>, w<span class="op">=</span><span class="fl">1.0</span>, dt<span class="op">=</span><span class="fl">0.01</span>, nsteps<span class="op">=</span><span class="dv">10_000</span>):</span>
+<span id="cb64-10"><a href="#cb64-10" aria-hidden="true" tabindex="-1"></a>    x, v <span class="op">=</span> x0, v0</span>
+<span id="cb64-11"><a href="#cb64-11" aria-hidden="true" tabindex="-1"></a>    E <span class="op">=</span> np.empty(nsteps <span class="op">+</span> <span class="dv">1</span>)                 <span class="co"># allocate once, fill in the loop</span></span>
+<span id="cb64-12"><a href="#cb64-12" aria-hidden="true" tabindex="-1"></a>    E[<span class="dv">0</span>] <span class="op">=</span> <span class="fl">0.5</span> <span class="op">*</span> v<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> w<span class="op">**</span><span class="dv">2</span> <span class="op">*</span> x<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb64-13"><a href="#cb64-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> n <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, nsteps <span class="op">+</span> <span class="dv">1</span>):</span>
+<span id="cb64-14"><a href="#cb64-14" aria-hidden="true" tabindex="-1"></a>        x, v <span class="op">=</span> step(x, v, dt, w)</span>
+<span id="cb64-15"><a href="#cb64-15" aria-hidden="true" tabindex="-1"></a>        E[n] <span class="op">=</span> <span class="fl">0.5</span> <span class="op">*</span> v<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> w<span class="op">**</span><span class="dv">2</span> <span class="op">*</span> x<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb64-16"><a href="#cb64-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> E</span>
+<span id="cb64-17"><a href="#cb64-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb64-18"><a href="#cb64-18" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> step <span class="kw">in</span> (euler_step, verlet_step):</span>
+<span id="cb64-19"><a href="#cb64-19" aria-hidden="true" tabindex="-1"></a>    E <span class="op">=</span> simulate(step)</span>
+<span id="cb64-20"><a href="#cb64-20" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>step<span class="sc">.</span><span class="va">__name__</span><span class="sc">:12s}</span><span class="ss"> E_final/E_0 = </span><span class="sc">{</span>E[<span class="op">-</span><span class="dv">1</span>] <span class="op">/</span> E[<span class="dv">0</span>]<span class="sc">:.10f}</span><span class="ss">   max |E/E_0 - 1| = </span><span class="sc">{</span>np<span class="sc">.</span><span class="bu">abs</span>(E <span class="op">/</span> E[<span class="dv">0</span>] <span class="op">-</span> <span class="dv">1</span>)<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.3e}</span><span class="ss">"</span>)</span>
+<span id="cb64-21"><a href="#cb64-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"prediction for Euler: </span><span class="sc">{</span>(<span class="dv">1</span> <span class="op">+</span> <span class="fl">0.01</span><span class="op">**</span><span class="dv">2</span>) <span class="op">**</span> <span class="dv">10000</span><span class="sc">:.10f}</span><span class="ss">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>euler_step   E_final/E_0 = 2.7181459268   max |E/E_0 - 1| = 1.718e+00
+verlet_step  E_final/E_0 = 0.9999935989   max |E/E_0 - 1| = 2.500e-05
+prediction for Euler: 2.7181459268</code></pre>
+</div>
+</div>
+<p>The Euler number matches the prediction <span class="math inline">\((1.0001)^{10000}\)</span> to every digit shown, which is a really satisfying check that the code does what the algebra says. Verlet’s worst deviation is <span class="math inline">\(2.5 \times 10^{-5}\)</span>, which happens to be exactly <span class="math inline">\((\omega\Delta t)^2/4\)</span> here, and it doesn’t grow at all. Let’s look at it.</p>
+<div id="d8f43d56" class="cell" data-execution_count="37">
+<div class="sourceCode cell-code" id="cb66"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a>t <span class="op">=</span> <span class="fl">0.01</span> <span class="op">*</span> np.arange(<span class="dv">10_001</span>)</span>
+<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="fl">3.2</span>))</span>
+<span id="cb66-3"><a href="#cb66-3" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].plot(t, simulate(euler_step) <span class="op">/</span> <span class="fl">0.5</span>, color<span class="op">=</span><span class="st">"#3B6FB6"</span>)</span>
+<span id="cb66-4"><a href="#cb66-4" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].set_xlabel(<span class="st">"$t$"</span>)<span class="op">;</span> ax[<span class="dv">0</span>].set_ylabel(<span class="st">"$E/E_0$"</span>)<span class="op">;</span> ax[<span class="dv">0</span>].set_title(<span class="st">"Euler"</span>)</span>
+<span id="cb66-5"><a href="#cb66-5" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].plot(t, simulate(verlet_step) <span class="op">/</span> <span class="fl">0.5</span> <span class="op">-</span> <span class="dv">1</span>, color<span class="op">=</span><span class="st">"#E07A3F"</span>, lw<span class="op">=</span><span class="fl">0.8</span>)</span>
+<span id="cb66-6"><a href="#cb66-6" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].set_xlabel(<span class="st">"$t$"</span>)<span class="op">;</span> ax[<span class="dv">1</span>].set_ylabel(<span class="st">"$E/E_0 - 1$"</span>)<span class="op">;</span> ax[<span class="dv">1</span>].set_title(<span class="st">"velocity Verlet"</span>)</span>
+<span id="cb66-7"><a href="#cb66-7" aria-hidden="true" tabindex="-1"></a>fig.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="01-scientific-computing_files/figure-html/cell-38-output-1.png" width="846" height="298" class="figure-img"></p>
+<figcaption>Energy of the oscillator over 16 periods. Euler’s energy grows exponentially; velocity Verlet’s wiggles at the level of <span class="math inline">\((\omega\Delta t)^2\)</span> and never drifts.</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The interesting thing here is that the two methods do basically the same amount of work per step, and Verlet even has the same order of accuracy per step as a naive count would suggest for Euler’s big brother, and yet one of them is qualitatively wrong for long times and the other isn’t. Figuring out why is most of <a href="03-equations-of-motion.html" class="quarto-xref"><span>Chapter 3</span></a>.</p>
+<div id="ex-1-5-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 1.5.1 (Halve the time step)</strong></span> Write <code>verlet_drift(dt)</code> that runs the velocity Verlet oscillator above with <span class="math inline">\(\omega = 1\)</span> up to <span class="math inline">\(t = 100\)</span> (so <code>round(100/dt)</code> steps) and returns <span class="math inline">\(\max_n |E_n/E_0 - 1|\)</span>. The check confirms that the drift is <span class="math inline">\((\omega\Delta t)^2/4\)</span> and so shrinks by a factor of four each time <span class="math inline">\(\Delta t\)</span> is halved, which is the signature of a second-order method.</p>
+</div>
+<div id="88fcd2b7" class="cell lc-exercise" data-execution_count="38">
+<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> verlet_drift(dt):</span>
+<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Return max |E/E_0 - 1| for velocity Verlet on the oscillator (omega = 1, x0 = 1, v0 = 0) up to t = 100."""</span></span>
+<span id="cb67-3"><a href="#cb67-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb67-4"><a href="#cb67-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="706508e8" class="cell lc-check" data-execution_count="39">
+<div class="sourceCode cell-code" id="cb68"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a>    ok <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb68-3"><a href="#cb68-3" aria-hidden="true" tabindex="-1"></a>    prev <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb68-4"><a href="#cb68-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> dt <span class="kw">in</span> [<span class="fl">0.04</span>, <span class="fl">0.02</span>, <span class="fl">0.01</span>]:</span>
+<span id="cb68-5"><a href="#cb68-5" aria-hidden="true" tabindex="-1"></a>        d <span class="op">=</span> verlet_drift(dt)</span>
+<span id="cb68-6"><a href="#cb68-6" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"dt = </span><span class="sc">{</span>dt<span class="sc">:5.2f}</span><span class="ss">   drift </span><span class="sc">{</span>d<span class="sc">:.3e}</span><span class="ss">   (dt^2/4 = </span><span class="sc">{</span>dt<span class="op">**</span><span class="dv">2</span> <span class="op">/</span> <span class="dv">4</span><span class="sc">:.3e}</span><span class="ss">)"</span> <span class="op">+</span> (<span class="ss">f"   ratio </span><span class="sc">{</span>prev <span class="op">/</span> d<span class="sc">:.2f}</span><span class="ss">"</span> <span class="cf">if</span> prev <span class="cf">else</span> <span class="st">""</span>))</span>
+<span id="cb68-7"><a href="#cb68-7" aria-hidden="true" tabindex="-1"></a>        ok <span class="op">=</span> ok <span class="kw">and</span> <span class="bu">abs</span>(d <span class="op">/</span> (dt<span class="op">**</span><span class="dv">2</span> <span class="op">/</span> <span class="dv">4</span>) <span class="op">-</span> <span class="dv">1</span>) <span class="op">&lt;</span> <span class="fl">0.05</span></span>
+<span id="cb68-8"><a href="#cb68-8" aria-hidden="true" tabindex="-1"></a>        prev <span class="op">=</span> d</span>
+<span id="cb68-9"><a href="#cb68-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ok</span>
+<span id="cb68-10"><a href="#cb68-10" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 1.5.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 1.5.1: not attempted yet</code></pre>
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./index.html" class="pagination-link" aria-label="Preface">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Preface</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./02-integration.html" class="pagination-link" aria-label="Numerical and Monte Carlo Integration">
+        <span class="nav-page-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Numerical and Monte Carlo Integration</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p><a href="../">← Computational Physics</a> · <a href="../../../#notes">All notes</a></p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+<p>© 2026 Hieu Nguyen</p>
+</div>
+  </div>
+</footer>
+
+
+
+
+<script src="site_libs/quarto-contrib/livecells-0.2.0/livecells.js"></script>
+</body></html>

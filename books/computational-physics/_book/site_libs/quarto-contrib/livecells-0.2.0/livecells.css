@@ -1,0 +1,127 @@
+/* Live cells. Colours are taken from the page where possible so the theme stays in charge. */
+:root {
+  --lc-ink: var(--bs-body-color, #1c1b19);
+  --lc-paper: var(--bs-body-bg, #fcfbf7);
+  --lc-muted: #6b665c;
+  --lc-rule: #ddd7c9;
+  --lc-accent: #8a2a2b;
+  --lc-ok: #3d7a4a;
+  --lc-busy: #b9822b;
+}
+
+/* --- per-cell toolbar --- */
+.lc-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 0.25rem;
+  margin: 0.9em 0 -0.9em 0;          /* tuck it against the top of the code block */
+  font-size: 0.82rem;
+  opacity: 0.55;
+  transition: opacity 0.15s;
+  position: relative;
+  z-index: 2;
+}
+.cell:hover .lc-toolbar, .lc-toolbar:focus-within, .lc-running .lc-toolbar { opacity: 1; }
+details.code-fold .lc-toolbar { margin-top: 0.4em; }
+
+.lc-btn {
+  font: inherit;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  color: var(--lc-ink);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  padding: 0.05em 0.5em;
+  cursor: pointer;
+}
+.lc-btn:hover { border-color: var(--lc-rule); background: rgba(0, 0, 0, 0.03); }
+.lc-btn:focus-visible { outline: 2px solid var(--lc-accent); outline-offset: 1px; }
+.lc-run { color: var(--lc-accent); font-weight: bold; }
+.lc-primary { color: var(--lc-paper); background: var(--lc-accent); border-color: var(--lc-accent); }
+.lc-primary:hover { background: var(--lc-accent); filter: brightness(1.1); }
+.lc-state { color: var(--lc-muted); font-style: italic; margin-left: 0.4rem; min-width: 1em; }
+
+/* --- running and failed cells --- */
+.lc-running div.sourceCode, .lc-running .lc-editor { border-left-color: var(--lc-busy) !important; }
+.lc-failed div.sourceCode, .lc-failed .lc-editor { border-left-color: #b4453c !important; }
+
+/* --- the editor shown when a cell is being edited --- */
+.lc-editor {
+  display: block;
+  width: 100%;
+  margin: 1.1em 0 0.6em 0;
+  padding: 0.9em;
+  font-family: var(--bs-font-monospace, monospace);
+  font-size: 0.86em;
+  line-height: 1.45;
+  color: var(--lc-ink);
+  background: #fffdf8;
+  border: 1px solid var(--lc-rule);
+  border-left: 3px solid var(--lc-accent);
+  border-radius: 2px;
+  resize: vertical;
+  overflow: hidden;
+  tab-size: 4;
+  white-space: pre;
+  overflow-x: auto;
+}
+.lc-editor:focus { outline: none; box-shadow: 0 0 0 2px rgba(138, 42, 43, 0.15); }
+
+.lc-output:empty { display: none; }
+.lc-output { margin-bottom: 1.2em; }
+.cell-output-stderr pre { border-left-color: var(--lc-busy) !important; }
+
+/* --- the Python panel --- */
+.lc-panel {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1050;
+  width: 300px;                       /* fits in the right-hand margin column on wide screens */
+  max-width: calc(100vw - 32px);
+  background: var(--lc-paper);
+  color: var(--lc-ink);
+  border: 1px solid var(--lc-rule);
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(40, 30, 10, 0.08);
+  padding: 0.45rem 0.6rem;
+  font-size: 0.85rem;
+}
+.lc-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.15rem 0.2rem; }
+.lc-label { margin-right: auto; font-variant: small-caps; letter-spacing: 0.04em; }
+.lc-label { flex-basis: calc(100% - 1.2rem); }   /* status on its own line, buttons below */
+.lc-dot {
+  width: 0.6rem; height: 0.6rem; border-radius: 50%;
+  background: #b9b3a6; display: inline-block; margin: 0 0.15rem;
+}
+.lc-dot.lc-idle { background: var(--lc-ok); }
+.lc-dot.lc-busy, .lc-dot.lc-starting, .lc-dot.lc-restarting { background: var(--lc-busy); }
+.lc-message { margin: 0.4rem 0 0 0; color: var(--lc-muted); font-style: italic; text-align: left !important; }
+.lc-message[hidden] { display: none; }
+
+.lc-form { margin-top: 0.5rem; display: grid; gap: 0.4rem; }
+.lc-form[hidden] { display: none; }
+.lc-form label { display: grid; grid-template-columns: 4rem 1fr; align-items: center; gap: 0.5rem; }
+.lc-input {
+  font-family: var(--bs-font-monospace, monospace);
+  font-size: 0.85rem;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--lc-rule);
+  border-radius: 3px;
+  background: #fff;
+  color: var(--lc-ink);
+  min-width: 0;
+}
+.lc-form-buttons { display: flex; gap: 0.4rem; justify-content: flex-end; }
+.lc-help { margin: 0; color: var(--lc-muted); font-size: 0.8rem; text-align: left !important; }
+
+@media print {
+  .lc-toolbar, .lc-panel { display: none !important; }
+}
+
+@media (max-width: 700px) {
+  .lc-panel { width: auto; right: 8px; bottom: 8px; padding: 0.3rem 0.45rem; font-size: 0.8rem; }
+  .lc-help { display: none; }
+}

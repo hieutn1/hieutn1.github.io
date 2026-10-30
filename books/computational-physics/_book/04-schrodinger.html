@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.20">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>4&nbsp; The Schrödinger Equation – Computational Physics</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./references.html" rel="next">
+<link href="./03-equations-of-motion.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-da0f4d964b336c7357bd1e6e7fe8ee30.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-42a672b7a9700d1436569573ce3dcc0e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/quarto-contrib/livecells-0.2.0/livecells.css" rel="stylesheet">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script>window.LIVECELLS_CONFIG = {"server": "http://127.0.0.1:8888", "kernelName": "python3", "pyodide": "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/", "packages": ["numpy", "scipy", "matplotlib"]};</script>
+  <script defer="" src="mathjax/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./04-schrodinger.html"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">The Schrödinger Equation</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto"><div class="quarto-sidebar-header"><div class="sidebar-header-item">
+<p><a href="../">← Course page</a></p>
+</div></div>
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Computational Physics</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01-scientific-computing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Scientific Computing in Python</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02-integration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Numerical and Monte Carlo Integration</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03-equations-of-motion.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Equations of Motion</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04-schrodinger.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">The Schrödinger Equation</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active" data-toc-expanded="1">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#sec-shooting" id="toc-sec-shooting" class="nav-link active" data-scroll-target="#sec-shooting"><span class="header-section-number">4.1</span> Numerov And Shooting</a>
+  <ul class="collapse">
+  <li><a href="#sec-radial" id="toc-sec-radial" class="nav-link" data-scroll-target="#sec-radial"><span class="header-section-number">4.1.1</span> One-dimensional and radial equations</a></li>
+  <li><a href="#sec-numerov" id="toc-sec-numerov" class="nav-link" data-scroll-target="#sec-numerov"><span class="header-section-number">4.1.2</span> Numerov’s method</a></li>
+  <li><a href="#sec-shooting-method" id="toc-sec-shooting-method" class="nav-link" data-scroll-target="#sec-shooting-method"><span class="header-section-number">4.1.3</span> Boundary conditions and shooting</a></li>
+  <li><a href="#sec-double-well" id="toc-sec-double-well" class="nav-link" data-scroll-target="#sec-double-well"><span class="header-section-number">4.1.4</span> A double well</a></li>
+  <li><a href="#sec-soft-walls" id="toc-sec-soft-walls" class="nav-link" data-scroll-target="#sec-soft-walls"><span class="header-section-number">4.1.5</span> Soft walls</a></li>
+  <li><a href="#sec-hydrogen" id="toc-sec-hydrogen" class="nav-link" data-scroll-target="#sec-hydrogen"><span class="header-section-number">4.1.6</span> Hydrogen</a></li>
+  </ul></li>
+  <li><a href="#sec-variational" id="toc-sec-variational" class="nav-link" data-scroll-target="#sec-variational"><span class="header-section-number">4.2</span> Variational Methods</a>
+  <ul class="collapse">
+  <li><a href="#sec-variational-principle" id="toc-sec-variational-principle" class="nav-link" data-scroll-target="#sec-variational-principle"><span class="header-section-number">4.2.1</span> The variational principle</a></li>
+  <li><a href="#sec-box-barrier" id="toc-sec-box-barrier" class="nav-link" data-scroll-target="#sec-box-barrier"><span class="header-section-number">4.2.2</span> A box with a barrier</a></li>
+  <li><a href="#sec-nonorthogonal" id="toc-sec-nonorthogonal" class="nav-link" data-scroll-target="#sec-nonorthogonal"><span class="header-section-number">4.2.3</span> Non-orthogonal basis functions</a></li>
+  </ul></li>
+  <li><a href="#sec-grids" id="toc-sec-grids" class="nav-link" data-scroll-target="#sec-grids"><span class="header-section-number">4.3</span> Grids And Lanczos</a>
+  <ul class="collapse">
+  <li><a href="#sec-little-boxes" id="toc-sec-little-boxes" class="nav-link" data-scroll-target="#sec-little-boxes"><span class="header-section-number">4.3.1</span> A basis of little boxes</a></li>
+  <li><a href="#sec-continuum-limit" id="toc-sec-continuum-limit" class="nav-link" data-scroll-target="#sec-continuum-limit"><span class="header-section-number">4.3.2</span> The continuum limit</a></li>
+  <li><a href="#sec-box-length" id="toc-sec-box-length" class="nav-link" data-scroll-target="#sec-box-length"><span class="header-section-number">4.3.3</span> Hard walls and a subtle box length</a></li>
+  <li><a href="#sec-krylov" id="toc-sec-krylov" class="nav-link" data-scroll-target="#sec-krylov"><span class="header-section-number">4.3.4</span> Big sparse matrices and Krylov spaces</a></li>
+  <li><a href="#sec-lanczos" id="toc-sec-lanczos" class="nav-link" data-scroll-target="#sec-lanczos"><span class="header-section-number">4.3.5</span> The Lanczos recursion</a></li>
+  <li><a href="#sec-lanczos-convergence" id="toc-sec-lanczos-convergence" class="nav-link" data-scroll-target="#sec-lanczos-convergence"><span class="header-section-number">4.3.6</span> How fast it converges</a></li>
+  <li><a href="#sec-lanczos-quirks" id="toc-sec-lanczos-quirks" class="nav-link" data-scroll-target="#sec-lanczos-quirks"><span class="header-section-number">4.3.7</span> Lanczos’s quirks</a></li>
+  </ul></li>
+  <li><a href="#sec-time-dependence" id="toc-sec-time-dependence" class="nav-link" data-scroll-target="#sec-time-dependence"><span class="header-section-number">4.4</span> Time Dependence</a>
+  <ul class="collapse">
+  <li><a href="#sec-eigen-evolution" id="toc-sec-eigen-evolution" class="nav-link" data-scroll-target="#sec-eigen-evolution"><span class="header-section-number">4.4.1</span> Using the eigenstates</a></li>
+  <li><a href="#sec-unitarity" id="toc-sec-unitarity" class="nav-link" data-scroll-target="#sec-unitarity"><span class="header-section-number">4.4.2</span> Stepping in time, and why unitarity matters</a></li>
+  <li><a href="#sec-splitting" id="toc-sec-splitting" class="nav-link" data-scroll-target="#sec-splitting"><span class="header-section-number">4.4.3</span> Splitting the propagator</a></li>
+  <li><a href="#sec-split-operator" id="toc-sec-split-operator" class="nav-link" data-scroll-target="#sec-split-operator"><span class="header-section-number">4.4.4</span> The split-operator FFT method</a></li>
+  <li><a href="#sec-tunneling" id="toc-sec-tunneling" class="nav-link" data-scroll-target="#sec-tunneling"><span class="header-section-number">4.4.5</span> Tunneling through a barrier</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span id="sec-schrodinger" class="quarto-section-identifier"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">The Schrödinger Equation</span></span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>This last chapter is about quantum mechanics, and it’s where a lot of the tools from the earlier chapters come back (the Verlet trick of adding Taylor expansions, bisection, Hermitian matrices, the splitting idea behind leapfrog) and get used on a problem where they really pay off. We’ll start in one dimension, where the Schrödinger equation is basically an ODE and we can solve it to ridiculous accuracy by shooting, then move on to variational methods, which is how most real calculations for atoms, molecules and solids are actually done, then to grids and the Lanczos method for huge sparse matrices, and finally to time evolution. Throughout we use units with <span class="math inline">\(\hbar = m = 1\)</span> (atomic units, if you like), so the kinetic energy is <span class="math inline">\(-\tfrac{1}{2}\nabla^2\)</span>.</p>
+<div id="7884a8d2" class="cell lc-autorun" data-execution_count="1">
+<details class="code-fold">
+<summary>Setup: imports and the helper used by the exercise checks</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># [Setup] Run once. Imports what this chapter uses and defines the helper that every check cell calls.</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy <span class="im">import</span> linalg</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> check(name, test):</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Run test(), which returns True or False, and report the result without ever raising."""</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>        ok <span class="op">=</span> test()</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> <span class="pp">NotImplementedError</span>:</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: not attempted yet"</span>)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> <span class="pp">Exception</span> <span class="im">as</span> err:</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: your code raised </span><span class="sc">{</span><span class="bu">type</span>(err)<span class="sc">.</span><span class="va">__name__</span><span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>err<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: "</span> <span class="op">+</span> (<span class="st">"passed"</span> <span class="cf">if</span> ok <span class="cf">else</span> <span class="st">"not yet. Something is off, see the output above."</span>))</span></code></pre></div>
+</details>
+</div>
+<section id="sec-shooting" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="sec-shooting"><span class="header-section-number">4.1</span> Numerov And Shooting</h2>
+<section id="sec-radial" class="level3" data-number="4.1.1">
+<h3 data-number="4.1.1" class="anchored" data-anchor-id="sec-radial"><span class="header-section-number">4.1.1</span> One-dimensional and radial equations</h3>
+<p>In one dimension the stationary Schrödinger equation reads <span class="math display">\[
+-\frac{1}{2}\Psi''(x) + V(x)\Psi(x) = E\,\Psi(x).
+\]</span> The same equation shows up for a spherically symmetric problem in three dimensions. Writing <span class="math inline">\(\Psi = R(r)\,Y_{LM}(\theta, \phi)\)</span> with a spherical harmonic and defining <span class="math inline">\(U(r) = rR(r)\)</span>, the radial part becomes <span class="math display">\[
+-\frac{1}{2}U''(r) + \Big[\frac{L(L+1)}{2r^2} + V(r)\Big]U(r) = E\,U(r), \qquad r \ge 0,
+\]</span> which is a one-dimensional equation with an extra repulsive “centrifugal” term in the potential and the boundary condition <span class="math inline">\(U(0) = 0\)</span> (which keeps <span class="math inline">\(R = U/r\)</span> finite at the origin). Both have the form <span class="math display">\[
+\Psi''(x) = f(x)\,\Psi(x), \qquad f(x) = 2\,[V(x) - E],
+\]</span> and the structure is worth pausing on for a second. Where <span class="math inline">\(V &gt; E\)</span> (the classically forbidden region), <span class="math inline">\(f\)</span> is positive and the solution curves <em>away</em> from the axis, so it grows or decays exponentially. Where <span class="math inline">\(V &lt; E\)</span>, <span class="math inline">\(f\)</span> is negative and the solution curves <em>towards</em> the axis, so it oscillates. Most of what’s tricky about solving this numerically comes from that exponential growth in forbidden regions, which amplifies any small error into a huge one.</p>
+</section>
+<section id="sec-numerov" class="level3" data-number="4.1.2">
+<h3 data-number="4.1.2" class="anchored" data-anchor-id="sec-numerov"><span class="header-section-number">4.1.2</span> Numerov’s method</h3>
+<p>We could split this second-order equation into two first-order ones and use RK4, as we did for equations of motion. But this particular form (no first derivative, and a right side that’s linear in <span class="math inline">\(\Psi\)</span>) allows a much more elegant scheme of even higher order. On a grid <span class="math inline">\(x_k = x_0 + k\Delta x\)</span>, add the Taylor expansions of <span class="math inline">\(\Psi(x_k \pm \Delta x)\)</span>. The odd powers cancel, exactly as in the Verlet derivation of <a href="03-equations-of-motion.html#sec-verlet" class="quarto-xref"><span>Section 3.2</span></a>, and we get <span class="math display">\[
+\Psi_{k+1} - 2\Psi_k + \Psi_{k-1} = \Delta x^2\,\Psi''_k + \frac{\Delta x^4}{12}\Psi^{(4)}_k + O(\Delta x^6).
+\]</span> With only the first term on the right this would be Verlet, with a step error of <span class="math inline">\(O(\Delta x^4)\)</span>. The trick is to keep the <span class="math inline">\(\Delta x^4\)</span> term without knowing the fourth derivative. Since <span class="math inline">\(\Psi^{(4)} = (\Psi'')''\)</span>, we can apply the same second-difference formula to <span class="math inline">\(\Psi''\)</span> itself, <span class="math inline">\(\Delta x^2\Psi^{(4)}_k = \Psi''_{k+1} - 2\Psi''_k + \Psi''_{k-1} + O(\Delta x^4)\)</span>, and that error gets multiplied by <span class="math inline">\(\Delta x^2/12\)</span> and becomes <span class="math inline">\(O(\Delta x^6)\)</span>, so nothing is lost. Now use <span class="math inline">\(\Psi'' = f\Psi\)</span> everywhere and collect terms. It looks cleanest with the auxiliary quantity <span class="math display">\[
+\phi_k = \Big(1 - \frac{\Delta x^2}{12}f_k\Big)\Psi_k, \qquad \phi_{k+1} = 2\phi_k - \phi_{k-1} + \Delta x^2 f_k\Psi_k + O(\Delta x^6),
+\]</span> after which we recover <span class="math inline">\(\Psi_{k+1} = \phi_{k+1}/(1 - \Delta x^2 f_{k+1}/12)\)</span>. That’s the Numerov method. The step error is <span class="math inline">\(O(\Delta x^6)\)</span>, so the global error is <span class="math inline">\(O(\Delta x^4)\)</span>, the same order as RK4 but with one function value per step instead of four (and <span class="math inline">\(f\)</span> is usually cheap anyway, since it’s just the potential).</p>
+<div id="c48ba45c" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> numerov(f, psi0, psi1, dx, phi0<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Integrate psi'' = f psi on a grid, given f on the grid and the first two values of psi.</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">    phi0 overrides (1 - dx^2 f_0 / 12) psi_0, which matters when f_0 psi_0 has a finite limit (@sec-hydrogen)."""</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    c <span class="op">=</span> <span class="dv">1</span> <span class="op">-</span> dx<span class="op">**</span><span class="dv">2</span> <span class="op">*</span> f <span class="op">/</span> <span class="dv">12</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    psi <span class="op">=</span> np.empty(<span class="bu">len</span>(f))</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    psi[<span class="dv">0</span>], psi[<span class="dv">1</span>] <span class="op">=</span> psi0, psi1</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    phi_prev <span class="op">=</span> c[<span class="dv">0</span>] <span class="op">*</span> psi0 <span class="cf">if</span> phi0 <span class="kw">is</span> <span class="va">None</span> <span class="cf">else</span> phi0</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    phi <span class="op">=</span> c[<span class="dv">1</span>] <span class="op">*</span> psi1</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="bu">len</span>(f) <span class="op">-</span> <span class="dv">1</span>):</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        phi_prev, phi <span class="op">=</span> phi, <span class="dv">2</span> <span class="op">*</span> phi <span class="op">-</span> phi_prev <span class="op">+</span> dx<span class="op">**</span><span class="dv">2</span> <span class="op">*</span> f[k] <span class="op">*</span> psi[k]</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        psi[k <span class="op">+</span> <span class="dv">1</span>] <span class="op">=</span> phi <span class="op">/</span> c[k <span class="op">+</span> <span class="dv">1</span>]</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> psi</span></code></pre></div>
+</div>
+</section>
+<section id="sec-shooting-method" class="level3" data-number="4.1.3">
+<h3 data-number="4.1.3" class="anchored" data-anchor-id="sec-shooting-method"><span class="header-section-number">4.1.3</span> Boundary conditions and shooting</h3>
+<p>The differential equation alone has solutions for every <span class="math inline">\(E\)</span>. What singles out the eigenvalues is the requirement that <span class="math inline">\(\Psi\)</span> satisfy boundary conditions at <em>both</em> ends. The shooting method turns this into a root-finding problem: fix the boundary condition at one end, pick a trial energy, integrate across, and see how badly we miss the condition at the other end (like aiming a cannon, hence the name). For a particle in a box with hard walls at <span class="math inline">\(x = \pm 1\)</span>, we start from <span class="math inline">\(\Psi(-1) = 0\)</span> and <span class="math inline">\(\Psi(-1 + \Delta x) = 1\)</span>. The second value only sets the overall scale, which a linear equation doesn’t care about. The miss is then <span class="math inline">\(\delta(E) = \Psi(+1)\)</span>, and the eigenvalues are the zeros of <span class="math inline">\(\delta(E)\)</span>.</p>
+<p>We find those zeros by bisection. First step through energies <span class="math inline">\(E_0, E_0 + \Delta E, \ldots\)</span> until <span class="math inline">\(\delta\)</span> changes sign, which brackets an eigenvalue (provided <span class="math inline">\(\Delta E\)</span> is small enough that two eigenvalues don’t fall in one step, which is the one thing that can go wrong here). Then evaluate <span class="math inline">\(\delta\)</span> at the midpoint and keep whichever half still contains the sign change. Each round halves the interval, so 40 rounds take a bracket of width 1 down to <span class="math inline">\(10^{-12}\)</span>, slow compared with Newton’s method but completely foolproof.</p>
+<div id="1023b010" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> bisect(g, a, b, tol<span class="op">=</span><span class="fl">1e-12</span>):</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    ga <span class="op">=</span> g(a)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> b <span class="op">-</span> a <span class="op">&gt;</span> tol:</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>        m <span class="op">=</span> <span class="fl">0.5</span> <span class="op">*</span> (a <span class="op">+</span> b)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>        gm <span class="op">=</span> g(m)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> (gm <span class="op">&gt;</span> <span class="dv">0</span>) <span class="op">==</span> (ga <span class="op">&gt;</span> <span class="dv">0</span>):</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>            a, ga <span class="op">=</span> m, gm</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>            b <span class="op">=</span> m</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fl">0.5</span> <span class="op">*</span> (a <span class="op">+</span> b)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> find_levels(delta, E_start, dE, n_levels):</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Scan delta(E) in steps of dE, then bisect every sign change."""</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    levels, E, d <span class="op">=</span> [], E_start, delta(E_start)</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> <span class="bu">len</span>(levels) <span class="op">&lt;</span> n_levels:</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>        d_next <span class="op">=</span> delta(E <span class="op">+</span> dE)</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> (d <span class="op">&gt;</span> <span class="dv">0</span>) <span class="op">!=</span> (d_next <span class="op">&gt;</span> <span class="dv">0</span>):</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>            levels.append(bisect(delta, E, E <span class="op">+</span> dE))</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>        E, d <span class="op">=</span> E <span class="op">+</span> dE, d_next</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> levels</span></code></pre></div>
+</div>
+</section>
+<section id="sec-double-well" class="level3" data-number="4.1.4">
+<h3 data-number="4.1.4" class="anchored" data-anchor-id="sec-double-well"><span class="header-section-number">4.1.4</span> A double well</h3>
+<p>Let’s put a Gaussian barrier in the middle of the box, <span class="math inline">\(V(x) = 20\,e^{-x^2/(2\times 0.2^2)}\)</span> for <span class="math inline">\(|x| &lt; 1\)</span>, with hard walls at <span class="math inline">\(\pm 1\)</span>.</p>
+<div id="0c4d6bda" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> box_delta(V, nx):</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    x <span class="op">=</span> np.linspace(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>, nx <span class="op">+</span> <span class="dv">1</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    dx <span class="op">=</span> x[<span class="dv">1</span>] <span class="op">-</span> x[<span class="dv">0</span>]</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    Vx <span class="op">=</span> V(x)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> x, <span class="kw">lambda</span> E: numerov(<span class="dv">2</span> <span class="op">*</span> (Vx <span class="op">-</span> E), <span class="fl">0.0</span>, <span class="fl">1.0</span>, dx)[<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>V_dw <span class="op">=</span> <span class="kw">lambda</span> x: <span class="dv">20</span> <span class="op">*</span> np.exp(<span class="op">-</span>x<span class="op">**</span><span class="dv">2</span> <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> <span class="fl">0.2</span><span class="op">**</span><span class="dv">2</span>))</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>x, delta <span class="op">=</span> box_delta(V_dw, <span class="dv">1000</span>)</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>levels <span class="op">=</span> find_levels(delta, <span class="fl">0.0</span>, <span class="fl">0.5</span>, <span class="dv">4</span>)</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"four lowest energies:"</span>, np.<span class="bu">round</span>(levels, <span class="dv">5</span>))</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="fl">3.6</span>))</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].fill_between(x, V_dw(x), color<span class="op">=</span><span class="st">"0.85"</span>)</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> E <span class="kw">in</span> levels:</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    psi <span class="op">=</span> numerov(<span class="dv">2</span> <span class="op">*</span> (V_dw(x) <span class="op">-</span> E), <span class="fl">0.0</span>, <span class="fl">1.0</span>, x[<span class="dv">1</span>] <span class="op">-</span> x[<span class="dv">0</span>])</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    psi <span class="op">/=</span> np.sqrt(np.<span class="bu">sum</span>(psi<span class="op">**</span><span class="dv">2</span>) <span class="op">*</span> (x[<span class="dv">1</span>] <span class="op">-</span> x[<span class="dv">0</span>]))</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    ax[<span class="dv">0</span>].plot(x, E <span class="op">+</span> <span class="dv">2</span> <span class="op">*</span> psi, lw<span class="op">=</span><span class="fl">1.2</span>)</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].set_ylim(<span class="dv">0</span>, <span class="dv">30</span>)<span class="op">;</span> ax[<span class="dv">0</span>].set_xlabel(<span class="st">"$x$"</span>)<span class="op">;</span> ax[<span class="dv">0</span>].set_ylabel(<span class="st">"$E$"</span>)</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>E_ref <span class="op">=</span> find_levels(box_delta(V_dw, <span class="dv">4000</span>)[<span class="dv">1</span>], <span class="fl">0.0</span>, <span class="fl">0.5</span>, <span class="dv">1</span>)[<span class="dv">0</span>]</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>nxs <span class="op">=</span> [<span class="dv">50</span>, <span class="dv">100</span>, <span class="dv">200</span>, <span class="dv">400</span>]</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>errs <span class="op">=</span> [<span class="bu">abs</span>(find_levels(box_delta(V_dw, n)[<span class="dv">1</span>], <span class="fl">0.0</span>, <span class="fl">0.5</span>, <span class="dv">1</span>)[<span class="dv">0</span>] <span class="op">-</span> E_ref) <span class="cf">for</span> n <span class="kw">in</span> nxs]</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].loglog([<span class="dv">2</span> <span class="op">/</span> n <span class="cf">for</span> n <span class="kw">in</span> nxs], errs, <span class="st">"o-"</span>, label<span class="op">=</span><span class="st">"Numerov"</span>)</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].loglog([<span class="dv">2</span> <span class="op">/</span> n <span class="cf">for</span> n <span class="kw">in</span> nxs], errs[<span class="dv">0</span>] <span class="op">*</span> (np.array(nxs[<span class="dv">0</span>]) <span class="op">/</span> np.array(nxs))<span class="op">**</span><span class="dv">4</span>, <span class="st">"k--"</span>, lw<span class="op">=</span><span class="fl">0.8</span>, label<span class="op">=</span><span class="vs">r"</span><span class="dv">$</span><span class="er">\</span><span class="vs">propto </span><span class="dv">\D</span><span class="vs">elta x</span><span class="dv">^</span><span class="vs">4</span><span class="dv">$</span><span class="vs">"</span>)</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].set_xlabel(<span class="vs">r"</span><span class="dv">$\D</span><span class="vs">elta x</span><span class="dv">$</span><span class="vs">"</span>)<span class="op">;</span> ax[<span class="dv">1</span>].set_ylabel(<span class="st">"ground state error"</span>)<span class="op">;</span> ax[<span class="dv">1</span>].legend()</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>fig.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>four lowest energies: [ 6.46084  7.0207  19.13527 24.33698]</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="04-schrodinger_files/figure-html/cell-5-output-2.png" width="852" height="336" class="figure-img"></p>
+<figcaption>The four lowest states of the box with a Gaussian barrier (left, each shifted up to its energy, with the barrier drawn in gray), and the convergence of the ground state energy with the grid spacing (right), which follows the <span class="math inline">\(\Delta x^4\)</span> line.</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The first two states come as a close pair. They’re the even and odd combinations of a state localized in one half of the box or the other, and their splitting is set by tunneling through the barrier. Raising or widening the barrier shrinks the splitting exponentially, which is the physics behind the ammonia maser (and every double-well qubit people build today).</p>
+<div id="ex-4-1-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 4.1.1 (The harmonic oscillator by shooting)</strong></span> Find the four lowest levels of <span class="math inline">\(V = x^2/2\)</span> (exactly <span class="math inline">\(n + \tfrac{1}{2}\)</span>) using <code>numerov</code> and <code>find_levels</code>. Since the potential has no walls, cut the range at <span class="math inline">\(\pm x_{\max}\)</span> and start the integration at <span class="math inline">\(-x_{\max}\)</span> with the decaying exponential, <span class="math inline">\(\Psi_0 = e^{-\kappa x_{\max}}\)</span> and <span class="math inline">\(\Psi_1 = e^{-\kappa(x_{\max} - \Delta x)}\)</span> with <span class="math inline">\(\kappa = \sqrt{2[V(-x_{\max}) - E]}\)</span> (more on this in <a href="#sec-soft-walls" class="quarto-xref"><span>Section 4.1.5</span></a>). Use <span class="math inline">\(\delta(E) = \Psi(x_{\max})/\max|\Psi|\)</span> as the miss, which changes sign at each eigenvalue because the solution blows up with opposite signs on either side. Write <code>oscillator_levels(xmax, nx)</code> that returns the four lowest levels, scanning from <span class="math inline">\(E = 0.1\)</span> in steps of <span class="math inline">\(0.5\)</span>.</p>
+</div>
+<div id="f1f9bf0f" class="cell lc-exercise" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> oscillator_levels(xmax, nx):</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""The four lowest eigenvalues of V = x^2/2 by Numerov shooting on [-xmax, xmax] with nx intervals."""</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="1db4f097" class="cell lc-check" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    lev <span class="op">=</span> np.array(oscillator_levels(<span class="fl">6.0</span>, <span class="dv">1200</span>))</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"levels:"</span>, lev, <span class="st">"</span><span class="ch">\n</span><span class="st">errors:"</span>, lev <span class="op">-</span> (np.arange(<span class="dv">4</span>) <span class="op">+</span> <span class="fl">0.5</span>))</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">len</span>(lev) <span class="op">==</span> <span class="dv">4</span> <span class="kw">and</span> np.<span class="bu">abs</span>(lev <span class="op">-</span> (np.arange(<span class="dv">4</span>) <span class="op">+</span> <span class="fl">0.5</span>)).<span class="bu">max</span>() <span class="op">&lt;</span> <span class="fl">1e-6</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 4.1.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 4.1.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-soft-walls" class="level3" data-number="4.1.5">
+<h3 data-number="4.1.5" class="anchored" data-anchor-id="sec-soft-walls"><span class="header-section-number">4.1.5</span> Soft walls</h3>
+<p>For a potential that doesn’t end in a hard wall, the bound state extends to infinity, and we have to cut the range at some <span class="math inline">\(\pm x_{\max}\)</span>. Far from the well, where <span class="math inline">\(V\)</span> approaches a constant <span class="math inline">\(V(\infty) &gt; E\)</span>, the equation becomes <span class="math inline">\(\Psi'' = 2[V(\infty) - E]\Psi\)</span>, which has growing and decaying exponential solutions. Only the decaying one is allowed, so <span class="math display">\[
+\Psi(x \to \pm\infty) \sim \exp\Big(-|x|\sqrt{2\,[V(\pm\infty) - E]}\Big),
+\]</span> and we start the integration at <span class="math inline">\(-x_{\max}\)</span> with this form at the first two grid points. A nice test is <span class="math inline">\(V(x) = -e^{-|x|}\)</span>, whose exact ground state follows from a Bessel function solution (the substitution <span class="math inline">\(z = 2\sqrt{2}\,e^{-|x|/2}\)</span> turns the equation into Bessel’s equation of order <span class="math inline">\(\nu = 2\sqrt{2|E|}\)</span>, and the even ground state needs <span class="math inline">\(J'_\nu(2\sqrt{2}) = 0\)</span>), giving <span class="math inline">\(E_0 = -0.4086043818\)</span>. For an even state we require <span class="math inline">\(\Psi(x_{\max}) = \Psi(-x_{\max})\)</span> at the far end and bisect on the difference. Let’s compare the asymptotic start with the lazy alternative of just starting from <span class="math inline">\(\Psi = 0\)</span> and <span class="math inline">\(10^{-10}\)</span>.</p>
+<div id="e1cfb383" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> soft_ground(xmax, asymptotic, nx_per_unit<span class="op">=</span><span class="dv">200</span>):</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    nx <span class="op">=</span> <span class="bu">int</span>(<span class="dv">2</span> <span class="op">*</span> xmax <span class="op">*</span> nx_per_unit)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    x <span class="op">=</span> np.linspace(<span class="op">-</span>xmax, xmax, nx <span class="op">+</span> <span class="dv">1</span>)<span class="op">;</span> dx <span class="op">=</span> x[<span class="dv">1</span>] <span class="op">-</span> x[<span class="dv">0</span>]</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    V <span class="op">=</span> <span class="op">-</span>np.exp(<span class="op">-</span>np.<span class="bu">abs</span>(x))</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> delta(E):</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> asymptotic:</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>            k <span class="op">=</span> math.sqrt(<span class="dv">2</span> <span class="op">*</span> (V[<span class="dv">0</span>] <span class="op">-</span> E))</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>            p0, p1 <span class="op">=</span> math.exp(<span class="op">-</span>k <span class="op">*</span> xmax), math.exp(<span class="op">-</span>k <span class="op">*</span> (xmax <span class="op">-</span> dx))</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>            p0, p1 <span class="op">=</span> <span class="fl">0.0</span>, <span class="fl">1e-10</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>        psi <span class="op">=</span> numerov(<span class="dv">2</span> <span class="op">*</span> (V <span class="op">-</span> E), p0, p1, dx)</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> (psi[<span class="op">-</span><span class="dv">1</span>] <span class="op">-</span> psi[<span class="dv">0</span>]) <span class="op">/</span> np.<span class="bu">abs</span>(psi).<span class="bu">max</span>()</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> bisect(delta, <span class="op">-</span><span class="fl">0.6</span>, <span class="op">-</span><span class="fl">0.3</span>)</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">" xmax    asymptotic start    start from 0"</span>)</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> xmax <span class="kw">in</span> [<span class="dv">2</span>, <span class="dv">5</span>, <span class="dv">10</span>, <span class="dv">20</span>]:</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>xmax<span class="sc">:5d}</span><span class="ss">   </span><span class="sc">{</span>soft_ground(xmax, <span class="va">True</span>)<span class="sc">:.10f}</span><span class="ss">     </span><span class="sc">{</span>soft_ground(xmax, <span class="va">False</span>)<span class="sc">:.10f}</span><span class="ss">"</span>)</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"exact   -0.4086043818"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> xmax    asymptotic start    start from 0
+    2   -0.4119432770     -0.3043517402
+    5   -0.4086069945     -0.4081325648
+   10   -0.4086062863     -0.4086062292
+   20   -0.4086062863     -0.4086062863
+exact   -0.4086043818</code></pre>
+</div>
+</div>
+<p>The asymptotic start converges much faster with <span class="math inline">\(x_{\max}\)</span>, because it already builds in the right tail, while the zero start effectively puts a hard wall at <span class="math inline">\(x_{\max}\)</span> and squeezes the state (which pushes the energy up, as walls always do). Both then settle on the same value, which is still off from the exact one by about <span class="math inline">\(2\times 10^{-6}\)</span>. That leftover is the grid, and it’s bigger than you’d expect from a fourth-order method because the potential has a kink at <span class="math inline">\(x = 0\)</span>, so <span class="math inline">\(f\)</span> isn’t smooth there and Numerov drops to second order (halve <span class="math inline">\(\Delta x\)</span> by passing <code>nx_per_unit=400</code> and the error drops by four, not sixteen). We’ll see the same thing, with a singularity instead of a kink, for hydrogen.</p>
+</section>
+<section id="sec-hydrogen" class="level3" data-number="4.1.6">
+<h3 data-number="4.1.6" class="anchored" data-anchor-id="sec-hydrogen"><span class="header-section-number">4.1.6</span> Hydrogen</h3>
+<p>The radial equation for hydrogen, <span class="math inline">\(V = -1/r\)</span>, adds a new difficulty. The Coulomb potential is singular at <span class="math inline">\(r = 0\)</span>, exactly where we start. We integrate outward from <span class="math inline">\(U(0) = 0\)</span> and <span class="math inline">\(U(\Delta r) = \Delta r^{L+1}\)</span> (using that <span class="math inline">\(U \propto r^{L+1}\)</span> near the origin) and require <span class="math inline">\(U(r_{\max}) \approx 0\)</span> at a large <span class="math inline">\(r_{\max}\)</span>. For <span class="math inline">\(L = 0\)</span> the first auxiliary value <span class="math inline">\(\phi_0\)</span> needs care, and this is a really easy one to get wrong. The product <span class="math inline">\(fU\)</span> tends to <span class="math inline">\(2VU \to -2\)</span> as <span class="math inline">\(r \to 0\)</span> (since <span class="math inline">\(U \approx r\)</span>), so <span class="math inline">\(\phi_0 = U_0 - \tfrac{\Delta r^2}{12}f_0U_0 = \Delta r^2/6\)</span>, <em>not</em> zero, even though <span class="math inline">\(U_0 = 0\)</span>. (On the grid, <span class="math inline">\(f_0\)</span> is infinite and <span class="math inline">\(U_0\)</span> is zero, so we can’t just compute the product, we have to put in the limit by hand.)</p>
+<div id="13cfa0c9" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> hydrogen(L, n_level, dr, rmax, phi0_correct<span class="op">=</span><span class="va">True</span>):</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    r <span class="op">=</span> dr <span class="op">*</span> np.arange(<span class="bu">round</span>(rmax <span class="op">/</span> dr) <span class="op">+</span> <span class="dv">1</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    r[<span class="dv">0</span>] <span class="op">=</span> dr                                      <span class="co"># placeholder to avoid dividing by zero; phi0 replaces f[0] anyway</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> delta(E):</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>        f <span class="op">=</span> <span class="dv">2</span> <span class="op">*</span> (<span class="op">-</span><span class="dv">1</span> <span class="op">/</span> r <span class="op">-</span> E) <span class="op">+</span> L <span class="op">*</span> (L <span class="op">+</span> <span class="dv">1</span>) <span class="op">/</span> r<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>        phi0 <span class="op">=</span> dr<span class="op">**</span><span class="dv">2</span> <span class="op">/</span> <span class="dv">6</span> <span class="cf">if</span> (L <span class="op">==</span> <span class="dv">0</span> <span class="kw">and</span> phi0_correct) <span class="cf">else</span> <span class="fl">0.0</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>        U <span class="op">=</span> numerov(f, <span class="fl">0.0</span>, dr <span class="op">**</span> (L <span class="op">+</span> <span class="dv">1</span>), dr, phi0<span class="op">=</span>phi0)</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> U[<span class="op">-</span><span class="dv">1</span>] <span class="op">/</span> np.<span class="bu">abs</span>(U).<span class="bu">max</span>()</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> find_levels(delta, <span class="op">-</span><span class="fl">0.6</span>, <span class="fl">0.01</span>, n_level)[<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  dr      1s error      1s error (phi0 = 0)    2p error"</span>)</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> dr <span class="kw">in</span> [<span class="fl">0.02</span>, <span class="fl">0.01</span>, <span class="fl">0.005</span>]:</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    e1 <span class="op">=</span> hydrogen(<span class="dv">0</span>, <span class="dv">1</span>, dr, <span class="dv">30</span>) <span class="op">+</span> <span class="fl">0.5</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>    e1bad <span class="op">=</span> hydrogen(<span class="dv">0</span>, <span class="dv">1</span>, dr, <span class="dv">30</span>, phi0_correct<span class="op">=</span><span class="va">False</span>) <span class="op">+</span> <span class="fl">0.5</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>    e2p <span class="op">=</span> hydrogen(<span class="dv">1</span>, <span class="dv">1</span>, dr, <span class="dv">60</span>) <span class="op">+</span> <span class="fl">0.125</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>dr<span class="sc">:6.3f}</span><span class="ss">   </span><span class="sc">{</span>e1<span class="sc">: .2e}</span><span class="ss">     </span><span class="sc">{</span>e1bad<span class="sc">: .2e}</span><span class="ss">              </span><span class="sc">{</span>e2p<span class="sc">: .2e}</span><span class="ss">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  dr      1s error      1s error (phi0 = 0)    2p error
+ 0.020    2.59e-06      1.31e-04              -2.42e-08
+ 0.010    3.29e-07      3.30e-05              -3.03e-09
+ 0.005    4.14e-08      8.29e-06              -3.80e-10</code></pre>
+</div>
+</div>
+<p>With the correct <span class="math inline">\(\phi_0\)</span> the <span class="math inline">\(1s\)</span> error falls by about 8 per halving of <span class="math inline">\(\Delta r\)</span>, third order rather than fourth, because of the <span class="math inline">\(1/r\)</span> singularity (Numerov’s error analysis assumes a smooth <span class="math inline">\(f\)</span>). With <span class="math inline">\(\phi_0 = 0\)</span> it falls only by 4, so one innocent-looking zero costs a whole order. The <span class="math inline">\(2p\)</span> state, where <span class="math inline">\(U \propto r^2\)</span> keeps things much smoother near the origin, has errors about a hundred times smaller, although it still converges at third order (the <span class="math inline">\(1/r\)</span> singularity is still sitting in <span class="math inline">\(f\)</span>, it just gets multiplied by a smaller <span class="math inline">\(U\)</span>).</p>
+</section>
+</section>
+<section id="sec-variational" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="sec-variational"><span class="header-section-number">4.2</span> Variational Methods</h2>
+<p>Shooting relies on having just two boundary points. In two or three dimensions the boundary condition has to hold on a whole curve or surface, and a non-separable potential gives no way to reduce the problem to one coordinate. Grid methods are possible but expensive, since the number of points grows like <span class="math inline">\(L^d\)</span>, which is why atomic, molecular and solid state calculations mostly use variational methods.</p>
+<section id="sec-variational-principle" class="level3" data-number="4.2.1">
+<h3 data-number="4.2.1" class="anchored" data-anchor-id="sec-variational-principle"><span class="header-section-number">4.2.1</span> The variational principle</h3>
+<p>For any trial state <span class="math inline">\(\Psi\)</span>, the energy functional satisfies <span class="math display">\[
+E[\Psi] = \frac{\langle\Psi|H|\Psi\rangle}{\langle\Psi|\Psi\rangle} \ge E_0 .
+\]</span> The proof takes two lines. Expand <span class="math inline">\(\Psi = \sum_n c_n\Psi_n\)</span> in the exact eigenstates, then <span class="math inline">\(\langle\Psi|H|\Psi\rangle = \sum_n|c_n|^2E_n \ge E_0\sum_n|c_n|^2 = E_0\langle\Psi|\Psi\rangle\)</span>, because every <span class="math inline">\(E_n \ge E_0\)</span>. So any trial function gives an upper bound, and lowering <span class="math inline">\(E[\Psi]\)</span> can only bring us closer to the truth. Even better, the error in the energy is <em>second order</em> in the error of the wave function: if <span class="math inline">\(\Psi = \Psi_0 + \varepsilon\chi\)</span> then <span class="math inline">\(E[\Psi] - E_0 = O(\varepsilon^2)\)</span>, so a mediocre wave function can give a really good energy.</p>
+<p>The big simplification comes when the trial function is a linear combination of fixed basis functions, <span class="math inline">\(\Psi = \sum_{i=1}^N C_i\varphi_i\)</span>. For an orthonormal basis the energy functional becomes a ratio of quadratic forms, <span class="math display">\[
+E(\mathbf{C}) = \frac{\sum_{pk}C_p^*H_{pk}C_k}{\sum_k |C_k|^2}, \qquad H_{pk} = \langle\varphi_p|H|\varphi_k\rangle .
+\]</span> To find its stationary points, treat <span class="math inline">\(C_q\)</span> and <span class="math inline">\(C_q^*\)</span> as independent variables (which is legitimate, since <span class="math inline">\(C_q = a + ib\)</span> has two real parameters), set <span class="math inline">\(\partial E/\partial C_q^* = 0\)</span> and multiply by the denominator: <span class="math display">\[
+\sum_k H_{qk}C_k - E\,C_q = 0, \qquad q = 1, \ldots, N .
+\]</span> That’s just the matrix eigenvalue problem for the <span class="math inline">\(N\times N\)</span> block of <span class="math inline">\(H\)</span>. So the eigenvalues of the truncated matrix are the stationary values of <span class="math inline">\(E\)</span> within the span of the basis, and its lowest eigenvalue is the best variational energy available there. And since adding a basis function can only enlarge the space we minimize over, the energies can only go <em>down</em> as <span class="math inline">\(N\)</span> grows (in fact every eigenvalue does, not just the lowest, which is the Hylleraas-Undheim-MacDonald theorem).</p>
+<p>Textbooks find eigenvalues from the secular equation <span class="math inline">\(\det(H - \lambda I) = 0\)</span>, but for anything beyond <span class="math inline">\(3\times 3\)</span> that’s hopeless, since it means finding the roots of a degree-<span class="math inline">\(N\)</span> polynomial, a notoriously ill-conditioned problem. Real algorithms (the LAPACK routines behind <code>np.linalg.eigh</code>) reduce a Hermitian matrix to tridiagonal form by Householder reflections and then diagonalize that, at a cost of <span class="math inline">\(O(N^3)\)</span>. On a current laptop a <span class="math inline">\(10^4 \times 10^4\)</span> symmetric matrix takes something like a minute and 800 MB, and the <span class="math inline">\(N^3\)</span> is what eventually stops us.</p>
+</section>
+<section id="sec-box-barrier" class="level3" data-number="4.2.2">
+<h3 data-number="4.2.2" class="anchored" data-anchor-id="sec-box-barrier"><span class="header-section-number">4.2.2</span> A box with a barrier</h3>
+<p>Let’s test this on the infinite square well with walls at <span class="math inline">\(\pm 1\)</span> and a barrier of height <span class="math inline">\(V_c\)</span> for <span class="math inline">\(|x| &lt; a\)</span>. The natural basis is the set of eigenstates of the empty box, <span class="math display">\[
+\varphi_k(x) = \begin{cases}\cos(k\pi x/2), &amp; k \text{ odd}\\ \sin(k\pi x/2), &amp; k \text{ even}\end{cases}, \qquad K_k = \frac{k^2\pi^2}{8},
+\]</span> which are already normalized on <span class="math inline">\([-1, 1]\)</span> and diagonalize the kinetic energy, so <span class="math display">\[
+H_{pk} = K_k\,\delta_{pk} + V_c\int_{-a}^{a}\varphi_p(x)\varphi_k(x)\,dx .
+\]</span> Those integrals are easy to do by hand, but computing them numerically means we can swap in any potential, and since the integrand is smooth on <span class="math inline">\([-a, a]\)</span> (the potential only jumps at the endpoints, which is exactly why we integrate <em>up to</em> them and not across them), Gauss-Legendre quadrature from <a href="02-integration.html#sec-gauss" class="quarto-xref"><span>Section 2.2.2</span></a> gets them to machine precision with a few dozen points.</p>
+<div id="b899d83e" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> phi_box(k, x):</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.cos(k <span class="op">*</span> np.pi <span class="op">*</span> x <span class="op">/</span> <span class="dv">2</span>) <span class="cf">if</span> k <span class="op">%</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">1</span> <span class="cf">else</span> np.sin(k <span class="op">*</span> np.pi <span class="op">*</span> x <span class="op">/</span> <span class="dv">2</span>)</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> barrier_hamiltonian(N, Vc<span class="op">=</span><span class="fl">10.0</span>, a<span class="op">=</span><span class="fl">0.2</span>, n_gauss<span class="op">=</span><span class="dv">80</span>):</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    t, w <span class="op">=</span> np.polynomial.legendre.leggauss(n_gauss)</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    x, w <span class="op">=</span> a <span class="op">*</span> t, a <span class="op">*</span> w                                    <span class="co"># nodes and weights on [-a, a]</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    Phi <span class="op">=</span> np.array([phi_box(k, x) <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, N <span class="op">+</span> <span class="dv">1</span>)])</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.diag([(k <span class="op">*</span> np.pi) <span class="op">**</span> <span class="dv">2</span> <span class="op">/</span> <span class="dv">8</span> <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, N <span class="op">+</span> <span class="dv">1</span>)]) <span class="op">+</span> Vc <span class="op">*</span> (Phi <span class="op">*</span> w) <span class="op">@</span> Phi.T</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  N     E0          E1          E2"</span>)</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> N <span class="kw">in</span> [<span class="dv">4</span>, <span class="dv">8</span>, <span class="dv">16</span>, <span class="dv">32</span>, <span class="dv">64</span>]:</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    E <span class="op">=</span> np.linalg.eigvalsh(barrier_hamiltonian(N))</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>N<span class="sc">:3d}</span><span class="ss">   </span><span class="sc">{</span>E[<span class="dv">0</span>]<span class="sc">:.7f}</span><span class="ss">   </span><span class="sc">{</span>E[<span class="dv">1</span>]<span class="sc">:.7f}</span><span class="ss">   </span><span class="sc">{</span>E[<span class="dv">2</span>]<span class="sc">:.7f}</span><span class="ss">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  N     E0          E1          E2
+  4   3.9746701   5.3744211   15.2424162
+  8   3.8649955   5.3430058   14.6919266
+ 16   3.8605838   5.3387817   14.6835896
+ 32   3.8595563   5.3380856   14.6819299
+ 64   3.8593729   5.3380271   14.6816843</code></pre>
+</div>
+</div>
+<p>Every column decreases monotonically, as promised. Notice that the convergence is a bit slow, since a basis of smooth sines and cosines has to reproduce the kinks in the wave function at <span class="math inline">\(x = \pm a\)</span> (where the second derivative jumps along with the potential), and that’s the kind of thing a Fourier-like series is bad at.</p>
+</section>
+<section id="sec-nonorthogonal" class="level3" data-number="4.2.3">
+<h3 data-number="4.2.3" class="anchored" data-anchor-id="sec-nonorthogonal"><span class="header-section-number">4.2.3</span> Non-orthogonal basis functions</h3>
+<p>The most useful basis functions for real atoms and molecules, like Gaussians centered on each nucleus, aren’t orthogonal to one another. Their overlaps form a matrix <span class="math inline">\(W_{pk} = \langle\varphi_p|\varphi_k\rangle\)</span>, the denominator of the energy functional becomes <span class="math inline">\(\sum C_p^*W_{pk}C_k\)</span>, and repeating the stationarity argument gives the <em>generalized</em> eigenvalue problem <span class="math display">\[
+\mathsf{H}\mathbf{C} = E\,\mathsf{W}\mathbf{C}.
+\]</span> To solve it, we transform <span class="math inline">\(\mathsf{W}\)</span> into the unit matrix. Diagonalize <span class="math inline">\(\mathsf{W} = \mathsf{B}\,\mathsf{W}_d\,\mathsf{B}^\dagger\)</span> with <span class="math inline">\(\mathsf{B}\)</span> unitary. The eigenvalues of <span class="math inline">\(\mathsf{W}\)</span> are all positive, because for any nonzero <span class="math inline">\(\mathbf{C}\)</span> the norm of the corresponding state is <span class="math inline">\(\mathbf{C}^\dagger\mathsf{W}\mathbf{C} &gt; 0\)</span> (as long as the basis functions are linearly independent). So <span class="math inline">\(\mathsf{W}_d^{-1/2}\)</span> exists, and <span class="math inline">\(\bar{\mathsf{B}} = \mathsf{B}\,\mathsf{W}_d^{-1/2}\)</span> satisfies <span class="math inline">\(\bar{\mathsf{B}}^\dagger\mathsf{W}\bar{\mathsf{B}} = I\)</span>. Writing <span class="math inline">\(\mathbf{C} = \bar{\mathsf{B}}\mathbf{C}'\)</span> turns the problem into an ordinary one, <span class="math inline">\(\mathsf{H}'\mathbf{C}' = E\mathbf{C}'\)</span> with <span class="math inline">\(\mathsf{H}' = \bar{\mathsf{B}}^\dagger\mathsf{H}\bar{\mathsf{B}}\)</span>.</p>
+<p>In practice there’s one warning, which is that a basis of many overlapping Gaussians is <em>nearly</em> linearly dependent, so some eigenvalues of <span class="math inline">\(\mathsf{W}\)</span> can be tiny, and dividing by their square roots amplifies roundoff. The standard fix is to throw away the directions with eigenvalues below some threshold (they don’t contain any information the rest of the basis doesn’t already have).</p>
+<p>Here’s a test problem. Take the anharmonic oscillator <span class="math inline">\(V = x^4\)</span> and a basis of sixteen Gaussians <span class="math inline">\(e^{-(x - a_i)^2/(2s^2)}\)</span> of width <span class="math inline">\(s = 0.7\)</span> centered on the points <span class="math inline">\(a_i = -3, -2.6, \ldots, 3\)</span>. We’ll compute the matrix elements on a fine grid (the trapezoid rule is ridiculously accurate for functions that decay like Gaussians, which is a fun fact about periodic and decaying integrands), using <span class="math inline">\(\varphi'' = [(x - a)^2/s^4 - 1/s^2]\varphi\)</span> for the kinetic energy.</p>
+<div id="f8746fb9" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>xg <span class="op">=</span> np.linspace(<span class="op">-</span><span class="dv">8</span>, <span class="dv">8</span>, <span class="dv">3201</span>)<span class="op">;</span> dxg <span class="op">=</span> xg[<span class="dv">1</span>] <span class="op">-</span> xg[<span class="dv">0</span>]</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>centers, s <span class="op">=</span> np.arange(<span class="op">-</span><span class="dv">3</span>, <span class="fl">3.01</span>, <span class="fl">0.4</span>), <span class="fl">0.7</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>G <span class="op">=</span> np.exp(<span class="op">-</span>(xg[<span class="va">None</span>, :] <span class="op">-</span> centers[:, <span class="va">None</span>]) <span class="op">**</span> <span class="dv">2</span> <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> s<span class="op">**</span><span class="dv">2</span>))</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>G2 <span class="op">=</span> ((xg[<span class="va">None</span>, :] <span class="op">-</span> centers[:, <span class="va">None</span>]) <span class="op">**</span> <span class="dv">2</span> <span class="op">/</span> s<span class="op">**</span><span class="dv">4</span> <span class="op">-</span> <span class="dv">1</span> <span class="op">/</span> s<span class="op">**</span><span class="dv">2</span>) <span class="op">*</span> G     <span class="co"># second derivative</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>W_gauss <span class="op">=</span> G <span class="op">@</span> G.T <span class="op">*</span> dxg</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>H_gauss <span class="op">=</span> (G <span class="op">@</span> (<span class="op">-</span><span class="fl">0.5</span> <span class="op">*</span> G2 <span class="op">+</span> xg<span class="op">**</span><span class="dv">4</span> <span class="op">*</span> G).T) <span class="op">*</span> dxg</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span><span class="bu">len</span>(centers)<span class="sc">}</span><span class="ss"> Gaussians, eigenvalues of W range from </span><span class="sc">{</span>np<span class="sc">.</span>linalg<span class="sc">.</span>eigvalsh(W_gauss)<span class="sc">.</span><span class="bu">min</span>()<span class="sc">:.1e}</span><span class="ss"> to </span><span class="sc">{</span>np<span class="sc">.</span>linalg<span class="sc">.</span>eigvalsh(W_gauss)<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.1f}</span><span class="ss">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>16 Gaussians, eigenvalues of W range from 5.4e-09 to 7.1</code></pre>
+</div>
+</div>
+<div id="ex-4-2-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 4.2.1 (The generalized eigenproblem)</strong></span> Write <code>generalized_eigvals(H, W, cutoff=1e-10)</code> that returns the sorted eigenvalues of <span class="math inline">\(\mathsf{H}\mathbf{C} = E\mathsf{W}\mathbf{C}\)</span> using the transformation above: diagonalize <span class="math inline">\(\mathsf{W}\)</span>, keep only eigenvectors whose eigenvalue exceeds <code>cutoff</code>, build <span class="math inline">\(\bar{\mathsf{B}}\)</span> from them and diagonalize <span class="math inline">\(\bar{\mathsf{B}}^\dagger\mathsf{H}\bar{\mathsf{B}}\)</span>. The check compares with <code>scipy.linalg.eigh(H, W)</code> and with the known ground state energy of <span class="math inline">\(V = x^4\)</span>, which is <span class="math inline">\(0.667986259\ldots\)</span> (accurate grid methods give it to many digits).</p>
+</div>
+<div id="4582d503" class="cell lc-exercise" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> generalized_eigvals(H, W, cutoff<span class="op">=</span><span class="fl">1e-10</span>):</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Eigenvalues of H C = E W C, via W = B Wd B^T and Bbar = B Wd^(-1/2)."""</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="cc1d459a" class="cell lc-check" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    E <span class="op">=</span> generalized_eigvals(H_gauss, W_gauss)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    E_ref <span class="op">=</span> linalg.eigh(H_gauss, W_gauss, eigvals_only<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"lowest three: </span><span class="sc">{</span>E[:<span class="dv">3</span>]<span class="sc">}</span><span class="ch">\n</span><span class="ss">scipy:        </span><span class="sc">{</span>E_ref[:<span class="dv">3</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"ground state error vs exact: </span><span class="sc">{</span>E[<span class="dv">0</span>] <span class="op">-</span> <span class="fl">0.667986259</span><span class="sc">:.2e}</span><span class="ss">"</span>)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    A <span class="op">=</span> np.array([[<span class="fl">2.0</span>, <span class="fl">1.0</span>], [<span class="fl">1.0</span>, <span class="fl">3.0</span>]])<span class="op">;</span> B <span class="op">=</span> np.array([[<span class="fl">2.0</span>, <span class="fl">0.5</span>], [<span class="fl">0.5</span>, <span class="fl">1.0</span>]])</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (np.allclose(E[:<span class="dv">5</span>], E_ref[:<span class="dv">5</span>], rtol<span class="op">=</span><span class="fl">1e-7</span>) <span class="kw">and</span> <span class="dv">0</span> <span class="op">&lt;</span> E[<span class="dv">0</span>] <span class="op">-</span> <span class="fl">0.667986259</span> <span class="op">&lt;</span> <span class="fl">1e-4</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>            <span class="kw">and</span> np.allclose(generalized_eigvals(A, B), linalg.eigh(A, B, eigvals_only<span class="op">=</span><span class="va">True</span>)))</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 4.2.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 4.2.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-grids" class="level2" data-number="4.3">
+<h2 data-number="4.3" class="anchored" data-anchor-id="sec-grids"><span class="header-section-number">4.3</span> Grids And Lanczos</h2>
+<section id="sec-little-boxes" class="level3" data-number="4.3.1">
+<h3 data-number="4.3.1" class="anchored" data-anchor-id="sec-little-boxes"><span class="header-section-number">4.3.1</span> A basis of little boxes</h3>
+<p>The simplest grid method can be read as a variational calculation in a rather particular basis. Divide space into cubic cells of side <span class="math inline">\(\Delta\)</span>, and let <span class="math inline">\(|j\rangle\)</span> be a particle spread uniformly over cell <span class="math inline">\(j\)</span>, centered at <span class="math inline">\(\mathbf{r}_j\)</span>. The cells don’t overlap, so the basis is orthonormal, and the potential is diagonal, <span class="math inline">\(V_{jj} \approx V(\mathbf{r}_j)\)</span> for small cells. The kinetic energy is the awkward part, since a step function has no second derivative, so we borrow the central second difference <span class="math inline">\((\psi_{j-1} - 2\psi_j + \psi_{j+1})/\Delta^2\)</span>, which in one dimension gives <span class="math display">\[
+K_{jj} = \frac{1}{\Delta^2}, \qquad K_{j\pm1, j} = -\frac{1}{2\Delta^2},
+\]</span> and in <span class="math inline">\(d\)</span> dimensions a diagonal <span class="math inline">\(d/\Delta^2\)</span> and a hopping of <span class="math inline">\(-1/(2\Delta^2)\)</span> to each of the <span class="math inline">\(2d\)</span> neighbors. This is exactly the tight-binding chain from <a href="01-scientific-computing.html#sec-linear-algebra" class="quarto-xref"><span>Section 1.3.5</span></a>, with <span class="math inline">\(t = 1/(2\Delta^2)\)</span>.</p>
+</section>
+<section id="sec-continuum-limit" class="level3" data-number="4.3.2">
+<h3 data-number="4.3.2" class="anchored" data-anchor-id="sec-continuum-limit"><span class="header-section-number">4.3.2</span> The continuum limit</h3>
+<p>The discontinuous basis and the borrowed second difference both look a bit suspicious, so let’s check that the answer is right as <span class="math inline">\(\Delta \to 0\)</span>, by solving the free particle exactly. On a periodic ring of <span class="math inline">\(N\)</span> cells (Exercise 1.3.2 did this for you already) a plane wave <span class="math inline">\(\psi_j = e^{ikr_j}\)</span> is an eigenvector, with <span class="math display">\[
+K|k\rangle = \frac{1 - \cos(k\Delta)}{\Delta^2}|k\rangle = \Big(\frac{k^2}{2} - \frac{\Delta^2k^4}{24} + \cdots\Big)|k\rangle .
+\]</span> The leading term is the continuum energy <span class="math inline">\(k^2/2\)</span>, so the scheme is correct. Only <span class="math inline">\(N\)</span> distinct values of <span class="math inline">\(k\)</span> exist, because <span class="math inline">\(k\)</span> and <span class="math inline">\(k + 2\pi/\Delta\)</span> give identical values on the grid points (that’s the first Brillouin zone of the lattice, and wavelengths shorter than about two cells simply can’t be represented). The correction is <em>negative</em>, which is kind of a surprise, since a variational method should overestimate energies. The resolution is that the borrowed second difference isn’t really the matrix element of <span class="math inline">\(-\tfrac{1}{2}\nabla^2\)</span> in the box basis (that matrix element is actually infinite, because of the jumps), so the grid method isn’t strictly variational, and the energy can come out too low.</p>
+</section>
+<section id="sec-box-length" class="level3" data-number="4.3.3">
+<h3 data-number="4.3.3" class="anchored" data-anchor-id="sec-box-length"><span class="header-section-number">4.3.3</span> Hard walls and a subtle box length</h3>
+<p>For a particle in a box we keep <span class="math inline">\(N\)</span> cells and simply drop the hoppings that would leave the system, which is the same as infinitely high walls just outside the outermost cells. The matrix is then the open tight-binding chain, whose eigenvalues are known exactly, <span class="math display">\[
+E_n = \frac{1 - \cos\big(n\pi/(N+1)\big)}{\Delta^2}, \qquad n = 1, \ldots, N .
+\]</span> The wave function vanishes at the two fictitious cells <span class="math inline">\(0\)</span> and <span class="math inline">\(N+1\)</span>, so the effective box length is <span class="math inline">\((N+1)\Delta\)</span>, <em>not</em> <span class="math inline">\(N\Delta\)</span>. This is easy to get wrong (and the original course notes did get it wrong, comparing a grid of 200 cells with <span class="math inline">\(\Delta = 0.01\)</span> to a box of length 2, and finding a mysterious 1% disagreement). Here’s the comparison:</p>
+<div id="d7d44f07" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>N, D <span class="op">=</span> <span class="dv">200</span>, <span class="fl">0.01</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>E_grid <span class="op">=</span> linalg.eigh_tridiagonal(np.full(N, <span class="dv">1</span> <span class="op">/</span> D<span class="op">**</span><span class="dv">2</span>), np.full(N <span class="op">-</span> <span class="dv">1</span>, <span class="op">-</span><span class="fl">0.5</span> <span class="op">/</span> D<span class="op">**</span><span class="dv">2</span>), eigvals_only<span class="op">=</span><span class="va">True</span>)[:<span class="dv">3</span>]</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> np.arange(<span class="dv">1</span>, <span class="dv">4</span>)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"grid eigenvalues         "</span>, np.<span class="bu">round</span>(E_grid, <span class="dv">6</span>))</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"formula above            "</span>, np.<span class="bu">round</span>((<span class="dv">1</span> <span class="op">-</span> np.cos(n <span class="op">*</span> np.pi <span class="op">/</span> (N <span class="op">+</span> <span class="dv">1</span>))) <span class="op">/</span> D<span class="op">**</span><span class="dv">2</span>, <span class="dv">6</span>))</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"continuum, box length 2  "</span>, np.<span class="bu">round</span>((n <span class="op">*</span> np.pi <span class="op">/</span> <span class="dv">2</span>) <span class="op">**</span> <span class="dv">2</span> <span class="op">/</span> <span class="dv">2</span>, <span class="dv">6</span>))</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"continuum, box length 2.01"</span>, np.<span class="bu">round</span>((n <span class="op">*</span> np.pi <span class="op">/</span> <span class="fl">2.01</span>) <span class="op">**</span> <span class="dv">2</span> <span class="op">/</span> <span class="dv">2</span>, <span class="dv">6</span>))</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>grid eigenvalues          [ 1.221431  4.885424 10.991085]
+formula above             [ 1.221431  4.885424 10.991085]
+continuum, box length 2   [ 1.233701  4.934802 11.103305]
+continuum, box length 2.01 [ 1.221455  4.885822 10.993099]</code></pre>
+</div>
+</div>
+<p>Almost the whole discrepancy is the box length, and the discretization error itself is only of order <span class="math inline">\(10^{-5}\)</span>. To model walls at exactly <span class="math inline">\(\pm 1\)</span> we should use <span class="math inline">\(N = 2/\Delta - 1\)</span> cells. (<code>eigh_tridiagonal</code> is SciPy’s specialized solver for tridiagonal matrices, which only costs <span class="math inline">\(O(N^2)\)</span> or less, so in one dimension we could easily go to <span class="math inline">\(10^5\)</span> cells.)</p>
+</section>
+<section id="sec-krylov" class="level3" data-number="4.3.4">
+<h3 data-number="4.3.4" class="anchored" data-anchor-id="sec-krylov"><span class="header-section-number">4.3.4</span> Big sparse matrices and Krylov spaces</h3>
+<p>In two and three dimensions the grid becomes enormous. A <span class="math inline">\(200\times 200\)</span> grid has <span class="math inline">\(4\times 10^4\)</span> cells, and <span class="math inline">\(200^3\)</span> has <span class="math inline">\(8\times 10^6\)</span>, far beyond dense diagonalization. But the matrix is sparse, with at most <span class="math inline">\(2d + 1\)</span> nonzero elements per row, so applying <span class="math inline">\(H\)</span> to a vector costs only <span class="math inline">\(O(N)\)</span> operations, and we never need to store the matrix at all. Methods that use <span class="math inline">\(H\)</span> only through such products are the way forward.</p>
+<p>The starting idea is the power method. Expanding an arbitrary state in eigenstates, <span class="math inline">\(H^m|\Psi\rangle = \sum_k C_kE_k^m|\Psi_k\rangle\)</span>, so for large <span class="math inline">\(m\)</span> the state with the largest <span class="math inline">\(|E_k|\)</span> dominates (to pick out the ground state instead, apply <span class="math inline">\((H - \sigma)^m\)</span> with a shift <span class="math inline">\(\sigma\)</span> large enough that <span class="math inline">\(|E_0 - \sigma|\)</span> is the largest). This works, but slowly. The vectors <span class="math inline">\(|\Psi\rangle, H|\Psi\rangle, \ldots, H^{M-1}|\Psi\rangle\)</span> span a <em>Krylov space</em>, and <span class="math inline">\((H - \sigma)^m|\Psi\rangle\)</span> is just one particular combination of them. <a href="#sec-variational-principle" class="quarto-xref"><span>Section 4.2.1</span></a> tells us how to find the <em>best</em> combination, which is to diagonalize <span class="math inline">\(H\)</span> within that space, and that’s the Lanczos method (Lanczos, 1950).</p>
+</section>
+<section id="sec-lanczos" class="level3" data-number="4.3.5">
+<h3 data-number="4.3.5" class="anchored" data-anchor-id="sec-lanczos"><span class="header-section-number">4.3.5</span> The Lanczos recursion</h3>
+<p>The Krylov vectors themselves are a terrible basis, since they all line up with the dominant eigenvector. Lanczos orthogonalizes them as they’re built, and the structure of the problem makes this really cheap. Start from a normalized <span class="math inline">\(|q_1\rangle\)</span> and build each new vector by applying <span class="math inline">\(H\)</span> and removing the components along the previous <em>two</em>, <span class="math display">\[
+\beta_m|q_{m+1}\rangle = H|q_m\rangle - \alpha_m|q_m\rangle - \beta_{m-1}|q_{m-1}\rangle, \qquad \alpha_m = \langle q_m|H|q_m\rangle,
+\]</span> with <span class="math inline">\(\beta_m\)</span> chosen to normalize <span class="math inline">\(|q_{m+1}\rangle\)</span>. Removing just two components is enough because orthogonality to all earlier vectors comes for free: for <span class="math inline">\(k &lt; m - 1\)</span>, <span class="math inline">\(\langle q_k|H|q_m\rangle = \langle Hq_k|q_m\rangle\)</span>, and <span class="math inline">\(H|q_k\rangle\)</span> involves only <span class="math inline">\(q_{k-1}, q_k, q_{k+1}\)</span>, all orthogonal to <span class="math inline">\(q_m\)</span> by induction. Rearranged, the recursion says <span class="math inline">\(H|q_m\rangle = \beta_{m-1}|q_{m-1}\rangle + \alpha_m|q_m\rangle + \beta_m|q_{m+1}\rangle\)</span>, so in the basis of the <span class="math inline">\(q\)</span>’s the Hamiltonian is <em>tridiagonal</em>, with <span class="math inline">\(\alpha\)</span> on the diagonal and <span class="math inline">\(\beta\)</span> next to it. Its eigenvalues (the Ritz values) are the variational energies in the Krylov space. Notice that we only ever need to keep three vectors in memory, which for <span class="math inline">\(8\times 10^6\)</span> cells makes a big difference.</p>
+<p>For a two-dimensional grid stored as a 2D NumPy array, applying <span class="math inline">\(H\)</span> is a few lines of slicing (the hops off the edge are just missing, which gives hard walls):</p>
+<div id="985fdc27" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> apply_H_2d(f, Vdiag, t):</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""H f on a 2D grid with hard walls; Vdiag = V + 2/Delta^2, t = 1/(2 Delta^2)."""</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    out <span class="op">=</span> Vdiag <span class="op">*</span> f</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    out[<span class="dv">1</span>:, :] <span class="op">-=</span> t <span class="op">*</span> f[:<span class="op">-</span><span class="dv">1</span>, :]</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    out[:<span class="op">-</span><span class="dv">1</span>, :] <span class="op">-=</span> t <span class="op">*</span> f[<span class="dv">1</span>:, :]</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    out[:, <span class="dv">1</span>:] <span class="op">-=</span> t <span class="op">*</span> f[:, :<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    out[:, :<span class="op">-</span><span class="dv">1</span>] <span class="op">-=</span> t <span class="op">*</span> f[:, <span class="dv">1</span>:]</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> out</span></code></pre></div>
+</div>
+<div id="ex-4-3-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 4.3.1 (Lanczos)</strong></span> Write <code>lanczos(apply_H, q1, M)</code> that runs <span class="math inline">\(M\)</span> steps of the recursion starting from <code>q1</code> (normalize it first) and returns the arrays <code>alpha</code> (length <span class="math inline">\(M\)</span>) and <code>beta</code> (length <span class="math inline">\(M - 1\)</span>). The vectors can have any shape, use <code>np.vdot(a, b)</code> for inner products and <code>np.linalg.norm</code> for norms. The check builds the empty box <span class="math inline">\([-1, 1]^2\)</span> with <span class="math inline">\(\Delta = 0.02\)</span> (so <span class="math inline">\(99\times 99\)</span> cells, almost <span class="math inline">\(10^4\)</span> unknowns), runs 300 steps, and compares the lowest Ritz value with the exact grid ground state <span class="math inline">\(2(1 - \cos(\pi/100))/\Delta^2\)</span>.</p>
+</div>
+<div id="5680f4ae" class="cell lc-exercise" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> lanczos(apply_H, q1, M):</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""M Lanczos steps from q1. Returns alpha (M,) and beta (M-1,)."""</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="5f460404" class="cell lc-check" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    D <span class="op">=</span> <span class="fl">0.02</span><span class="op">;</span> n <span class="op">=</span> <span class="dv">99</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    Vd <span class="op">=</span> np.full((n, n), <span class="dv">2</span> <span class="op">/</span> D<span class="op">**</span><span class="dv">2</span>)<span class="op">;</span> t <span class="op">=</span> <span class="fl">0.5</span> <span class="op">/</span> D<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(<span class="dv">1</span>)</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    a, b <span class="op">=</span> lanczos(<span class="kw">lambda</span> f: apply_H_2d(f, Vd, t), rng.random((n, n)), <span class="dv">300</span>)</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    ritz <span class="op">=</span> linalg.eigh_tridiagonal(a, b, eigvals_only<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>    exact <span class="op">=</span> <span class="dv">2</span> <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> math.cos(math.pi <span class="op">/</span> <span class="dv">100</span>)) <span class="op">/</span> D<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"lowest Ritz value </span><span class="sc">{</span>ritz[<span class="dv">0</span>]<span class="sc">:.10f}</span><span class="ss">   exact grid value </span><span class="sc">{</span>exact<span class="sc">:.10f}</span><span class="ss">   (continuum pi^2/4 = </span><span class="sc">{</span>np<span class="sc">.</span>pi<span class="op">**</span><span class="dv">2</span> <span class="op">/</span> <span class="dv">4</span><span class="sc">:.6f}</span><span class="ss">)"</span>)</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">len</span>(a) <span class="op">==</span> <span class="dv">300</span> <span class="kw">and</span> <span class="bu">len</span>(b) <span class="op">==</span> <span class="dv">299</span> <span class="kw">and</span> <span class="bu">abs</span>(ritz[<span class="dv">0</span>] <span class="op">-</span> exact) <span class="op">&lt;</span> <span class="fl">1e-8</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 4.3.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 4.3.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-lanczos-convergence" class="level3" data-number="4.3.6">
+<h3 data-number="4.3.6" class="anchored" data-anchor-id="sec-lanczos-convergence"><span class="header-section-number">4.3.6</span> How fast it converges</h3>
+<p>Here’s the interesting part. Let’s compare the convergence for a 1D chain and a 2D grid with about the same number of cells per side. (This cell uses a reference implementation of Lanczos, so it runs whether or not you’ve done the exercise.)</p>
+<div id="aa26283a" class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> lanczos_ref(apply_H, q1, M):</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    q_prev, q <span class="op">=</span> np.zeros_like(q1), q1 <span class="op">/</span> np.linalg.norm(q1)</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    alpha, beta <span class="op">=</span> np.zeros(M), np.zeros(M <span class="op">-</span> <span class="dv">1</span>)</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    b <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> m <span class="kw">in</span> <span class="bu">range</span>(M):</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>        w <span class="op">=</span> apply_H(q) <span class="op">-</span> b <span class="op">*</span> q_prev</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>        alpha[m] <span class="op">=</span> np.vdot(q, w).real</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>        w <span class="op">-=</span> alpha[m] <span class="op">*</span> q</span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> m <span class="op">&lt;</span> M <span class="op">-</span> <span class="dv">1</span>:</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>            b <span class="op">=</span> np.linalg.norm(w)<span class="op">;</span> beta[m] <span class="op">=</span> b</span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>            q_prev, q <span class="op">=</span> q, w <span class="op">/</span> b</span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> alpha, beta</span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ritz_errors(apply_H, q1, Ms, exact):</span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>    a, b <span class="op">=</span> lanczos_ref(apply_H, q1, <span class="bu">max</span>(Ms))</span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [linalg.eigh_tridiagonal(a[:M], b[:M <span class="op">-</span> <span class="dv">1</span>], eigvals_only<span class="op">=</span><span class="va">True</span>)[<span class="dv">0</span>] <span class="op">-</span> exact <span class="cf">for</span> M <span class="kw">in</span> Ms]</span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">0</span>)</span>
+<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a>D <span class="op">=</span> <span class="fl">0.01</span><span class="op">;</span> N1 <span class="op">=</span> <span class="dv">200</span></span>
+<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> apply_H_1d(f):</span>
+<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a>    out <span class="op">=</span> f <span class="op">/</span> D<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a>    out[<span class="dv">1</span>:] <span class="op">-=</span> <span class="fl">0.5</span> <span class="op">*</span> f[:<span class="op">-</span><span class="dv">1</span>] <span class="op">/</span> D<span class="op">**</span><span class="dv">2</span><span class="op">;</span> out[:<span class="op">-</span><span class="dv">1</span>] <span class="op">-=</span> <span class="fl">0.5</span> <span class="op">*</span> f[<span class="dv">1</span>:] <span class="op">/</span> D<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> out</span>
+<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a>Ms <span class="op">=</span> <span class="bu">list</span>(<span class="bu">range</span>(<span class="dv">20</span>, <span class="dv">301</span>, <span class="dv">20</span>))</span>
+<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a>err1 <span class="op">=</span> ritz_errors(apply_H_1d, rng.random(N1), Ms, (<span class="dv">1</span> <span class="op">-</span> math.cos(math.pi <span class="op">/</span> (N1 <span class="op">+</span> <span class="dv">1</span>))) <span class="op">/</span> D<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb26-26"><a href="#cb26-26" aria-hidden="true" tabindex="-1"></a>D2 <span class="op">=</span> <span class="fl">0.02</span><span class="op">;</span> n2 <span class="op">=</span> <span class="dv">99</span></span>
+<span id="cb26-27"><a href="#cb26-27" aria-hidden="true" tabindex="-1"></a>Vd2 <span class="op">=</span> np.full((n2, n2), <span class="dv">2</span> <span class="op">/</span> D2<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb26-28"><a href="#cb26-28" aria-hidden="true" tabindex="-1"></a>err2 <span class="op">=</span> ritz_errors(<span class="kw">lambda</span> f: apply_H_2d(f, Vd2, <span class="fl">0.5</span> <span class="op">/</span> D2<span class="op">**</span><span class="dv">2</span>), rng.random((n2, n2)), Ms, <span class="dv">2</span> <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> math.cos(math.pi <span class="op">/</span> <span class="dv">100</span>)) <span class="op">/</span> D2<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb26-29"><a href="#cb26-29" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">6</span>, <span class="fl">3.6</span>))</span>
+<span id="cb26-30"><a href="#cb26-30" aria-hidden="true" tabindex="-1"></a>ax.semilogy(Ms, np.maximum(err1, <span class="fl">1e-14</span>), <span class="st">"o-"</span>, label<span class="op">=</span><span class="st">"1D, N = 200"</span>)</span>
+<span id="cb26-31"><a href="#cb26-31" aria-hidden="true" tabindex="-1"></a>ax.semilogy(Ms, np.maximum(err2, <span class="fl">1e-14</span>), <span class="st">"s-"</span>, label<span class="op">=</span><span class="st">"2D, N = 9801"</span>)</span>
+<span id="cb26-32"><a href="#cb26-32" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">"Lanczos steps M"</span>)<span class="op">;</span> ax.set_ylabel(<span class="st">"ground state error"</span>)<span class="op">;</span> ax.legend()</span>
+<span id="cb26-33"><a href="#cb26-33" aria-hidden="true" tabindex="-1"></a>fig.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="04-schrodinger_files/figure-html/cell-18-output-1.png" width="566" height="336" class="figure-img"></p>
+<figcaption>Error of the lowest Ritz value against the number of Lanczos steps <span class="math inline">\(M\)</span>. The 1D chain of 200 cells (blue) and the 2D grid of <span class="math inline">\(99 \times 99\)</span> cells (orange) both need a couple of hundred steps, even though the 2D problem has fifty times more unknowns.</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Both curves need roughly the same couple of hundred steps, which for the 1D chain means Lanczos saves nothing at all (the error only really collapses at <span class="math inline">\(M = N = 200\)</span>, where the Krylov space is the whole space, and the tridiagonal solver or Numerov would have been far better), while for the 2D grid it’s a few hundred steps against <span class="math inline">\(N \approx 10^4\)</span>. There’s a nice locality argument for why the number of steps tracks the number of cells <em>across</em> the box rather than the total. <span class="math inline">\(H\)</span> only connects neighboring cells, so starting from a single cell, <span class="math inline">\(H^m|j\rangle\)</span> can only reach cells within <span class="math inline">\(m\)</span> steps, and building a state that’s spread across the whole box takes <span class="math inline">\(m \approx L/\Delta\)</span> applications of <span class="math inline">\(H\)</span>. In one dimension that’s all <span class="math inline">\(N\)</span> cells. In <span class="math inline">\(d\)</span> dimensions it’s still about <span class="math inline">\(L/\Delta\)</span>, which is only <span class="math inline">\(N^{1/d}\)</span>, so the Krylov space we need is tiny compared with the full space. A few hundred sparse products deliver the ground state of a <span class="math inline">\(10^4\)</span>-dimensional problem, and the same few hundred (well, a bit more) would do for <span class="math inline">\(10^6\)</span>.</p>
+</section>
+<section id="sec-lanczos-quirks" class="level3" data-number="4.3.7">
+<h3 data-number="4.3.7" class="anchored" data-anchor-id="sec-lanczos-quirks"><span class="header-section-number">4.3.7</span> Lanczos’s quirks</h3>
+<p>Two properties of the method tend to surprise people. First, Lanczos can’t resolve degeneracies. If two eigenstates share an energy, every vector <span class="math inline">\(H^m|\Psi\rangle\)</span> contains them in the same fixed ratio, set by the starting state, so the Krylov space contains only that one combination and the method finds one state where there are two. The square box is a good test, since its first excited level (<span class="math inline">\(n_x, n_y\)</span>) = (1, 2) and (2, 1) is exactly degenerate.</p>
+<p>Second, roundoff destroys orthogonality. The three-term recursion keeps the vectors orthogonal only in exact arithmetic, and as soon as one Ritz value converges, rounding errors reintroduce components along its eigenvector, and the method converges to it <em>again</em>. The symptom is spurious copies of eigenvalues, sometimes called ghosts, which can’t be real (by the first quirk, Lanczos can’t produce true degeneracies). Both quirks show up in one experiment:</p>
+<div id="defb59d5" class="cell" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>a, b <span class="op">=</span> lanczos_ref(apply_H_1d, np.random.default_rng(<span class="dv">2</span>).random(N1), <span class="dv">600</span>)</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>ritz <span class="op">=</span> linalg.eigh_tridiagonal(a, b, eigvals_only<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>E0 <span class="op">=</span> (<span class="dv">1</span> <span class="op">-</span> math.cos(math.pi <span class="op">/</span> (N1 <span class="op">+</span> <span class="dv">1</span>))) <span class="op">/</span> D<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"1D chain, M = 600 &gt; N = 200: Ritz values within 1e-6 of E0: </span><span class="sc">{</span>np<span class="sc">.</span><span class="bu">sum</span>(np.<span class="bu">abs</span>(ritz <span class="op">-</span> E0) <span class="op">&lt;</span> <span class="fl">1e-6</span>)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>a, b <span class="op">=</span> lanczos_ref(<span class="kw">lambda</span> f: apply_H_2d(f, Vd2, <span class="fl">0.5</span> <span class="op">/</span> D2<span class="op">**</span><span class="dv">2</span>), np.random.default_rng(<span class="dv">3</span>).random((n2, n2)), <span class="dv">400</span>)</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>ritz <span class="op">=</span> linalg.eigh_tridiagonal(a, b, eigvals_only<span class="op">=</span><span class="va">True</span>)[:<span class="dv">4</span>]</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>e1d <span class="op">=</span> (<span class="dv">1</span> <span class="op">-</span> np.cos(np.arange(<span class="dv">1</span>, <span class="dv">4</span>) <span class="op">*</span> np.pi <span class="op">/</span> <span class="dv">100</span>)) <span class="op">/</span> D2<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>exact2 <span class="op">=</span> np.sort((e1d[:, <span class="va">None</span>] <span class="op">+</span> e1d[<span class="va">None</span>, :]).ravel())[:<span class="dv">4</span>]</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"2D box, lowest Ritz values:"</span>, np.<span class="bu">round</span>(ritz, <span class="dv">5</span>))</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"exact lowest levels:       "</span>, np.<span class="bu">round</span>(exact2, <span class="dv">5</span>))</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>1D chain, M = 600 &gt; N = 200: Ritz values within 1e-6 of E0: 3
+2D box, lowest Ritz values: [ 2.4672   6.16678  9.86636 12.32869]
+exact lowest levels:        [2.4672  6.16678 6.16678 9.86636]</code></pre>
+</div>
+</div>
+<p>In 1D the ground state shows up three times, two of them ghosts (an <span class="math inline">\(N\times N\)</span> matrix can’t have more than <span class="math inline">\(N\)</span> eigenvalues, so with <span class="math inline">\(M = 600\)</span> something had to give). In 2D, the degenerate pair shows up only once in the Ritz values, and the third Ritz value is the next level up. The cures are to reorthogonalize against earlier vectors (which costs memory), or, for degeneracies, to restart from a vector orthogonal to the states already found.</p>
+</section>
+</section>
+<section id="sec-time-dependence" class="level2" data-number="4.4">
+<h2 data-number="4.4" class="anchored" data-anchor-id="sec-time-dependence"><span class="header-section-number">4.4</span> Time Dependence</h2>
+<section id="sec-eigen-evolution" class="level3" data-number="4.4.1">
+<h3 data-number="4.4.1" class="anchored" data-anchor-id="sec-eigen-evolution"><span class="header-section-number">4.4.1</span> Using the eigenstates</h3>
+<p>A stationary state only picks up a phase, <span class="math inline">\(\Psi_n(t) = e^{-iE_nt}\Psi_n\)</span>. So if we expand an initial state as <span class="math inline">\(\Psi(0) = \sum_nC_n\Psi_n\)</span> with <span class="math inline">\(C_n = \langle\Psi_n|\Psi(0)\rangle\)</span>, the solution at any later time is <span class="math display">\[
+\Psi(t) = \sum_nC_n\,e^{-iE_nt}\,\Psi_n ,
+\]</span> and once <span class="math inline">\(H\)</span> is diagonalized on a grid, that’s three lines of NumPy and exact for <em>any</em> <span class="math inline">\(t\)</span>, however large:</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>E, U <span class="op">=</span> np.linalg.eigh(H)</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>C <span class="op">=</span> U.T <span class="op">@</span> psi0</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>psi_t <span class="op">=</span> U <span class="op">@</span> (np.exp(<span class="op">-</span><span class="ot">1j</span> <span class="op">*</span> E <span class="op">*</span> t) <span class="op">*</span> C)</span></code></pre></div>
+<p>The catch is the full diagonalization, which is fine in one dimension and out of reach for the big grids of <a href="#sec-krylov" class="quarto-xref"><span>Section 4.3.4</span></a>.</p>
+</section>
+<section id="sec-unitarity" class="level3" data-number="4.4.2">
+<h3 data-number="4.4.2" class="anchored" data-anchor-id="sec-unitarity"><span class="header-section-number">4.4.2</span> Stepping in time, and why unitarity matters</h3>
+<p>The alternative is to step the formal solution <span class="math inline">\(\Psi(t) = e^{-iHt}\Psi(0)\)</span> forward a little at a time. The exact propagator is unitary, so it preserves the norm (the total probability), and a good method should too. Forward Euler, <span class="math inline">\(\Psi_{n+1} = (1 - iH\Delta t)\Psi_n\)</span>, multiplies each eigencomponent by <span class="math inline">\(1 - iE\Delta t\)</span>, whose modulus <span class="math inline">\(\sqrt{1 + E^2\Delta t^2}\)</span> is bigger than one. So the norm grows without bound, exactly as Euler’s energy did for the oscillator in <a href="03-equations-of-motion.html#sec-euler-wrong" class="quarto-xref"><span>Section 3.1.3</span></a> (and for the same reason, really, since the Schrödinger equation is a big linear oscillator). A classic unitary fix is the Crank-Nicolson scheme <span class="math inline">\((1 + iH\Delta t/2)\Psi_{n+1} = (1 - iH\Delta t/2)\Psi_n\)</span>, which needs a linear solve per step (a tridiagonal one in 1D). The method below is cheaper, and spectrally accurate in space.</p>
+</section>
+<section id="sec-splitting" class="level3" data-number="4.4.3">
+<h3 data-number="4.4.3" class="anchored" data-anchor-id="sec-splitting"><span class="header-section-number">4.4.3</span> Splitting the propagator</h3>
+<p>The Hamiltonian is a sum <span class="math inline">\(H = K + V\)</span> of two parts that are each easy on their own. <span class="math inline">\(V\)</span> is diagonal in position space, where <span class="math inline">\(e^{-iV\Delta t}\)</span> just multiplies <span class="math inline">\(\Psi(x)\)</span> by a phase at each point. <span class="math inline">\(K\)</span> is diagonal in momentum space, where <span class="math inline">\(e^{-iK\Delta t}\)</span> multiplies the Fourier coefficient <span class="math inline">\(\tilde{\Psi}(k)\)</span> by <span class="math inline">\(e^{-ik^2\Delta t/2}\)</span>. The trouble is that <span class="math inline">\(K\)</span> and <span class="math inline">\(V\)</span> don’t commute, so <span class="math inline">\(e^{-i(K+V)\Delta t} \ne e^{-iK\Delta t}e^{-iV\Delta t}\)</span>. How big is the error? Expanding both sides to second order, the difference is proportional to the commutator, <span class="math display">\[
+e^{-iK\Delta t}e^{-iV\Delta t} = e^{-i(K+V)\Delta t - \frac{\Delta t^2}{2}[K, V] + O(\Delta t^3)},
+\]</span> which is the first term of the Baker-Campbell-Hausdorff formula. So this simple Trotter product has a step error of <span class="math inline">\(O(\Delta t^2)\)</span> and a global error of <span class="math inline">\(O(\Delta t)\)</span>. The fix is the symmetric <em>Strang splitting</em>, <span class="math display">\[
+e^{-iH\Delta t} = e^{-iV\Delta t/2}\,e^{-iK\Delta t}\,e^{-iV\Delta t/2} + O(\Delta t^3),
+\]</span> where the symmetry kills the commutator term (the same trick as leapfrog, which is in fact exactly Strang splitting applied to classical mechanics, with “kick” and “drift” playing the roles of <span class="math inline">\(V\)</span> and <span class="math inline">\(K\)</span>). Each factor is unitary, so the product is unitary too, and the norm is conserved exactly, up to roundoff.</p>
+</section>
+<section id="sec-split-operator" class="level3" data-number="4.4.4">
+<h3 data-number="4.4.4" class="anchored" data-anchor-id="sec-split-operator"><span class="header-section-number">4.4.4</span> The split-operator FFT method</h3>
+<p>Moving between position and momentum space costs a Fourier transform each way, every step. With the fast Fourier transform that’s <span class="math inline">\(O(N\log N)\)</span> operations rather than <span class="math inline">\(O(N^2)\)</span>, which is what makes the whole method practical. On a periodic grid of <span class="math inline">\(N\)</span> points with spacing <span class="math inline">\(\Delta x\)</span>, the discrete Fourier transform uses the wave numbers <span class="math inline">\(k = 2\pi n/(N\Delta x)\)</span>, which is what <code>np.fft.fftfreq(N, dx) * 2 * np.pi</code> returns (in NumPy’s slightly odd order, zero first, then positive, then negative, which doesn’t matter as long as we use the same array for the phases). One step is then:</p>
+<ol type="1">
+<li>multiply <span class="math inline">\(\Psi(x)\)</span> by <span class="math inline">\(e^{-iV(x)\Delta t/2}\)</span>,</li>
+<li>transform to momentum space with an FFT,</li>
+<li>multiply <span class="math inline">\(\tilde{\Psi}(k)\)</span> by <span class="math inline">\(e^{-ik^2\Delta t/2}\)</span>,</li>
+<li>transform back with an inverse FFT,</li>
+<li>multiply by <span class="math inline">\(e^{-iV(x)\Delta t/2}\)</span> again.</li>
+</ol>
+<p>(When taking many steps, the two half steps of <span class="math inline">\(V\)</span> between consecutive steps merge into one full step, exactly like the half kicks in leapfrog, which saves a little work.)</p>
+<div id="ex-4-4-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 4.4.1 (Strang splitting)</strong></span> Write <code>split_operator(psi0, V, x, dt, nsteps)</code> that applies <code>nsteps</code> Strang steps to the complex array <code>psi0</code> on the periodic grid <code>x</code> (equally spaced, with the potential values <code>V</code> on it) and returns the final wave function. The check evolves a coherent state of the harmonic oscillator, the ground state displaced to <span class="math inline">\(x_0 = 2\)</span>, for half a period. Its exact evolution is simple: the Gaussian keeps its shape and its center follows the classical trajectory <span class="math inline">\(x_0\cos t\)</span>, so at <span class="math inline">\(t = \pi\)</span> it sits at <span class="math inline">\(-2\)</span>. We measure the error by the infidelity <span class="math inline">\(1 - |\langle\Psi_{\text{exact}}|\Psi\rangle|\)</span>, check that it falls like <span class="math inline">\(\Delta t^4\)</span> (the infidelity is quadratic in the error of <span class="math inline">\(\Psi\)</span>, which is second order), and check that the norm is conserved.</p>
+</div>
+<div id="29596273" class="cell lc-exercise" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> split_operator(psi0, V, x, dt, nsteps):</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Evolve psi0 under H = -1/2 d^2/dx^2 + V(x) with nsteps Strang split-operator steps on a periodic grid."""</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="9d4dd6db" class="cell lc-check" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>    x <span class="op">=</span> np.linspace(<span class="op">-</span><span class="dv">10</span>, <span class="dv">10</span>, <span class="dv">256</span>, endpoint<span class="op">=</span><span class="va">False</span>)<span class="op">;</span> dx <span class="op">=</span> x[<span class="dv">1</span>] <span class="op">-</span> x[<span class="dv">0</span>]</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    psi0 <span class="op">=</span> np.pi<span class="op">**-</span><span class="fl">0.25</span> <span class="op">*</span> np.exp(<span class="op">-</span>(x <span class="op">-</span> <span class="dv">2</span>) <span class="op">**</span> <span class="dv">2</span> <span class="op">/</span> <span class="dv">2</span>) <span class="op">+</span> <span class="ot">0j</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>    exact <span class="op">=</span> np.pi<span class="op">**-</span><span class="fl">0.25</span> <span class="op">*</span> np.exp(<span class="op">-</span>(x <span class="op">+</span> <span class="dv">2</span>) <span class="op">**</span> <span class="dv">2</span> <span class="op">/</span> <span class="dv">2</span>)</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>    infid <span class="op">=</span> []</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> n <span class="kw">in</span> [<span class="dv">32</span>, <span class="dv">64</span>, <span class="dv">128</span>]:</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>        psi <span class="op">=</span> split_operator(psi0, x<span class="op">**</span><span class="dv">2</span> <span class="op">/</span> <span class="dv">2</span>, x, np.pi <span class="op">/</span> n, n)</span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>        infid.append(<span class="dv">1</span> <span class="op">-</span> <span class="bu">abs</span>(np.vdot(exact, psi)) <span class="op">*</span> dx)</span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"dt = pi/</span><span class="sc">{</span>n<span class="sc">:&lt;3d}</span><span class="ss">  infidelity </span><span class="sc">{</span>infid[<span class="op">-</span><span class="dv">1</span>]<span class="sc">:.2e}</span><span class="ss">   norm - 1 = </span><span class="sc">{</span>np<span class="sc">.</span><span class="bu">sum</span>(<span class="bu">abs</span>(psi)<span class="op">**</span><span class="dv">2</span>) <span class="op">*</span> dx <span class="op">-</span> <span class="dv">1</span><span class="sc">: .1e}</span><span class="ss">"</span>)</span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">12</span> <span class="op">&lt;</span> infid[<span class="dv">0</span>] <span class="op">/</span> infid[<span class="dv">1</span>] <span class="op">&lt;</span> <span class="dv">20</span> <span class="kw">and</span> <span class="dv">12</span> <span class="op">&lt;</span> infid[<span class="dv">1</span>] <span class="op">/</span> infid[<span class="dv">2</span>] <span class="op">&lt;</span> <span class="dv">20</span> <span class="kw">and</span> <span class="bu">abs</span>(np.<span class="bu">sum</span>(<span class="bu">abs</span>(psi)<span class="op">**</span><span class="dv">2</span>) <span class="op">*</span> dx <span class="op">-</span> <span class="dv">1</span>) <span class="op">&lt;</span> <span class="fl">1e-12</span></span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 4.4.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 4.4.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-tunneling" class="level3" data-number="4.4.5">
+<h3 data-number="4.4.5" class="anchored" data-anchor-id="sec-tunneling"><span class="header-section-number">4.4.5</span> Tunneling through a barrier</h3>
+<p>To finish, here’s the kind of thing that’s really fun to watch. A Gaussian wave packet with mean momentum <span class="math inline">\(k_0 = 5\)</span> (kinetic energy 12.5, give or take its momentum spread) runs into a barrier of height 12 and width 0.5. Classically it would just pass over, since its energy is above the barrier, but quantum mechanically part of it gets reflected (and conversely, the slower components with energy below the barrier partly tunnel through).</p>
+<div id="cc237aaf" class="cell" data-execution_count="21">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.linspace(<span class="op">-</span><span class="dv">20</span>, <span class="dv">20</span>, <span class="dv">1024</span>, endpoint<span class="op">=</span><span class="va">False</span>)<span class="op">;</span> dx <span class="op">=</span> x[<span class="dv">1</span>] <span class="op">-</span> x[<span class="dv">0</span>]</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>k <span class="op">=</span> <span class="dv">2</span> <span class="op">*</span> np.pi <span class="op">*</span> np.fft.fftfreq(<span class="bu">len</span>(x), dx)</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>V <span class="op">=</span> np.where(np.<span class="bu">abs</span>(x <span class="op">-</span> <span class="dv">2</span>) <span class="op">&lt;</span> <span class="fl">0.25</span>, <span class="fl">12.0</span>, <span class="fl">0.0</span>)</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>psi <span class="op">=</span> (<span class="dv">2</span> <span class="op">*</span> np.pi) <span class="op">**</span> <span class="op">-</span><span class="fl">0.25</span> <span class="op">*</span> np.exp(<span class="op">-</span>(x <span class="op">+</span> <span class="dv">6</span>) <span class="op">**</span> <span class="dv">2</span> <span class="op">/</span> <span class="dv">4</span> <span class="op">+</span> <span class="ot">5j</span> <span class="op">*</span> x)</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>dt <span class="op">=</span> <span class="fl">0.005</span></span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>half_V, kin <span class="op">=</span> np.exp(<span class="op">-</span><span class="ot">0.5j</span> <span class="op">*</span> V <span class="op">*</span> dt), np.exp(<span class="op">-</span><span class="ot">0.5j</span> <span class="op">*</span> k<span class="op">**</span><span class="dv">2</span> <span class="op">*</span> dt)</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="fl">3.4</span>))</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>ax.fill_between(x, V <span class="op">/</span> <span class="dv">40</span>, color<span class="op">=</span><span class="st">"0.85"</span>)</span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">5</span>):</span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>    ax.plot(x, np.<span class="bu">abs</span>(psi) <span class="op">**</span> <span class="dv">2</span>, color<span class="op">=</span>plt.cm.Blues(<span class="fl">0.35</span> <span class="op">+</span> <span class="fl">0.15</span> <span class="op">*</span> i), lw<span class="op">=</span><span class="fl">1.2</span>)</span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">100</span> <span class="cf">if</span> i <span class="op">&lt;</span> <span class="dv">4</span> <span class="cf">else</span> <span class="dv">0</span>):</span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>        psi <span class="op">=</span> half_V <span class="op">*</span> np.fft.ifft(kin <span class="op">*</span> np.fft.fft(half_V <span class="op">*</span> psi))</span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>ax.set_xlim(<span class="op">-</span><span class="dv">12</span>, <span class="dv">12</span>)<span class="op">;</span> ax.set_xlabel(<span class="st">"$x$"</span>)<span class="op">;</span> ax.set_ylabel(<span class="vs">r"</span><span class="dv">$</span><span class="cf">|</span><span class="er">\</span><span class="vs">Psi</span><span class="cf">|</span><span class="dv">^</span><span class="vs">2</span><span class="dv">$</span><span class="vs">"</span>)</span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>fig.tight_layout()<span class="op">;</span> plt.show()</span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>T, R <span class="op">=</span> np.<span class="bu">sum</span>(np.<span class="bu">abs</span>(psi[x <span class="op">&gt;</span> <span class="fl">2.25</span>]) <span class="op">**</span> <span class="dv">2</span>) <span class="op">*</span> dx, np.<span class="bu">sum</span>(np.<span class="bu">abs</span>(psi[x <span class="op">&lt;</span> <span class="fl">1.75</span>]) <span class="op">**</span> <span class="dv">2</span>) <span class="op">*</span> dx</span>
+<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"transmitted </span><span class="sc">{</span>T<span class="sc">:.3f}</span><span class="ss">,  reflected </span><span class="sc">{</span>R<span class="sc">:.3f}</span><span class="ss">,  still inside the barrier </span><span class="sc">{</span><span class="dv">1</span> <span class="op">-</span> T <span class="op">-</span> R<span class="sc">:.3f}</span><span class="ss">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="04-schrodinger_files/figure-html/cell-22-output-1.png" width="758" height="317" class="figure-img"></p>
+<figcaption>A wave packet hitting a barrier (gray), shown as <span class="math inline">\(|\Psi|^2\)</span> at equal time intervals from <span class="math inline">\(t = 0\)</span> (lightest) to <span class="math inline">\(t = 2\)</span> (darkest). Part of the packet is transmitted and part is reflected.</figcaption>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>transmitted 0.395,  reflected 0.538,  still inside the barrier 0.066</code></pre>
+</div>
+</div>
+<p>Try changing the barrier height or the momentum in the cell above and see how the split changes (above about <span class="math inline">\(k_0 = 6\)</span> almost everything goes through, and below about 4 almost everything bounces back, and in between it’s the interesting regime).</p>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./03-equations-of-motion.html" class="pagination-link" aria-label="Equations of Motion">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Equations of Motion</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./references.html" class="pagination-link" aria-label="References">
+        <span class="nav-page-text">References</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p><a href="../">← Computational Physics</a> · <a href="../../../#notes">All notes</a></p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+<p>© 2026 Hieu Nguyen</p>
+</div>
+  </div>
+</footer>
+
+
+
+
+<script src="site_libs/quarto-contrib/livecells-0.2.0/livecells.js"></script>
+</body></html>

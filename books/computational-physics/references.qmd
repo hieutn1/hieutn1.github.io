@@ -1,0 +1,27 @@
+# References {.unnumbered}
+
+**Course material**
+
+- A. W. Sandvik, PY502 Computational Physics, Boston University. Lecture slides and the typed notes on numerical integration, equations of motion and the Schrödinger equation, at [physics.bu.edu/py502](http://physics.bu.edu/py502).
+
+**Numbers and computing**
+
+- D. Goldberg, "What Every Computer Scientist Should Know About Floating-Point Arithmetic", *ACM Computing Surveys* 23, 5 (1991).
+- N. J. Higham, *Accuracy and Stability of Numerical Algorithms*, 2nd ed., SIAM (2002).
+- IEEE Standard for Floating-Point Arithmetic, IEEE 754-2019.
+- J. Bezanson, A. Edelman, S. Karpinski and V. B. Shah, "Julia: A Fresh Approach to Numerical Computing", *SIAM Review* 59, 65 (2017).
+- C. R. Harris et al., "Array programming with NumPy", *Nature* 585, 357 (2020).
+- D. E. Knuth, *The Art of Computer Programming, Vol. 2: Seminumerical Algorithms*, 3rd ed., Addison-Wesley (1997).
+- M. E. O'Neill, "PCG: A Family of Simple Fast Space-Efficient Statistically Good Algorithms for Random Number Generation", Harvey Mudd College technical report HMC-CS-2014-0905 (2014).
+
+**Integration, differential equations and linear algebra**
+
+- W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, *Numerical Recipes*, 3rd ed., Cambridge University Press (2007).
+- E. Hairer, C. Lubich and G. Wanner, "Geometric Numerical Integration Illustrated by the Störmer–Verlet Method", *Acta Numerica* 12, 399 (2003).
+- L. Verlet, "Computer Experiments on Classical Fluids", *Physical Review* 159, 98 (1967).
+- S. H. Strogatz, *Nonlinear Dynamics and Chaos*, 2nd ed., CRC Press (2018).
+- M. J. Feigenbaum, "Quantitative universality for a class of nonlinear transformations", *Journal of Statistical Physics* 19, 25 (1978).
+- G. H. Golub and C. F. Van Loan, *Matrix Computations*, 4th ed., Johns Hopkins University Press (2013).
+- C. Lanczos, "An iteration method for the solution of the eigenvalue problem of linear differential and integral operators", *Journal of Research of the National Bureau of Standards* 45, 255 (1950).
+- J. W. Cooley and J. W. Tukey, "An Algorithm for the Machine Calculation of Complex Fourier Series", *Mathematics of Computation* 19, 297 (1965).
+- M. D. Feit, J. A. Fleck and A. Steiger, "Solution of the Schrödinger equation by a spectral method", *Journal of Computational Physics* 47, 412 (1982).

@@ -1,0 +1,70 @@
+project:
+  type: book
+  output-dir: _book
+  post-render: tools/publish.py   # tidies the pages and copies _book into ../../notes/computational-statistical-physics/book
+  render:
+    - index.qmd
+    - 01-scientific-computing.qmd
+    - 02-integration.qmd
+    - 03-equations-of-motion.qmd
+    - 04-schrodinger.qmd
+    - references.qmd
+  resources:
+    - mathjax/
+
+book:
+  title: "Computational Physics"
+  subtitle: "Notes on numerical methods for physicists"
+  author: "Hieu Nguyen"
+  date: "2026-10-30"
+  chapters:
+    - index.qmd
+    - 01-scientific-computing.qmd
+    - 02-integration.qmd
+    - 03-equations-of-motion.qmd
+    - 04-schrodinger.qmd
+    - references.qmd
+  search: true
+  page-navigation: true
+  sidebar:
+    style: floating
+    header: "[← Course page](../)"
+  page-footer:
+    left: "[← Computational Physics](../) · [All notes](../../../#notes)"
+    right: "© 2026 Hieu Nguyen"
+
+filters:
+  - livecells
+livecells:
+  pyodide: "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/"
+  packages: [numpy, scipy, matplotlib]
+  server: "http://127.0.0.1:8888"
+  kernel: python3
+
+format:
+  html:
+    theme:
+      - default
+      - theme/textbook.scss
+    number-sections: true
+    number-depth: 3
+    toc: true
+    toc-depth: 3
+    toc-expand: 1
+    toc-title: "On this page"
+    code-copy: false
+    highlight-style: theme/textbook.theme
+    html-math-method:
+      method: mathjax
+      url: "mathjax/tex-chtml-full.js"
+    fig-align: center
+    grid:
+      sidebar-width: 260px
+      body-width: 780px
+      margin-width: 230px
+
+execute:
+  freeze: auto
+  echo: true
+
+jupyter: python3

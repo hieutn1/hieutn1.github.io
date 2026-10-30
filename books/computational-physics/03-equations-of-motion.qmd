@@ -1,0 +1,571 @@
+# Equations of Motion {#sec-equations-of-motion}
+
+Newton's second law is a differential equation, and except for a handful of textbook cases (the oscillator, the Kepler problem, a few others) we can't solve it with pen and paper. So in this chapter we teach the computer to do it. The naive method takes about three lines and is wrong in a really instructive way, and fixing it leads to the idea that runs through this whole chapter, which is that a good integrator isn't just one with a small error per step, it's one that respects the *structure* of the equations (time reversibility, conservation of phase space volume) so that its errors don't pile up over long times. At the end we'll point our integrators at planetary orbits and at chaos, where the question of what "accurate" even means gets a little philosophical.
+
+```{python}
+#| code-fold: true
+#| code-summary: "Setup: imports and the helper used by the exercise checks"
+#| classes: lc-autorun
+# [Setup] Run once. Imports what this chapter uses and defines the helper that every check cell calls.
+import math
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import special
+
+def check(name, test):
+    """Run test(), which returns True or False, and report the result without ever raising."""
+    try:
+        ok = test()
+    except NotImplementedError:
+        print(f"{name}: not attempted yet")
+        return
+    except Exception as err:
+        print(f"{name}: your code raised {type(err).__name__}: {err}")
+        return
+    print(f"{name}: " + ("passed" if ok else "not yet. Something is off, see the output above."))
+```
+
+## From Newton To A Computer {#sec-newton}
+
+### Equations of motion as a first-order system {#sec-first-order}
+
+A point particle of mass $m$ moving in one dimension obeys
+$$
+\ddot{x}(t) = \frac{1}{m}F\big[x(t), \dot{x}(t), t\big],
+$$
+where the force can depend on position (a potential), on velocity (friction or damping) and explicitly on time (a driving force). Numerical methods are most naturally written for *first-order* equations, so we introduce the velocity $v$ as a second unknown and turn one second-order equation into two first-order ones,
+$$
+\dot{x} = v, \qquad \dot{v} = a(x, v, t) = \frac{1}{m}F(x, v, t).
+$$
+This trick is completely general. Any system of ordinary differential equations of any order can be rewritten as a first-order system for a longer vector of unknowns, and every method below works on such vectors. The pair $(x, v)$ is a point in *phase space*, and the solution is a curve through it. We then discretize time into steps $t_n = t_0 + n\Delta t$ and try to compute $x_n \approx x(t_n)$ and $v_n \approx v(t_n)$, starting from the given $x_0$ and $v_0$.
+
+### The Euler method {#sec-euler}
+
+The obvious first attempt Taylor expands both unknowns about $t_n$ and keeps the linear terms,
+$$
+x_{n+1} = x_n + \Delta t\, v_n, \qquad v_{n+1} = v_n + \Delta t\, a_n, \qquad a_n = a(x_n, v_n, t_n).
+$$
+The terms we dropped start at $\tfrac{1}{2}\Delta t^2 a_n$, so the *step error* (also called the local error) is $O(\Delta t^2)$. To reach a fixed final time $T$ we take $T/\Delta t$ steps, and if the step errors simply added up, the global error at $T$ would be about $(T/\Delta t)\times\Delta t^2 = T\Delta t$, so Euler is a *first-order* method. (They don't always simply add up, as we're about to see, and that's really the point of this whole section.)
+
+```{python}
+def euler(acc, x0, v0, dt, nsteps):
+    x, v = x0, v0
+    xs, vs = [x], [v]
+    for n in range(nsteps):
+        t = n * dt
+        a = acc(x, v, t)                 # evaluated with the OLD x, v, t
+        x, v = x + dt * v, v + dt * a
+        xs.append(x); vs.append(v)
+    return np.array(xs), np.array(vs)
+
+osc = lambda x, v, t: -x                 # harmonic oscillator with omega = 1
+for dt in [0.01, 0.001]:
+    xs, vs = euler(osc, 1.0, 0.0, dt, round(50 / dt))
+    E = 0.5 * (vs[-1] ** 2 + xs[-1] ** 2)
+    print(f"dt = {dt}:  E(50) = {E:.4f}   (exact 0.5)   relative error {E / 0.5 - 1:.1%}")
+```
+
+### What goes wrong with Euler {#sec-euler-wrong}
+
+For the oscillator we can compute Euler's behavior exactly (we did this in @sec-oscillator-example). Substituting the update rule into $2E_{n+1} = v_{n+1}^2 + \omega^2 x_{n+1}^2$, the cross terms cancel and
+$$
+E_{n+1} = (1 + \omega^2\Delta t^2)\,E_n \quad\Longrightarrow\quad E(t) = E_0\,(1+\omega^2\Delta t^2)^{t/\Delta t} \approx E_0\, e^{\omega^2\Delta t\,t}.
+$$
+The energy grows *exponentially* in time, with a rate proportional to $\Delta t$. With $\Delta t = 0.01$ that's $0.5\,e^{0.5} = 0.824$ at $t = 50$, and with $\Delta t = 10^{-3}$ it's $0.5\,e^{0.05} = 0.526$, exactly what the code printed. So the error isn't really $T\Delta t$, it's $e^{\omega^2\Delta t T} - 1$, which looks like $T\Delta t$ for short times and then runs away.
+
+There's a nice geometric way to see what's happening. Each Euler step is a linear map on phase space,
+$$
+\begin{pmatrix} x_{n+1} \\ v_{n+1}\end{pmatrix} = A\begin{pmatrix} x_n \\ v_n\end{pmatrix}, \qquad A = \begin{pmatrix} 1 & \Delta t \\ -\omega^2\Delta t & 1\end{pmatrix}, \qquad \det A = 1 + \omega^2\Delta t^2 .
+$$
+The determinant is the factor by which the map stretches areas in phase space, and it's bigger than one, so every step inflates phase space a little bit, and the orbit spirals outward.
+
+### A one-line fix, and the idea behind it {#sec-euler-cromer}
+
+Here's the surprise. Update the velocity *first*, and then use the *new* velocity to update the position:
+```python
+v = v + dt * acc(x, t)      # velocity first
+x = x + dt * v              # position with the updated velocity
+```
+This is sometimes called the semi-implicit or Euler-Cromer method, and its matrix for the oscillator is
+$$
+A' = \begin{pmatrix} 1 - \omega^2\Delta t^2 & \Delta t \\ -\omega^2\Delta t & 1 \end{pmatrix}, \qquad \det A' = 1 .
+$$
+The determinant is *exactly* one. A map with determinant one preserves areas in phase space, and Hamiltonian flow has precisely this property (Liouville's theorem), so the swapped scheme respects a geometric property of the exact dynamics that Euler violates. Its eigenvalues are then complex conjugates of modulus one as long as $\omega\Delta t < 2$, which means the numerical orbit is a closed ellipse (a slightly squashed one) instead of a spiral, and the energy oscillates but never drifts. Swapping two lines changed the long-time behavior completely. Methods with this area-preserving property are called *symplectic*, and they're what we want for anything conservative.
+
+::: {#ex-3-1-1 .exercise}
+[**Exercise 3.1.1 (Euler versus Euler-Cromer)**]{.theorem-title} Write `euler_cromer(acc, x0, v0, dt, nsteps)` with the same interface as `euler` above (returning the arrays of positions and velocities, including the initial ones). The check runs both on the oscillator for $t = 50$ with $\Delta t = 0.01$ and compares the worst energy error, and then checks that Euler-Cromer's energy error doesn't grow between the first and last tenth of a much longer run.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def euler_cromer(acc, x0, v0, dt, nsteps):
+    """Semi-implicit Euler: update v with the old x, then x with the new v. Return arrays xs, vs."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    xs, vs = euler_cromer(osc, 1.0, 0.0, 0.01, 5000)
+    E = 0.5 * (xs**2 + vs**2)
+    xe, ve = euler(osc, 1.0, 0.0, 0.01, 5000)
+    Ee = 0.5 * (xe**2 + ve**2)
+    print(f"max |E/E0 - 1|:  Euler {np.abs(Ee / 0.5 - 1).max():.3e}   Euler-Cromer {np.abs(E / 0.5 - 1).max():.3e}")
+    xs, vs = euler_cromer(osc, 1.0, 0.0, 0.01, 100000)
+    E = 0.5 * (xs**2 + vs**2) / 0.5 - 1
+    early, late = np.abs(E[:10000]).max(), np.abs(E[-10000:]).max()
+    print(f"long run: worst error in first tenth {early:.3e}, in last tenth {late:.3e}")
+    return len(xs) == 100001 and np.abs(E).max() < 0.006 and late < 1.1 * early
+check("Exercise 3.1.1", test)
+```
+
+## Leapfrog And Verlet {#sec-verlet}
+
+For this section we'll assume the force doesn't depend on velocity, so $a = a(x, t)$. Damping comes back in @sec-damping.
+
+### Velocities on half steps {#sec-leapfrog}
+
+Start from the second-order Taylor expansion of the position,
+$$
+x_{n+1} = x_n + \Delta t\, v_n + \tfrac{1}{2}\Delta t^2 a_n + O(\Delta t^3) = x_n + \Delta t\Big(v_n + \frac{\Delta t}{2}a_n\Big) + O(\Delta t^3).
+$$
+The bracket is just the first-order Taylor expansion of the velocity half a step later, $v(t_n + \Delta t/2)$, so we can write
+$$
+x_{n+1} = x_n + \Delta t\, v_{n+1/2} + O(\Delta t^3).
+$$
+The position update wants the velocity at the *midpoint* of the step, which makes sense, since the midpoint slope is the best single slope to use over an interval (that's the midpoint rule of @sec-midpoint). So let's keep the velocities on the half-integer grid $t_{n+1/2}$ and the positions on the integer grid $t_n$. To step the velocity from $t_{n-1/2}$ to $t_{n+1/2}$ we need the acceleration at the midpoint of *that* interval, which is $t_n$, exactly where we know the position. So the two updates leapfrog over each other,
+$$
+v_{n+1/2} = v_{n-1/2} + \Delta t\, a(x_n, t_n), \qquad x_{n+1} = x_n + \Delta t\, v_{n+1/2},
+$$
+and this is the *leapfrog* algorithm. (It's literally Euler-Cromer, with the velocities reinterpreted as living on half steps, which is why that swap worked so well.) The only subtlety is getting started: given $v_0$, we need $v_{1/2} = v_0 + \tfrac{1}{2}\Delta t\,a_0$, or equivalently $v_{-1/2} = v_0 - \tfrac{1}{2}\Delta t\,a_0$.
+
+### The Verlet form and the true step error {#sec-verlet-form}
+
+We expanded $x$ only to second order above, so it looks as if the step error is $O(\Delta t^3)$. It's actually better. Write the Taylor expansions one step forward and one step back,
+$$
+x_{n\pm1} = x_n \pm \Delta t\, v_n + \tfrac{1}{2}\Delta t^2 a_n \pm \tfrac{1}{6}\Delta t^3\dot{a}_n + O(\Delta t^4),
+$$
+and add them. Every odd power cancels (the same symmetry trick as Simpson's rule), leaving the *Verlet algorithm* (Verlet, 1967),
+$$
+x_{n+1} = 2x_n - x_{n-1} + \Delta t^2\, a_n + O(\Delta t^4).
+$$
+It needs no velocities at all, just the two previous positions. And Verlet and leapfrog are the same algorithm: subtracting the leapfrog position updates for two consecutive steps gives $x_{n+1} - 2x_n + x_{n-1} = \Delta t(v_{n+1/2} - v_{n-1/2}) = \Delta t^2 a_n$. So the leapfrog position also has an $O(\Delta t^4)$ step error, one order better than the naive count, and the method is globally second order.
+
+### Velocity Verlet {#sec-velocity-verlet}
+
+Sometimes we want $x$ and $v$ on the *same* time grid, for example to compute the energy at each step. A third equivalent form does that. Define the velocity by the symmetric difference $v_n = (x_{n+1} - x_{n-1})/(2\Delta t)$, and a bit of algebra with the Verlet formula gives
+$$
+x_{n+1} = x_n + \Delta t\, v_n + \tfrac{1}{2}\Delta t^2 a_n, \qquad v_{n+1} = v_n + \tfrac{1}{2}\Delta t\,(a_n + a_{n+1}).
+$$
+The position line is the second-order Taylor series, and the velocity line is the trapezoidal rule applied to the acceleration. In code we keep the acceleration from the previous step, so there's still only one force evaluation per step, which matters a lot when the force is the expensive part (in a molecular dynamics code with a million atoms, it's basically the only part).
+
+```{python}
+def velocity_verlet(acc, x0, v0, dt, nsteps):
+    x, v = x0, v0
+    a = acc(x, 0.0)
+    xs, vs = [x], [v]
+    for n in range(nsteps):
+        x = x + dt * v + 0.5 * dt**2 * a
+        a_new = acc(x, (n + 1) * dt)
+        v = v + 0.5 * dt * (a + a_new)
+        a = a_new
+        xs.append(x); vs.append(v)
+    return np.array(xs), np.array(vs)
+
+xs, vs = velocity_verlet(lambda x, t: -x, 1.0, 0.0, 0.01, 5000)
+E = 0.5 * (xs**2 + vs**2)
+print(f"max |E/E0 - 1| = {np.abs(E / 0.5 - 1).max():.3e},   position error at t = 50: {xs[-1] - math.cos(50):.2e}")
+```
+
+### Time reversibility and bounded errors {#sec-reversibility}
+
+The key property of leapfrog is that it's *time reversible*. Suppose we step from $x_n$ to $x_{n+1}$ using $v_{n+1/2}$. To step back we reverse the velocity, and the backward step uses $-v_{n+1/2}$, the same number with the opposite sign, so in exact arithmetic we land exactly on $x_n$. Euler isn't reversible: it steps forward with $v_n$ but would step back with $-v_{n+1}$, a different value. We can test this directly. Run 5000 steps forward, then flip the velocity and run 5000 more.
+
+```{python}
+def run_back_and_forth(stepper, nsteps=5000, dt=0.01):
+    x, v = 1.0, 0.0
+    for _ in range(nsteps):
+        x, v = stepper(x, v, dt)
+    v = -v
+    for _ in range(nsteps):
+        x, v = stepper(x, v, dt)
+    return x, -v
+
+euler_step = lambda x, v, dt: (x + dt * v, v - dt * x)
+def vv_step(x, v, dt):
+    vh = v - 0.5 * dt * x
+    xn = x + dt * vh
+    return xn, vh - 0.5 * dt * xn
+
+for name, s in [("Euler", euler_step), ("velocity Verlet", vv_step)]:
+    x, v = run_back_and_forth(s)
+    print(f"{name:16s} returns to x = {x:.15f}, v = {v: .2e}   (started at 1, 0)")
+```
+
+Verlet comes back to the starting point up to roundoff, after 10000 steps. Euler comes back somewhere else entirely, because going forward inflated phase space and going "backward" inflated it again.
+
+Why does reversibility matter for accuracy? Here's the intuition. A systematic drift in the energy is a quantity that changes *sign* under time reversal (if the energy grows going forward, it would shrink going backward). A reversible method can't have a systematic drift, because running it backward has to retrace exactly the same states. What's left over can only be errors that oscillate. This is the deep reason why leapfrog is the workhorse of molecular dynamics, celestial mechanics and plasma physics (Hairer, Lubich and Wanner, 2003).
+
+### The oscillator solved exactly {#sec-verlet-exact}
+
+For the harmonic oscillator we can do better than an argument, because the Verlet recursion can be solved in closed form. With $a = -\omega^2 x$ it reads
+$$
+x_{n+1} - 2x_n + x_{n-1} = -\omega^2\Delta t^2\, x_n .
+$$
+This is a linear recursion with constant coefficients, so we try $x_n = e^{i\tilde{\omega}n\Delta t}$, where $\tilde{\omega}$ is some frequency to be found. Dividing through by $x_n$ gives $2\cos(\tilde{\omega}\Delta t) - 2 = -\omega^2\Delta t^2$, and using $1 - \cos\theta = 2\sin^2(\theta/2)$,
+$$
+\sin\Big(\frac{\tilde{\omega}\,\Delta t}{2}\Big) = \frac{\omega\,\Delta t}{2} \quad\Longrightarrow\quad \tilde{\omega} = \frac{2}{\Delta t}\arcsin\frac{\omega\Delta t}{2} \approx \omega\Big(1 + \frac{\omega^2\Delta t^2}{24}\Big).
+$$
+Three things follow at once. The numerical motion is an exact sinusoid of constant amplitude, just with a slightly wrong frequency, so *nothing grows*. The method is stable only for $\omega\Delta t < 2$ (beyond that the arcsine has no real solution, $\tilde{\omega}$ becomes complex and the solution blows up exponentially), which in practice means we need at least $\pi$ steps per period, and really something like 20 or more to be accurate. And the only error is a phase error, $(\tilde{\omega} - \omega)t \approx \omega^3\Delta t^2 t/24$, which grows linearly in time. So the *position* error does grow, slowly, but the energy error stays bounded forever.
+
+```{python}
+dt, T = 0.1, 100.0
+xs, _ = velocity_verlet(lambda x, t: -x, 1.0, 0.0, dt, round(T / dt))
+wt = 2 / dt * math.asin(dt / 2)
+print(f"predicted frequency {wt:.8f}   (exact 1)")
+from scipy.optimize import curve_fit
+t = dt * np.arange(len(xs))
+(A, w_fit, phi), _ = curve_fit(lambda t, A, w, phi: A * np.cos(w * t + phi), t, xs, p0=[1, 1, 0])
+print(f"measured frequency  {w_fit:.8f},   amplitude {abs(A):.6f}")
+```
+
+(The measured numbers come from a least-squares fit of a pure cosine to all 1000 steps, and the fit lands on the predicted frequency and on an amplitude of exactly one, which is the "nothing grows" statement in numerical form.)
+
+### How errors accumulate in general {#sec-error-accumulation}
+
+For a general force we can't solve the recursion, but there's a neat continuum argument. Write $x_n = x^{\text{ex}}_n + \delta_n$, where $x^{\text{ex}}$ is the exact solution and $\delta_n$ the error, and substitute into the Verlet formula. The combinations $f_{n+1} - 2f_n + f_{n-1}$ appearing for both $x^{\text{ex}}$ and $\delta$ are discrete second derivatives, $\Delta t^2\ddot{f} + O(\Delta t^4)$, and if everything is smooth on the scale $\Delta t$ we can replace them by continuum derivatives. Since the exact solution satisfies $\ddot{x}^{\text{ex}} = a$, what's left (to leading order, ignoring how $a$ itself responds to $\delta$) is
+$$
+\ddot{\delta}(t) = \Delta t^2\, g(t), \qquad \delta(T) = \Delta t^2\int_0^T\!dt\int_0^{t}\!g(t')\,dt',
+$$
+where $g$ collects the fourth-derivative terms. It's unknown in general, but we can see the possibilities. If $g$ is roughly constant the error grows like $\Delta t^2 T^2$, which is typical of regular non-periodic motion. If $g$ oscillates around zero, as for periodic motion, the cancellations make the growth much slower, and our exact oscillator result, an error growing like $\Delta t^2 T$, sits in between. And if the motion is chaotic, the neglected response of $a$ to $\delta$ takes over and errors grow exponentially no matter what we do (@sec-chaos).
+
+### Adding damping {#sec-damping}
+
+A velocity-dependent force breaks the leapfrog scheme, because the acceleration $a_n = a(x_n, v_n, t_n)$ is needed at integer times, where leapfrog doesn't have a velocity. Separate the damping from the rest of the force, $a(x, v, t) = \tfrac{1}{m}\big[F(x, t) - G(v)\big]$. The naive fix substitutes the nearest available velocity, $G(v_{n-1/2})$, but that makes an $O(\Delta t)$ error in $a$, which turns into an $O(\Delta t^3)$ step error in $x$ and a global error of only $O(\Delta t)$, as bad as Euler.
+
+The fix is a predictor-corrector step. First make a trial step with the naive velocity, then use the trial position to get a *centered* velocity estimate, and redo the step:
+$$
+\begin{aligned}
+\hat{v}_{n+1/2} &= v_{n-1/2} + \Delta t\,[F(x_n,t_n) - G(v_{n-1/2})]/m, & \hat{x}_{n+1} &= x_n + \Delta t\,\hat{v}_{n+1/2},\\
+v_n &\approx \frac{\hat{x}_{n+1} - x_{n-1}}{2\Delta t}, & v_{n+1/2} &= v_{n-1/2} + \Delta t\,[F(x_n,t_n) - G(v_n)]/m,
+\end{aligned}
+$$
+followed by the usual $x_{n+1} = x_n + \Delta t\,v_{n+1/2}$. The centered estimate of $v_n$ has error $O(\Delta t^2)$, which restores the second-order accuracy, at the cost of a second (cheap, since $F$ doesn't change) evaluation of the damping force.
+
+::: {#ex-3-2-1 .exercise}
+[**Exercise 3.2.1 (Pendulum periods)**]{.theorem-title} A pendulum $\ddot{\theta} = -\sin\theta$ released from rest at amplitude $\theta_0$ has period $T = 4K\big(\sin^2(\theta_0/2)\big)$, where $K(m)$ is the complete elliptic integral (`scipy.special.ellipk`). For small $\theta_0$ this goes to $2\pi$, and it grows as $\theta_0 \to \pi$. Write `pendulum_period(theta0, dt)` that integrates the pendulum with velocity Verlet until the angular velocity first changes sign from positive to negative (the pendulum swings down, through the bottom, up the other side, back again, and that sign change happens right when it's back at its starting point) and returns the period, using linear interpolation between the two steps where $\dot{\theta}$ crosses zero. The check compares with the elliptic integral for a few amplitudes.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def pendulum_period(theta0, dt):
+    """Period of theta'' = -sin(theta) released from rest at theta0, measured with velocity Verlet."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    ok = True
+    for th in [0.1, 1.0, 2.0, 3.0]:
+        T = pendulum_period(th, 0.002)
+        exact_T = 4 * special.ellipk(math.sin(th / 2) ** 2)
+        print(f"theta0 = {th}:  measured {T:.6f}   exact {exact_T:.6f}")
+        ok = ok and abs(T / exact_T - 1) < 1e-4
+    return ok
+check("Exercise 3.2.1", test)
+```
+
+## Runge-Kutta Methods {#sec-runge-kutta}
+
+The Runge-Kutta (RK) family is the classic route to high accuracy for *any* system of ordinary differential equations, not only Newton's. The idea connects directly to @sec-integration. Integrating $\dot{u} = f(u, t)$ over one step gives
+$$
+u_{n+1} = u_n + \int_{t_n}^{t_{n+1}} f\big(u(t), t\big)\,dt ,
+$$
+so stepping an ODE is the same problem as numerical integration, with one twist: the integrand depends on the unknown $u(t)$ inside the interval, so its values there have to be estimated too.
+
+### Second order, the midpoint rule {#sec-rk2}
+
+The midpoint rule integrates over a step with error $O(\Delta t^3)$, *if* we know $f$ at the midpoint. We don't know $u_{n+1/2}$, but an Euler half step estimates it with error $O(\Delta t^2)$, and since that estimate gets multiplied by $\Delta t$ in the integral, the step error stays $O(\Delta t^3)$:
+$$
+k_1 = \Delta t\, f(u_n, t_n), \qquad k_2 = \Delta t\, f\big(u_n + \tfrac{1}{2}k_1,\; t_n + \tfrac{1}{2}\Delta t\big), \qquad u_{n+1} = u_n + k_2 .
+$$
+This is the second-order Runge-Kutta method (RK2). It's rarely used in practice for mechanics, since leapfrog is simpler and better for conservative forces, but it's the right warm-up for RK4.
+
+### Fourth order, the Simpson rule {#sec-rk4}
+
+Now use Simpson's rule, which integrates over a step with error $O(\Delta t^5)$ from the values of $f$ at the start, middle and end,
+$$
+u_{n+1} = u_n + \frac{\Delta t}{6}\big(f_n + 4f_{n+1/2} + f_{n+1}\big) + O(\Delta t^5).
+$$
+The midpoint value is estimated twice, once with an Euler half step using the slope at the start ($k_1$) and once with a half step using the slope at that first estimate ($k_2$), and the two get averaged. The endpoint value uses a full step with the slope from the second midpoint estimate ($k_3$). The result is the famous classical RK4 scheme,
+$$
+\begin{aligned}
+k_1 &= \Delta t\, f(u_n, t_n), & k_2 &= \Delta t\, f\big(u_n + \tfrac{1}{2}k_1,\; t_n + \tfrac{1}{2}\Delta t\big),\\
+k_3 &= \Delta t\, f\big(u_n + \tfrac{1}{2}k_2,\; t_n + \tfrac{1}{2}\Delta t\big), & k_4 &= \Delta t\, f\big(u_n + k_3,\; t_n + \Delta t\big),\\
+u_{n+1} &= u_n + \tfrac{1}{6}\big(k_1 + 2k_2 + 2k_3 + k_4\big). &&
+\end{aligned}
+$$
+Showing that the step error really is $O(\Delta t^5)$ (and that the funny averaging of $k_2$ and $k_3$ is what makes it work) takes a page of Taylor expansions that I'd honestly recommend doing once in your life and then never again. Written for a NumPy state vector, one function serves every problem in this chapter.
+
+::: {#ex-3-3-1 .exercise}
+[**Exercise 3.3.1 (RK4)**]{.theorem-title} Write `rk4_step(f, u, t, dt)` that returns $u_{n+1}$ for a state vector `u` (a NumPy array) and a right-hand side `f(u, t)` that returns an array of the same shape. The check runs it on the oscillator written as $u = (x, v)$, $f = (v, -x)$, and confirms fourth-order convergence of the error at $t = 10$.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def rk4_step(f, u, t, dt):
+    """One classical fourth-order Runge-Kutta step for du/dt = f(u, t)."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    f = lambda u, t: np.array([u[1], -u[0]])
+    errs = []
+    for dt in [0.1, 0.05]:
+        u = np.array([1.0, 0.0])
+        for n in range(round(10 / dt)):
+            u = rk4_step(f, u, n * dt, dt)
+        errs.append(abs(u[0] - math.cos(10)))
+        print(f"dt = {dt}: error in x(10) = {errs[-1]:.3e}")
+    print(f"ratio {errs[0] / errs[1]:.1f} (fourth order means 16)")
+    ut = rk4_step(lambda u, t: np.array([t**3]), np.array([0.0]), 0.0, 1.0)  # exact for a cubic in t
+    return 14 < errs[0] / errs[1] < 18 and abs(ut[0] - 0.25) < 1e-14
+check("Exercise 3.3.1", test)
+```
+
+### Energy drift, and when leapfrog wins anyway {#sec-rk4-drift}
+
+For the oscillator, one RK4 step multiplies the complex amplitude $x + iv/\omega$ by the polynomial $R(z) = 1 + z + z^2/2 + z^3/6 + z^4/24$ evaluated at $z = -i\omega\Delta t$, the Taylor series of $e^z$ cut off after four terms. Separating real and imaginary parts and squaring, with $h = \omega\Delta t$,
+$$
+|R(ih)|^2 = \Big(1 - \frac{h^2}{2} + \frac{h^4}{24}\Big)^2 + \Big(h - \frac{h^3}{6}\Big)^2 = 1 - \frac{h^6}{72} + \frac{h^8}{576}.
+$$
+Every step multiplies the energy by this factor, slightly *less* than one. So RK4 slowly drains energy, and after a time $t$ the relative loss is about $\omega^6\Delta t^5 t/72$. Two more facts drop out of the same formula. RK4 is stable on the oscillator only when $h^8/576 \le h^6/72$, that is $\omega\Delta t \le 2\sqrt{2} \approx 2.83$. And the error has no time-reversal symmetry to bound it, so it grows linearly forever.
+
+```{python}
+def rk4_osc_energy(dt, T):
+    h = dt
+    factor = (1 - h**2 / 2 + h**4 / 24) ** 2 + (h - h**3 / 6) ** 2
+    return 0.5 * factor ** round(T / dt)
+
+for dt in [0.2, 0.1]:
+    print(f"dt = {dt}:  RK4 E(50) = {rk4_osc_energy(dt, 50):.7f}   relative error {1 - rk4_osc_energy(dt, 50) / 0.5:.1e}"
+          f"   (velocity Verlet: bounded by {dt**2 / 4:.1e})")
+```
+
+So which is better? RK4 is far more accurate per step, and for a few periods it wins easily. But it costs four force evaluations per step against Verlet's one, and over very long times its energy drifts while Verlet's doesn't. For a planetary system integrated over the age of the solar system, or a protein simulated for a billion steps, the bounded error of a symplectic method is worth more than the small error of RK4. For a short, accurate trajectory of a dissipative system, RK4 (or one of its adaptive cousins) is the right tool.
+
+### Adaptive time steps {#sec-adaptive-steps}
+
+RK has one more structural advantage. Each step uses only the state at $t_n$, so the step size can change freely from one step to the next. (Leapfrog can't do this without losing its time-reversal symmetry, since a step needs data at both $t_n$ and $t_{n+1/2}$.) The simplest adaptive scheme is *step doubling*: take one step of size $\Delta t$, and separately two steps of size $\Delta t/2$. Both results have leading errors proportional to $\Delta t^5$, the second sixteen times smaller, so their difference estimates the error, $\varepsilon \approx |u_{\text{two halves}} - u_{\text{one step}}|/15$. (That's exactly the Richardson idea from @sec-romberg.) If $\varepsilon$ exceeds the tolerance, the step gets rejected and retried with a smaller $\Delta t$. Either way, the next step size is set from the error estimate using the fact that the error scales like $\Delta t^5$,
+$$
+\Delta t_{\text{new}} = 0.9\,\Delta t\,\Big(\frac{\text{tol}}{\varepsilon}\Big)^{1/5},
+$$
+where the 0.9 is a safety factor. We'll use this on an orbit that really needs it.
+
+```{python}
+def rk4(f, u, t, dt):
+    k1 = dt * f(u, t)
+    k2 = dt * f(u + k1 / 2, t + dt / 2)
+    k3 = dt * f(u + k2 / 2, t + dt / 2)
+    k4 = dt * f(u + k3, t + dt)
+    return u + (k1 + 2 * k2 + 2 * k3 + k4) / 6
+
+def rk4_adaptive(f, u, t0, T, dt=1e-3, tol=1e-10):
+    t, ts, us = t0, [t0], [u]
+    while t < T:
+        dt = min(dt, T - t)
+        big = rk4(f, u, t, dt)
+        half = rk4(f, rk4(f, u, t, dt / 2), t + dt / 2, dt / 2)
+        err = np.max(np.abs(half - big)) / 15
+        if err <= tol:                      # accept, using the more accurate result
+            t, u = t + dt, half + (half - big) / 15
+            ts.append(t); us.append(u)
+        dt = 0.9 * dt * (tol / max(err, 1e-300)) ** 0.2
+    return np.array(ts), np.array(us)
+```
+
+(The accepted value $u_{\text{half}} + (u_{\text{half}} - u_{\text{big}})/15$ is the Richardson-extrapolated one, which is actually fifth order. It's a free upgrade, so we take it.)
+
+## Orbits And Chaos {#sec-orbits-chaos}
+
+### Planetary orbits {#sec-orbits}
+
+In two or three dimensions the equations of motion become vector equations, $\dot{\mathbf{r}} = \mathbf{v}$ and $\dot{\mathbf{v}} = \mathbf{F}/m$, and every method above carries over unchanged, since NumPy arrays make the vector arithmetic look exactly like the scalar version. The standard example is a planet orbiting a star. Strictly this is a two-body problem that reduces to one body with the reduced mass, but for a star much heavier than the planet we can treat the star as fixed, and the acceleration is $-GM\,\mathbf{r}/r^3$. Good units make the numbers pleasant: with distances in astronomical units and time in years, Kepler's third law for the Earth fixes $GM_\odot = 4\pi^2\ \text{AU}^3/\text{yr}^2$, and a circular orbit at $r = 1$ has speed $2\pi$ AU/yr.
+
+Let's pick a nasty eccentric orbit to make life hard for the integrator. Start at $\mathbf{r} = (1, 0)$ with $\mathbf{v} = (0, \pi)$, half the circular speed. The energy is $E = \pi^2/2 - 4\pi^2 = -7\pi^2/2$, so the semi-major axis is $a = -GM/(2E) = 4/7$ AU, and since the start is the aphelion, $1 = a(1 + e)$ gives eccentricity $e = 3/4$. The perihelion is at $a(1 - e) = 1/7$ AU, where the planet moves seven times faster than at aphelion, and the period is $a^{3/2} \approx 0.432$ years. An integrator with a fixed step has to resolve the fast perihelion passage, and wastes most of its steps on the slow part of the orbit.
+
+```{python}
+GM = 4 * np.pi**2
+kepler_acc = lambda r: -GM * r / np.linalg.norm(r) ** 3
+energy = lambda r, v: 0.5 * v @ v - GM / np.linalg.norm(r)
+
+def leapfrog_orbit(dt, T):
+    r, v = np.array([1.0, 0.0]), np.array([0.0, np.pi])
+    v = v + 0.5 * dt * kepler_acc(r)            # v_{1/2}
+    rs = [r]
+    for _ in range(round(T / dt)):
+        r = r + dt * v
+        v = v + dt * kepler_acc(r)
+        rs.append(r)
+    return np.array(rs), r, v - 0.5 * dt * kepler_acc(r)   # synchronize v back to an integer step
+
+f_kep = lambda u, t: np.concatenate([u[2:], kepler_acc(u[:2])])
+E0 = energy(np.array([1.0, 0.0]), np.array([0.0, np.pi]))
+P = (4 / 7) ** 1.5
+rs_lf, r_end, v_end = leapfrog_orbit(1e-3, 10 * P)
+ts, us = rk4_adaptive(f_kep, np.array([1.0, 0.0, 0.0, np.pi]), 0.0, 10 * P, tol=1e-9)
+print(f"leapfrog, fixed dt = 1e-3:  {round(10 * P / 1e-3)} steps,  energy error {energy(r_end, v_end) / E0 - 1: .2e}")
+print(f"adaptive RK4:               {len(ts) - 1} steps,  energy error {energy(us[-1, :2], us[-1, 2:]) / E0 - 1: .2e}")
+```
+
+```{python}
+#| fig-cap: "Ten periods of the eccentric orbit. Left: leapfrog with a fixed step. Right: the step size chosen by adaptive RK4 over one period, which shrinks by a large factor at perihelion."
+fig, ax = plt.subplots(1, 2, figsize=(9, 3.6))
+ax[0].plot(rs_lf[:, 0], rs_lf[:, 1], lw=0.6); ax[0].plot(0, 0, "o", color="#E07A3F")
+ax[0].set_aspect("equal"); ax[0].set_xlabel("x (AU)"); ax[0].set_ylabel("y (AU)")
+one = ts <= P
+ax[1].semilogy(ts[one][1:], np.diff(ts[one]), color="#3B6FB6")
+ax[1].set_xlabel("t (yr)"); ax[1].set_ylabel("step size")
+fig.tight_layout(); plt.show()
+```
+
+Notice that the leapfrog orbit slowly rotates (the ellipse *precesses*). That's not physics, the Kepler orbit is exactly closed, it's the phase error of @sec-verlet-exact showing up as an angle. The energy, though, stays put, just like for the oscillator.
+
+::: {#ex-3-4-1 .exercise}
+[**Exercise 3.4.1 (Measure the period)**]{.theorem-title} Write `orbit_period(dt)` that integrates the eccentric orbit above with leapfrog and returns the time of the first return to aphelion, defined as the first time $y$ changes sign from negative to positive (after starting at $y = 0$), with linear interpolation between the two steps. Compare with Kepler's third law, $T = a^{3/2}$ with $a = 4/7$. The check expects second-order convergence of the period error.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def orbit_period(dt):
+    """Time of the first upward crossing of y = 0 for the eccentric orbit, integrated with leapfrog."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    e1, e2 = orbit_period(2e-4) - P, orbit_period(1e-4) - P
+    print(f"period error dt = 2e-4: {e1:.3e}   dt = 1e-4: {e2:.3e}   ratio {e1 / e2:.2f}")
+    return abs(e2) < 1e-4 and 3 < e1 / e2 < 5
+check("Exercise 3.4.1", test)
+```
+
+### Chaos in a driven pendulum {#sec-chaos}
+
+Now we turn from accuracy to a phenomenon where accuracy itself becomes a slippery notion. *Deterministic chaos* means motion governed by exact equations that's nonetheless aperiodic and exquisitely sensitive to initial conditions, so that its long-time behavior is unpredictable in practice. It isn't randomness, though. Chaotic motion has a definite structure in phase space, and many completely different systems show the same kinds of chaos.
+
+In one dimension, chaos needs both a periodic driving force and dissipation. Here's a quick reason why the driving is necessary: an undriven system in one dimension has a two-dimensional phase space $(x, v)$, and the Poincaré-Bendixson theorem says that trajectories in a plane can't cross, which leaves no room for chaos. A periodic drive adds its phase as a third dimension, and three dimensions are enough. Dissipation is what lets trajectories settle onto *attractors* (without it a driven system can still be chaotic, but the motion fills regions of phase space instead of converging onto a structure we can draw).
+
+The standard example is the damped, driven pendulum,
+$$
+\ddot{\theta} = -\sin\theta - \frac{1}{q}\dot{\theta} + g\cos(\Omega t),
+$$
+with damping $q = 2$ and driving frequency $\Omega = 2/3$, and we turn up the drive strength $g$. The cleanest way to look at the motion is a *Poincaré section*: instead of plotting the whole trajectory, we record $(\theta, \dot{\theta})$ once per drive period, always at the same phase of the drive. A periodic orbit with the same period as the drive shows up as one point, a period-doubled orbit as two, and a chaotic one as a fractal set of infinitely many points.
+
+```{python}
+#| fig-cap: "Poincaré sections of the driven pendulum, recording $(\\theta, \\dot\\theta)$ once per drive period after the transient has died out. Left, $g = 0.9$: every point lands in the same place, a periodic orbit. Middle, $g = 1.07$: the points alternate between two places, a period-doubled orbit. Right, $g = 1.15$: the points spread over a strange attractor."
+def pendulum_rhs(u, t, g, q=2.0, W=2/3):
+    return np.array([u[1], -math.sin(u[0]) - u[1] / q + g * math.cos(W * t)])
+
+def poincare(g, periods=300, skip=100, steps_per_period=100):
+    Td = 2 * np.pi / (2 / 3)
+    dt = Td / steps_per_period
+    u, t, pts = np.array([0.2, 0.0]), 0.0, []
+    for p in range(periods):
+        for _ in range(steps_per_period):
+            u = rk4(lambda u, t: pendulum_rhs(u, t, g), u, t, dt)
+            t += dt
+        if p >= skip:
+            pts.append(((u[0] + np.pi) % (2 * np.pi) - np.pi, u[1]))   # wrap theta into [-pi, pi)
+    return np.array(pts)
+
+fig, ax = plt.subplots(1, 3, figsize=(10, 3), sharey=True)
+for a_, g in zip(ax, [0.9, 1.07, 1.15]):
+    pts = poincare(g, periods=400 if g == 1.15 else 150)
+    a_.plot(pts[:, 0], pts[:, 1], ".", ms=2, color="#3B6FB6")
+    print(f"g = {g}: {len(np.unique(np.round(pts, 4), axis=0))} distinct points in the section")
+    a_.set_xlim(-np.pi, np.pi); a_.set_xlabel(r"$\theta$")
+ax[0].set_ylabel(r"$\dot\theta$")
+fig.tight_layout(); plt.show()
+```
+
+At $g = 0.9$ the pendulum settles into a periodic orbit at the drive frequency (one point), at $g = 1.07$ the period has doubled (two points), and at $g = 1.15$ the motion is chaotic and the section fills out a strange attractor (it would look much richer with a few thousand periods, which I've skipped so this runs in your browser).
+
+What does "accurate" mean here? Two trajectories that start $10^{-10}$ apart separate exponentially fast, $|\delta(t)| \approx |\delta(0)|e^{\lambda t}$, with a *Lyapunov exponent* $\lambda > 0$. So *any* error, including roundoff, eventually grows to the size of the attractor, and no integrator can follow a single chaotic trajectory for long. What survives are the statistical properties of the attractor (its shape, its Lyapunov exponents, time averages), and those a good integrator does get right. This is the shadowing idea: the numerical trajectory isn't the true trajectory from our initial condition, but it stays close to *some* true trajectory from a nearby initial condition.
+
+### Universality, the logistic map and Lyapunov exponents {#sec-logistic}
+
+The same period-doubling sequence appears in a much simpler system, the *logistic map*, an iteration with one control parameter $\mu$,
+$$
+x_{n+1} = \mu\, x_n (1 - x_n), \qquad x_0 \in (0, 1), \quad 0 < \mu \le 4 .
+$$
+Here we can derive the first bifurcations by hand. A fixed point satisfies $x^* = \mu x^*(1 - x^*)$, so $x^* = 1 - 1/\mu$, and it's stable when the map's slope there has magnitude below one, $|f'(x^*)| = |2 - \mu| < 1$, which fails at $\mu_1 = 3$. Beyond that, the iteration alternates between two values $x_1, x_2$ with $f(x_1) = x_2$ and $f(x_2) = x_1$. This 2-cycle is stable while the product of slopes $f'(x_1)f'(x_2) = -\mu^2 + 2\mu + 4$ stays above $-1$, which gives $\mu^2 - 2\mu - 5 = 0$ at the boundary, so $\mu_2 = 1 + \sqrt{6} \approx 3.4495$. The doublings then come faster and faster, at $\mu_3 \approx 3.54409$, $\mu_4 \approx 3.56441$, $\mu_5 \approx 3.56876$, and they pile up at $\mu_\infty \approx 3.56995$, beyond which the map is (mostly) chaotic. The ratios of successive gaps,
+$$
+\delta_k = \frac{\mu_k - \mu_{k-1}}{\mu_{k+1} - \mu_k} \to \delta = 4.6692\ldots,
+$$
+converge to the Feigenbaum constant, and here's the remarkable part: *the same number* shows up for the driven pendulum, for dripping faucets, for convection cells in liquid helium, for essentially every system that goes to chaos through period doubling (Feigenbaum, 1978). That's universality, and the explanation is a renormalization group argument very much like the ones in statistical physics.
+
+```{python}
+#| fig-cap: "The bifurcation diagram of the logistic map (top) and its Lyapunov exponent (bottom). Wherever $\\lambda > 0$ the motion is chaotic, and the windows where $\\lambda$ dips below zero are periodic orbits embedded in the chaos."
+mu = np.linspace(2.8, 4.0, 1600)
+x = np.full_like(mu, 0.4)
+lyap = np.zeros_like(mu)
+for n in range(600):                          # transient
+    x = mu * x * (1 - x)
+pts_mu, pts_x = [], []
+for n in range(400):
+    x = mu * x * (1 - x)
+    lyap += np.log(np.abs(mu * (1 - 2 * x)))
+    if n % 4 == 0:
+        pts_mu.append(mu.copy()); pts_x.append(x.copy())
+lyap /= 400
+fig, ax = plt.subplots(2, 1, figsize=(8, 5), sharex=True)
+ax[0].plot(np.concatenate(pts_mu), np.concatenate(pts_x), ",", color="#3B6FB6", alpha=0.4)
+ax[0].set_ylabel("$x$")
+ax[1].plot(mu, lyap, lw=0.7, color="#E07A3F"); ax[1].axhline(0, color="k", lw=0.6)
+ax[1].set_ylim(-2, 1); ax[1].set_xlabel(r"$\mu$"); ax[1].set_ylabel(r"$\lambda$")
+fig.tight_layout(); plt.show()
+```
+
+The Lyapunov exponent of a one-dimensional map has a simple formula. A small perturbation gets multiplied by $f'(x_n)$ at each step, so after $N$ steps it's multiplied by $\prod_n f'(x_n)$, and the exponential rate is
+$$
+\lambda = \lim_{N\to\infty}\frac{1}{N}\sum_{n=0}^{N-1}\ln|f'(x_n)| ,
+$$
+which is what the code above computes for every $\mu$ at once (one of my favorite uses of NumPy vectorization, since every $\mu$ is just another element of the array).
+
+::: {#ex-3-4-2 .exercise}
+[**Exercise 3.4.2 (The Lyapunov exponent at μ = 4)**]{.theorem-title} At $\mu = 4$ the logistic map is fully chaotic, and its Lyapunov exponent is exactly $\ln 2$ (the substitution $x = \sin^2(\pi y/2)$ turns it into the doubling map $y \to 2y \bmod 1$, which stretches every interval by exactly 2). Write `lyapunov(mu, x0, n_transient, n_avg)` that iterates the map, discards a transient, and returns the average of $\ln|\mu(1 - 2x_n)|$ over the next `n_avg` iterations. The check compares with $\ln 2$ and with the stable 2-cycle at $\mu = 3.2$, where $\lambda = \ln|f'(x_1)f'(x_2)|/2 = \tfrac{1}{2}\ln|-\mu^2 + 2\mu + 4|$.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def lyapunov(mu, x0, n_transient, n_avg):
+    """Average of ln|mu (1 - 2 x_n)| over n_avg iterations of the logistic map, after n_transient iterations."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    l4 = lyapunov(4.0, 0.123, 100, 200_000)
+    l32 = lyapunov(3.2, 0.3, 1000, 1000)
+    pred = 0.5 * math.log(abs(-3.2**2 + 2 * 3.2 + 4))
+    print(f"mu = 4:   lambda = {l4:.4f}   (ln 2 = {math.log(2):.4f})")
+    print(f"mu = 3.2: lambda = {l32:.5f}   (2-cycle prediction {pred:.5f})")
+    return abs(l4 - math.log(2)) < 0.01 and abs(l32 - pred) < 1e-6
+check("Exercise 3.4.2", test)
+```

@@ -1,0 +1,680 @@
+# Scientific Computing in Python {#sec-scientific-computing}
+
+Before we can simulate anything, we have to be a little bit honest about what a computer actually does with our numbers, and about why the same physics written two slightly different ways can run a hundred times faster or slower. Neither of these is the fun part of computational physics, I'll admit, but in my experience almost every strange bug I've ever had in a simulation (an energy that slowly drifts, a probability that comes out as −10⁻¹⁷, a code that takes all night for no good reason) traces back to one of the two. So this chapter is the toolbox, and the later chapters are where we get to use it.
+
+The PY502 lectures do all of this in Julia, and I'll keep coming back to how Julia handles things, because Julia was designed by people who thought very hard about exactly these problems and so it's often the clearest way to explain them. But our code will be Python with NumPy, since that's what runs in the browser (and what most of you will end up using anyway).
+
+```{python}
+#| code-fold: true
+#| code-summary: "Setup: imports and the helper used by the exercise checks"
+#| classes: lc-autorun
+# [Setup] Run once. Imports what this chapter uses and defines the helper that every check cell calls.
+import time
+import math
+import struct
+import numpy as np
+import matplotlib.pyplot as plt
+
+def check(name, test):
+    """Run test(), which returns True or False, and report the result without ever raising."""
+    try:
+        ok = test()
+    except NotImplementedError:
+        print(f"{name}: not attempted yet")
+        return
+    except Exception as err:
+        print(f"{name}: your code raised {type(err).__name__}: {err}")
+        return
+    print(f"{name}: " + ("passed" if ok else "not yet. Something is off, see the output above."))
+```
+
+## Why Speed Is A Problem {#sec-speed}
+
+### Two kinds of languages {#sec-two-languages}
+
+A processor only understands machine instructions, things like "add the integers sitting in these two registers" or "load eight bytes from this address," and so any program written in a language a human can read has to get translated into those instructions at some point. Programming languages differ mostly in *when* that translation happens.
+
+In a compiled language like C, C++ or Fortran, a compiler reads the whole program once, before it ever runs, and produces a file full of machine code. To do that well the compiler needs to know the type of every variable in advance (if it knows `x` is a 64-bit float, then `x*x` turns into a single hardware multiply), and so you pay for the speed with rigidity: types are fixed, there's a separate build step, and pulling in a plotting library can mean an afternoon of fighting with linker flags.
+
+In an interpreted language like Python, a program called the interpreter reads our code and carries it out line by line as it goes, and nothing is fixed in advance. A variable can hold an integer on one line and a string on the next, and the interpreter figures out what `x*x` means every single time it gets there. That's wonderful when we're poking at data, but it's terrible for a tight loop, because the interpreter repeats the same "okay, what type is `x` this time?" bookkeeping on every iteration, and a loop that runs a billion times pays that overhead a billion times.
+
+The standard workaround in the Python world is to write the fast parts in C or Fortran and call them from Python, which is exactly how NumPy works. The people who designed Julia called this the *two-language problem* (Bezanson et al., 2017): we prototype in one language, rewrite the slow part in another, and then maintain both forever. For a physicist whose inner loop basically *is* the research, that's a real burden, since the interesting code ends up being the part that's hardest to read and change. Julia's answer is to compile each function the first time it's called, specialized to the types of the arguments it actually received, so you write code that looks like Python and get machine code that looks like C. Python's answer (for us, anyway) is to push every loop we can down into NumPy, which is already compiled, and that's what most of this section is about.
+
+### Seeing the overhead {#sec-overhead}
+
+Let's just measure it. Here's the sum $\sum_{k=1}^{n} 1/k^2$, which converges to $\pi^2/6$, written as an ordinary Python loop and then with NumPy.
+
+```{python}
+def basel_loop(n):
+    s = 0.0
+    for k in range(1, n + 1):
+        s += 1.0 / (k * k)
+    return s
+
+def basel_numpy(n):
+    k = np.arange(1, n + 1, dtype=np.float64)
+    return np.sum(1.0 / k**2)
+
+n = 1_000_000
+for f in (basel_loop, basel_numpy):
+    t0 = time.perf_counter()
+    s = f(n)
+    t1 = time.perf_counter()
+    print(f"{f.__name__:12s} {s:.15f}   {1e3 * (t1 - t0):7.2f} ms")
+print(f"{'pi^2/6':12s} {math.pi**2 / 6:.15f}")
+```
+
+On a laptop the NumPy version is something like fifty times faster (in the browser the ratio is different but the point stands). Nothing clever happened. NumPy did exactly the same arithmetic, it just did it in a compiled loop that knows from the start that every element is a 64-bit float. (Notice also that both answers differ from $\pi^2/6$ in the seventh digit. That's not roundoff, it's just that we stopped the sum at $n = 10^6$ and the tail $\sum_{k>n} 1/k^2 \approx 1/n$ is exactly that big.)
+
+This is the first and most important habit for fast numerical Python: **express the work as operations on whole arrays**, so the loop happens inside NumPy. People call this *vectorizing*. When a loop really can't be vectorized (a time-stepping loop where each step needs the previous one is the classic case), the options are to keep the loop short, to move the inner work into arrays, or to reach for a compiler like Numba, which does for one Python function what Julia does for all of them. We'll mostly get away with the first two.
+
+::: {#ex-1-1-1 .exercise}
+[**Exercise 1.1.1 (Vectorize a sum)**]{.theorem-title} The alternating harmonic series $\sum_{k=1}^{n} (-1)^{k+1}/k$ converges to $\ln 2$. Write `alternating(n)` without any Python loop (use `np.arange` and array arithmetic). The check compares your answer with a slow loop and with $\ln 2$, using the fact that the error of a truncated alternating series is about $1/(2n)$.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def alternating(n):
+    """Return sum_{k=1}^n (-1)^(k+1) / k, computed without a Python loop."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    slow = sum((-1) ** (k + 1) / k for k in range(1, 2001))
+    a = alternating(2000)
+    b = alternating(10**6)
+    print(f"n = 2000:   yours {a:.15f}   loop {slow:.15f}")
+    print(f"n = 10^6:   yours {b:.15f}   ln 2 {math.log(2):.15f}   error {abs(b - math.log(2)):.2e}")
+    return abs(a - slow) < 1e-12 and abs(b - math.log(2)) < 1e-6
+check("Exercise 1.1.1", test)
+```
+
+## Numbers Inside The Machine {#sec-numbers}
+
+Every number in a simulation is a finite string of bits. Most of the time we can forget this, and the trouble is that the times we can't forget it tend to show up as wrong physics rather than as error messages. So let's spend a little time on how integers and real numbers are actually stored.
+
+### Integers and two's complement {#sec-twos-complement}
+
+A machine word is a row of $B$ bits, where $B$ is usually 64 (sometimes 8, 16 or 32). Label the bits by an index $i$ running from $0$ on the right to $B-1$ on the left and write each one as $b_i \in \{0, 1\}$. Read as an *unsigned* integer, the word means the ordinary binary expansion
+$$
+U = \sum_{i=0}^{B-1} b_i\, 2^i, \qquad 0 \le U \le 2^B - 1 .
+$$
+For signed integers we need some way to represent negative numbers, and almost every computer on the planet uses *two's complement*, where the leftmost bit counts with a negative weight,
+$$
+I = \sum_{i=0}^{B-2} b_i\, 2^i \;-\; b_{B-1}\, 2^{B-1}, \qquad -2^{B-1} \le I \le 2^{B-1} - 1 .
+$$
+When the sign bit $b_{B-1}$ is zero the two formulas agree, and when it's one the signed value is just the unsigned value minus $2^B$. Comparing the two term by term gives the key relation
+$$
+I = U - b_{B-1}\, 2^B \quad\Longrightarrow\quad I \equiv U \pmod{2^B}.
+$$
+This is the real reason two's complement won (and not, as I used to think, some historical accident). The signed and unsigned readings of the same bits are always the same number modulo $2^B$, so addition, subtraction and multiplication modulo $2^B$ give the right bits no matter which reading we have in mind, and the hardware only needs one adder circuit for both.
+
+The rule for negating a number drops out of the same idea. Write $\tilde{x}$ for the word with every bit of $x$ flipped. Then $x$ and $\tilde{x}$ have no 1 bits in common and together have a 1 in every position, so as unsigned numbers they add up to $2^B - 1$, which modulo $2^B$ is $-1$:
+$$
+x + \tilde{x} \equiv -1 \pmod{2^B} \quad\Longrightarrow\quad -x \equiv \tilde{x} + 1 .
+$$
+Flip all the bits and add one. We can look at the bits with `np.binary_repr`, and see the same bytes read both ways by asking NumPy to reinterpret them with `.view`.
+
+```{python}
+for x in [5, -5, -1, 127, -128]:
+    b = np.array(x, dtype=np.int8)
+    print(f"{x:5d}  bits {np.binary_repr(x, width=8)}   same bits as uint8: {b.view(np.uint8)}")
+print(np.iinfo(np.int8))
+```
+
+Notice that $-5$ is $11111011$, which is $00000101$ flipped ($11111010$) plus one, and that $-5$ read as unsigned is $251 = 256 - 5$, exactly as the congruence says. Notice also that the range is lopsided: there's one more negative number than positive ones (zero takes up a slot on the nonnegative side), and so the most negative integer has no positive partner and negating it wraps right back to itself.
+
+```{python}
+x = np.array([np.iinfo(np.int64).min])
+print(x, -x, np.abs(x))      # yes, abs returns a negative number here
+```
+
+### Wraparound {#sec-wraparound}
+
+Because the arithmetic is modulo $2^B$, going past the largest value wraps around to the smallest. Here's where Python and NumPy part ways, and it catches everyone at least once. Python's own integers have no fixed size (they grow as big as they need to, which is lovely and slow), but NumPy's integers are fixed-size machine integers, and NumPy does *not* check for overflow inside arrays.
+
+```{python}
+a = np.array([2**32 - 1], dtype=np.uint32)     # all 32 bits set
+print(a + np.uint32(1))                         # (2^32 - 1 + 1) mod 2^32 = 0
+b = np.array([2**31 - 1], dtype=np.int32)
+print(b + np.int32(1))                          # 0111...1 + 1 = 1000...0, the most negative int32
+
+print(2**64)                                    # a Python int: exact, no wraparound
+print(np.array([10], dtype=np.int64) ** 19)     # 10^19 doesn't fit, so we get 10^19 - 2^64
+```
+
+Julia makes the same choice as NumPy (no overflow checks in integer arithmetic) and for the same reason: a check on every addition would block exactly the compiler optimizations that make numerical loops fast. In statistical physics this comes up more often than you'd think. A combinatorial factor like $30!$ is about $2.7 \times 10^{32}$, way past $2^{63} \approx 9.2 \times 10^{18}$, and the usual fix is not to compute the number at all but its logarithm, with `math.lgamma` (since $\ln n! = \ln\Gamma(n+1)$).
+
+```{python}
+print(math.factorial(30))                         # exact, but a slow Python int
+print(np.prod(np.arange(1, 31, dtype=np.int64)))  # silently wrong
+print(math.exp(math.lgamma(31)))                  # via the log, as a float
+```
+
+One more trap with unsigned types while we're here. If a loop counter is unsigned and counts down past zero, it doesn't become negative, it becomes enormous. My advice is to use plain signed integers for anything that counts or indexes, and to save unsigned types for bit manipulation (we'll see a good use of them in a random number generator later in the chapter).
+
+::: {#ex-1-2-1 .exercise}
+[**Exercise 1.2.1 (Two's complement by hand)**]{.theorem-title} Write `twos_complement(x, B)` that returns the $B$-bit two's complement bit string of the integer $x$ (assume $-2^{B-1} \le x < 2^{B-1}$), without calling `np.binary_repr`. Use the congruence $I \equiv U \pmod{2^B}$: the bits of a negative $x$ are the ordinary binary digits of $x + 2^B$. The check compares with NumPy for every 8-bit integer and a few 16-bit ones.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def twos_complement(x, B):
+    """Return the B-bit two's complement representation of x as a string of '0' and '1'."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    ok = all(twos_complement(x, 8) == np.binary_repr(x, width=8) for x in range(-128, 128))
+    for x in [-32768, -1, 0, 1, 12345, 32767]:
+        mine = twos_complement(x, 16)
+        print(f"{x:7d}  {mine}")
+        ok = ok and mine == np.binary_repr(x, width=16)
+    return ok
+check("Exercise 1.2.1", test)
+```
+
+### Floating-point numbers {#sec-floats}
+
+Most real numbers have infinitely many binary digits, so a computer can only store an approximation, and the way every modern machine does it is binary scientific notation, standardized as IEEE 754 (Goldberg, 1991). Any nonzero real number can be written as $\pm m \times 2^e$ with $1 \le m < 2$, the binary version of writing $6.02 \times 10^{23}$. In binary the leading digit of $m$ is *always* 1, so there's no point storing it (that free bit is called the hidden bit). What actually gets stored is a sign bit $s$, a stored exponent $E$, and $p$ fraction bits $f_1 \ldots f_p$ after the binary point:
+$$
+x = (-1)^s \times 2^{\,E - \text{bias}} \times \Big( 1 + \sum_{k=1}^{p} f_k\, 2^{-k} \Big).
+$$
+The exponent is stored as an unsigned number with a bias subtracted (1023 for double precision), and $E$ runs from $1$ to $2046$ for ordinary numbers. The two leftover values are reserved: $E = 0$ holds zero and the tiny *subnormal* numbers, and $E = 2047$ holds infinities and NaN. Here's the bookkeeping for the three formats you'll actually meet (the PY502 slides list $p = 53$ for double precision, which is the precision *including* the hidden bit, so 52 bits are stored and $1 + 11 + 52 = 64$, as it has to be).
+
+| Type | Total bits | Exponent bits | Stored fraction bits | Precision | eps | Decimal digits | Largest value |
+|---|---|---|---|---|---|---|---|
+| `float16` | 16 | 5 | 10 | 11 | 9.8e-4 | about 3 | 65504 |
+| `float32` | 32 | 8 | 23 | 24 | 1.2e-7 | about 7 | 3.4e38 |
+| `float64` | 64 | 11 | 52 | 53 | 2.2e-16 | about 16 | 1.8e308 |
+
+We can look at the three fields directly by packing a float into 8 bytes with Python's `struct` module and reading the bits.
+
+```{python}
+def fields(x):
+    bits = format(struct.unpack(">Q", struct.pack(">d", x))[0], "064b")
+    return bits[0], bits[1:12], bits[12:]
+
+for x in [1.0, -2.5, 0.1]:
+    s, e, f = fields(x)
+    print(f"{x:5}: sign {s}  exponent {e} (= {int(e, 2) - 1023:+d})  fraction {f[:20]}...")
+```
+
+For $1.0$ we have $m = 1$ and $e = 0$, so the stored exponent is the bias itself, $1023 = 01111111111$, and the fraction is empty. For $-2.5$ we write $2.5 = 10.1_2 = 1.01_2 \times 2^1$, so the sign bit is 1, the stored exponent is $1 + 1023 = 1024 = 10000000000$, and the fraction is the "01" after the binary point followed by zeros. And $0.1$ has a fraction that goes $1001\,1001\,1001\ldots$ forever and has to be cut off, which is where all the trouble starts.
+
+### Spacing, rounding and machine epsilon {#sec-epsilon}
+
+The fraction formula tells us exactly how floats are spread out on the number line. Fix the exponent at some $e$. The fraction can take $2^{52}$ equally spaced values, so the floats in $[2^e, 2^{e+1})$ are evenly spaced with gap $2^{e-52}$, and every time we cross a power of two the gap doubles. So floats are dense near zero and sparse far away, with (roughly) constant *relative* spacing. The gap just above 1 is called *machine epsilon*, $\epsilon = 2^{-52} \approx 2.2 \times 10^{-16}$, and `np.spacing(x)` gives the gap at any $x$.
+
+```{python}
+print(np.finfo(np.float64).eps, np.spacing(1.0))
+print(np.spacing(1e16))            # the gap between consecutive floats near 10^16
+print(1e16 + 1 == 1e16)            # adding 1 is less than half a gap, so it rounds away
+```
+
+Every arithmetic operation produces the exact result rounded to the nearest float, and since the nearest float is at most half a gap away, the relative error of a single operation is bounded by the *unit roundoff* $u = \epsilon/2 = 2^{-53}$:
+$$
+\mathrm{fl}(a \circ b) = (a \circ b)(1 + \delta), \qquad |\delta| \le u \approx 1.1 \times 10^{-16}.
+$$
+This is the standard model used all over numerical analysis (Higham, 2002), and it's worth remembering in this form, since it says that each operation is fine on its own, and all the danger comes from how errors combine.
+
+### Why 0.1 + 0.2 is not 0.3 {#sec-point-one}
+
+The decimal number 0.1 is a repeating fraction in binary, $0.000110011001100\ldots_2$, just like $1/3$ repeats in decimal, so the float we call `0.1` is really just the float nearest to it. Python's `decimal` module can show us the exact value of that float.
+
+```{python}
+from decimal import Decimal
+print(Decimal(0.1))
+print(0.1 + 0.2, 0.1 + 0.2 == 0.3, math.isclose(0.1 + 0.2, 0.3))
+```
+
+The lesson is to never test floats for exact equality unless you *know* the values are exactly representable, and to use `math.isclose` or `np.isclose` instead (with an explicit `abs_tol` when comparing against zero, since a relative tolerance means nothing at zero). This matters for a really common physics pattern, the time loop:
+
+```{python}
+t, dt = 0.0, 0.1
+for n in range(10):
+    t += dt
+print(t)                    # 0.9999999999999999, not 1.0
+
+t, dt, steps = 0.0, 1e-3, 10**6
+for n in range(steps):
+    t += dt
+print(t, steps * dt)        # a million roundings vs one
+```
+
+Each addition rounds, and the errors pile up, so over millions of steps the accumulated time drifts noticeably. Computing `t = n * dt` from the integer step counter avoids the drift completely, because then only one rounding happens. (It sounds like a tiny thing, but if your forcing is $\cos(\Omega t)$ and you run for $10^8$ steps, it's the difference between the right answer and a phase error you'll spend a week looking for.)
+
+### Catastrophic cancellation {#sec-cancellation}
+
+The single most dangerous operation in floating point is subtracting two nearly equal numbers. Each input carries a relative error of about $u$, but their difference can be tiny, so those absolute errors become huge *relative to the result*. The classic example is $(1 - \cos x)/x^2$, which goes to $1/2$ as $x \to 0$.
+
+```{python}
+for x in [1e-2, 1e-4, 1e-6, 1e-8]:
+    naive = (1 - math.cos(x)) / x**2
+    stable = 2 * math.sin(x / 2) ** 2 / x**2         # same function, since 1 - cos x = 2 sin^2(x/2)
+    print(f"x = {x:.0e}   naive {naive:.16f}   rewritten {stable:.16f}")
+```
+
+The first formula loses more and more digits and then *all* of them: $\cos(10^{-8}) = 1 - 5 \times 10^{-17}$, and that difference from 1 is smaller than half the float spacing near 1, so `cos` returns exactly `1.0`. Rewriting the expression so no subtraction of nearby numbers happens fixes it completely. This is also why every numerical library provides `expm1(x)` for $e^x - 1$ and `log1p(x)` for $\ln(1 + x)$: for small $x$ the naive formulas throw away the answer before they compute it.
+
+```{python}
+print(math.log(1 + 1e-17), math.log1p(1e-17))
+print(math.exp(1e-10) - 1, math.expm1(1e-10))
+```
+
+::: {#ex-1-2-2 .exercise}
+[**Exercise 1.2.2 (A quadratic formula that doesn't cancel)**]{.theorem-title} The roots of $ax^2 + bx + c$ are $(-b \pm \sqrt{b^2 - 4ac})/(2a)$. When $b^2 \gg |4ac|$, one of the two signs subtracts nearly equal numbers. Write `roots(a, b, c)` returning both real roots (assume $b^2 > 4ac$) accurately. Hint: compute the root that *doesn't* cancel, $q = -\tfrac{1}{2}\big(b + \operatorname{sign}(b)\sqrt{b^2 - 4ac}\big)$, gives $x_1 = q/a$, and then use $x_1 x_2 = c/a$ for the other one. The check uses $x^2 + 10^8 x + 1$, whose small root is very close to $-10^{-8}$.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def roots(a, b, c):
+    """Return the two real roots of a x^2 + b x + c, both computed without cancellation."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    naive = (-1e8 + math.sqrt(1e16 - 4)) / 2
+    r = sorted(roots(1.0, 1e8, 1.0))
+    small = -1e-8 - 1e-24                       # the exact small root to this precision
+    print(f"naive small root  {naive:.17e}   relative error {abs(naive / small - 1):.1e}")
+    print(f"your small root   {r[1]:.17e}   relative error {abs(r[1] / small - 1):.1e}")
+    r2 = sorted(roots(2.0, -3.0, 1.0))          # roots 0.5 and 1
+    return abs(r[1] / small - 1) < 1e-14 and abs(r[0] / -1e8 - 1) < 1e-14 and np.allclose(r2, [0.5, 1.0])
+check("Exercise 1.2.2", test)
+```
+
+### Special values {#sec-special-values}
+
+IEEE 754 also reserves bit patterns for a few values that aren't ordinary numbers.
+
+```{python}
+with np.errstate(divide="ignore", invalid="ignore"):
+    print(np.float64(1) / 0.0, np.float64(-1) / 0.0, np.float64(0) / 0.0)
+print(np.nan == np.nan, np.isnan(np.nan))
+print(0.0 == -0.0, math.copysign(1, -0.0))
+print(np.finfo(np.float64).max, np.finfo(np.float64).tiny, np.nextafter(0.0, 1.0))
+big = np.float64(1e200)
+with np.errstate(over="ignore"):
+    print(np.sqrt(big**2 + big**2), np.hypot(big, big))
+```
+
+(Plain Python raises an error for `1/0.0` and for overflow, which is why I used NumPy floats there.) A NaN compares unequal to everything, including itself, and it spreads through every operation it touches, so a NaN showing up in a simulation is almost always a bug and it's worth checking for one at the end of every run. The signed zero looks like a curiosity, but it records which side of zero a result underflowed from, which matters for branch cuts of complex functions. And the smallest positive float, about $5 \times 10^{-324}$, is way below `tiny` (the smallest *normal* float), because between zero and `tiny` IEEE fills in subnormal numbers that give up precision to extend the range. The last line shows why `hypot` exists: squaring $10^{200}$ overflows to infinity even though the answer is a perfectly reasonable number.
+
+## Arrays {#sec-arrays}
+
+With numbers in hand, we can build the things a simulation is made of. Arrays hold the state, functions transform it, and the way an array sits in memory turns out to matter almost as much as the arithmetic we do on it.
+
+### NumPy arrays {#sec-numpy-arrays}
+
+A NumPy array has a fixed element type (`dtype`) and a fixed shape, which is exactly what lets NumPy hand it to compiled code without asking questions. There are a lot of ways to make one.
+
+```{python}
+v = np.array([1.0, 2.0, 3.0])          # float64 vector
+A = np.array([[1, 2], [3, 4]])         # int64 matrix
+z = np.zeros(100)
+M = np.zeros((3, 4))
+R = np.random.default_rng(1).random((3, 3))     # uniform in [0, 1)
+w = np.empty(10)                       # allocated but not initialized, contents are garbage
+sq = np.arange(1, 6) ** 2
+print(v.dtype, A.dtype, M.shape, sq)
+print(A[1, :], A[:, 0])                # second row, first column (indices start at 0!)
+```
+
+`np.empty` is the fastest because it skips filling the memory, but the contents are whatever garbage was there before, so only use it when every element is about to be overwritten. And the obvious one for anyone coming from Julia, Fortran or MATLAB: Python indices start at 0, and the last element of an array of length $n$ is `x[n-1]` (or `x[-1]`).
+
+### Memory layout {#sec-memory-layout}
+
+Computer memory is one long line of addresses, so a matrix has to be flattened somehow. NumPy, like C, stores a matrix in *row-major* order by default: one row after another, so for an $m \times n$ matrix the element $(i, j)$ lands at position
+$$
+k = i\,n + j
+$$
+in the flattened list (counting from zero). Moving along a row ($j \to j+1$) steps one address, and moving down a column ($i \to i+1$) jumps $n$ addresses. Julia, Fortran and MATLAB do the opposite, *column-major*, which is why the Julia version of these notes tells you to put the first index in the innermost loop and I'm going to tell you the reverse.
+
+This matters because of how processors fetch memory. A read from main memory brings in a whole *cache line*, typically 64 bytes or eight float64's, so if the next thing we touch is the neighboring address, it's already sitting in cache and is essentially free, and if it's $n$ addresses away, it probably isn't. NumPy tells us how far apart neighbors are through `strides`, the number of bytes to jump along each axis, and we can watch the cost of going the wrong way.
+
+```{python}
+big = np.random.default_rng(0).random((3000, 3000))
+print("strides (bytes):", big.strides)
+
+def time_it(f, repeat=3):
+    best = float("inf")
+    for _ in range(repeat):
+        t0 = time.perf_counter(); f(); best = min(best, time.perf_counter() - t0)
+    return 1e3 * best
+
+print(f"sum of each row    {time_it(lambda: [big[i, :].sum() for i in range(3000)]):7.1f} ms")
+print(f"sum of each column {time_it(lambda: [big[:, j].sum() for j in range(3000)]):7.1f} ms")
+```
+
+Same arithmetic, same answer, and the column version is noticeably slower because every element it touches lives in a different cache line. That kind of bug never shows up in the output, only in the run time, which is exactly why it's worth knowing about.
+
+### Views and copies {#sec-views}
+
+Basic slicing in NumPy (with `:` and integer steps) returns a *view*, a new array object that looks at the same memory. That's great for speed, but it means that writing into a slice writes into the original, which is the exact opposite of what Julia does by default (there, `a[1, :]` makes a copy, and you have to ask for a view). Fancy indexing, with a list of indices or a boolean mask, makes a copy instead.
+
+```{python}
+a = np.arange(12.0).reshape(3, 4)
+row = a[0, :]            # a view
+row[0] = -1.0            # ...so this changes a
+picked = a[[0, 2], :]    # fancy indexing: a copy
+picked[:] = 0.0          # a is unchanged by this
+print(a)
+print(np.shares_memory(a, row), np.shares_memory(a, picked))
+```
+
+If you want an independent copy of a slice, say so with `.copy()`. (I've lost more time to an accidental view than I'd like to admit, usually a "previous state" array in a time loop that quietly turned out to be the current state.)
+
+### Broadcasting {#sec-broadcasting}
+
+Arithmetic between arrays of different shapes follows the *broadcasting* rules: compare the shapes from the right, and any axis of length 1 (or a missing axis) gets stretched to match. This lets us build whole tables without loops. For instance, the matrix of pairwise distances between $N$ points in the plane:
+
+```{python}
+pts = np.random.default_rng(2).random((5, 2))
+diff = pts[:, None, :] - pts[None, :, :]       # shape (5, 1, 2) - (1, 5, 2) -> (5, 5, 2)
+dist = np.sqrt((diff**2).sum(axis=-1))
+print(dist.round(3))
+```
+
+This is the NumPy cousin of Julia's dot syntax, where `f.(x, y')` applies `f` elementwise across a whole grid. One thing to keep in mind is that broadcasting materializes the full intermediate array (here $5 \times 5 \times 2$), so for a million points you'd be making a $10^{12}$-element temporary, and you'd want a smarter algorithm.
+
+### Linear algebra {#sec-linear-algebra}
+
+The `@` operator is matrix multiplication and `*` is elementwise, and `np.linalg` has everything else. A practical warning first: to solve a linear system $A x = y$, almost never compute `inv(A) @ y`. The function `np.linalg.solve(A, y)` solves the system directly through an LU factorization, which takes about a third of the arithmetic and is more accurate in floating point (Higham, 2002).
+
+```{python}
+rng = np.random.default_rng(3)
+A = rng.random((300, 300)) + 300 * np.eye(300)
+y = rng.random(300)
+x1 = np.linalg.solve(A, y)
+x2 = np.linalg.inv(A) @ y
+print(np.abs(A @ x1 - y).max(), np.abs(A @ x2 - y).max())
+```
+
+Eigenvalue problems are where linear algebra meets quantum mechanics most directly (we'll lean on this heavily in @sec-schrodinger), so here's a small example with a known answer. A particle hopping on a chain of $N$ sites with amplitude $t$ has a Hamiltonian matrix with $-t$ just above and below the diagonal, and its exact eigenvalues are $-2t\cos\big(k\pi/(N+1)\big)$ for $k = 1, \ldots, N$, which lets us test the numerics.
+
+```{python}
+N, t = 6, 1.0
+H = np.diag(-t * np.ones(N - 1), 1) + np.diag(-t * np.ones(N - 1), -1)
+E = np.linalg.eigvalsh(H)                        # eigvalsh: for symmetric/Hermitian matrices
+exact = np.sort(-2 * t * np.cos(np.arange(1, N + 1) * np.pi / (N + 1)))
+print(E)
+print("max difference:", np.abs(E - exact).max())
+```
+
+The difference is around $10^{-15}$, which is just roundoff. Notice that we called `eigvalsh` rather than `eigvals`: telling the library the matrix is symmetric lets it use a faster and more accurate algorithm, and it guarantees real eigenvalues. (In Julia you'd wrap the matrix in `Symmetric(H)` and the same function would automatically pick the better algorithm, which is a nice example of what Julia calls multiple dispatch.)
+
+### Remainders and periodic boundaries {#sec-periodic}
+
+Integer division has a choice to make when the quotient is negative: should $-7/3$ round to $-2$ or to $-3$? Both choices come with a matching remainder satisfying $x = qy + r$. Truncating toward zero (C's `/` and `%`, NumPy's `np.fmod`) forces the remainder to have the sign of $x$, while flooring toward $-\infty$ (Python's `//` and `%`, `np.mod`) forces it to have the sign of $y$.
+
+```{python}
+for x in [7, -7]:
+    print(f"x = {x:3d}, y = 3:  floor  {x // 3:3d} {x % 3:3d}    truncate  {int(x / 3):3d} {int(math.fmod(x, 3)):3d}")
+```
+
+For negative numbers this difference is everything, and the floored version is almost always what a physicist wants. The textbook case is periodic boundary conditions: on a ring of $L$ sites the neighbor to the left of site $0$ should be site $L-1$, and `(0 - 1) % L` gives exactly that, while `math.fmod` would give $-1$. (Happily, Python's `%` already does the right thing, unlike C and Fortran, which is one of the few places where Python is more physicist-friendly out of the box.) For continuous coordinates in a periodic box of side $L$, the related trick is the *minimum image convention*, `dx -= L * np.round(dx / L)`, which maps any separation into the range $[-L/2, L/2]$.
+
+::: {#ex-1-3-1 .exercise}
+[**Exercise 1.3.1 (Neighbors on a periodic lattice)**]{.theorem-title} Label the sites of an $L \times L$ square lattice with periodic boundaries by $s = x + L y$ for $x, y \in \{0, \ldots, L-1\}$ (so $x$ varies fastest). Write `neighbor_table(L)` returning an integer array of shape `(L*L, 4)` whose row $s$ holds the right, left, up and down neighbors of site $s$, in that order. Do it with array operations and `%`, not a double loop. Tables like this are the backbone of every lattice Monte Carlo code.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def neighbor_table(L):
+    """Return an (L*L, 4) int array: right, left, up, down neighbours of each site s = x + L*y."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    L = 4
+    nb = neighbor_table(L)
+    print(nb[:5])
+    ok = nb.shape == (16, 4)
+    for s in range(L * L):
+        x, y = s % L, s // L
+        want = [(x + 1) % L + L * y, (x - 1) % L + L * y, x + L * ((y + 1) % L), x + L * ((y - 1) % L)]
+        ok = ok and list(nb[s]) == want
+    nb7 = neighbor_table(7)
+    ok = ok and all(nb7[nb7[s, 0], 1] == s for s in range(49))      # right then left comes back
+    return ok
+check("Exercise 1.3.1", test)
+```
+
+::: {#ex-1-3-2 .exercise}
+[**Exercise 1.3.2 (A particle on a ring)**]{.theorem-title} Close the chain from @sec-linear-algebra into a ring by also connecting site $N-1$ back to site $0$. Write `ring_hamiltonian(N, t)` that builds this $N \times N$ matrix. Then figure out (on paper, try a plane wave $\psi_j = e^{ikj}$) what the exact eigenvalues should be. The check compares `np.linalg.eigvalsh` of your matrix with $-2t\cos(2\pi m/N)$, $m = 0, \ldots, N-1$, and also checks that most of the levels come in degenerate pairs, which is the left and right moving waves with the same energy.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def ring_hamiltonian(N, t):
+    """Return the N x N tight-binding Hamiltonian of a ring with hopping amplitude t."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    N, t = 8, 1.0
+    H = ring_hamiltonian(N, t)
+    E = np.linalg.eigvalsh(H)
+    exact = np.sort(-2 * t * np.cos(2 * np.pi * np.arange(N) / N))
+    print(np.round(E, 6))
+    pairs = np.sum(np.isclose(np.diff(E), 0, atol=1e-10))
+    return np.allclose(H, H.T) and np.allclose(E, exact) and pairs == N // 2 - 1
+check("Exercise 1.3.2", test)
+```
+
+## Functions, State And Speed {#sec-functions}
+
+### Scope, and why globals are slow {#sec-scope}
+
+The *scope* of a variable is the part of the program where its name is visible. Python looks names up in the order local, enclosing function, global, built-in (people call it LEGB), and a function that only *reads* a global name just finds it there, while a function that *assigns* to a name makes it local unless you say `global x`. So the same name can mean different things in different functions without any conflict, which is what lets every function have its own `i` and `n`.
+
+Scope also turns out to be tied to speed, in a way that surprises people. In Julia, the single most common reason code is slow is a loop sitting at global scope, because a non-constant global could be rebound to anything of any type at any moment, so the compiler can't assume a type for it and every access becomes a slow dynamic lookup. Python is interpreted either way, but it shows a milder version of the same effect: local variables live in a fast array inside the function's frame, while globals are looked up in a dictionary every time.
+
+```{python}
+total = 0.0
+def accumulate_global(n):
+    global total
+    total = 0.0
+    for k in range(n):
+        total += k
+    return total
+
+def accumulate_local(n):
+    s = 0.0
+    for k in range(n):
+        s += k
+    return s
+
+for f in (accumulate_global, accumulate_local):
+    print(f"{f.__name__:18s} {time_it(lambda: f(10**6)):7.1f} ms")
+```
+
+So the habit is the same in both languages: put the work inside functions, pass data in as arguments, and keep globals for constants.
+
+### Closures and a random number generator {#sec-closures}
+
+Some functions need to remember something between calls. The obvious example is a random number generator: we call it with no arguments and it returns a different number every time, so it must keep an internal state somewhere. Where should that state live, without passing it around as an argument and without making it an unprotected global? One answer (the one the PY502 slides use, with Julia's `let` block) is a *closure*: a function defined inside another function captures the variables of that scope and keeps them alive for as long as the inner function exists.
+
+We'll use this to build the oldest practical generator there is, the *linear congruential generator* (LCG),
+$$
+x_{n+1} = (a\,x_n + c) \bmod m .
+$$
+With $m = 2^{64}$ we never have to write the mod at all, because unsigned 64-bit arithmetic *is* arithmetic modulo $2^{64}$ (@sec-wraparound), so the wraparound that's usually a bug becomes the algorithm. (In pure Python, whose integers never wrap, we have to mask with `& (2**64 - 1)` ourselves, which is the same thing.)
+
+```{python}
+def make_lcg(seed=1, a=6364136223846793005, c=1442695040888963407):
+    mask = 2**64 - 1
+    state = seed & mask
+    def ran64():
+        nonlocal state                      # assign to the captured variable, not a new local
+        state = (a * state + c) & mask      # x_{n+1} = (a x_n + c) mod 2^64
+        return state
+    def ranfloat():
+        return (ran64() >> 11) * 2.0**-53   # the top 53 bits, as a float in [0, 1)
+    return ran64, ranfloat
+
+ran64, ranfloat = make_lcg(seed=2026)
+print([ran64() % 10 for _ in range(10)])
+u = np.array([ranfloat() for _ in range(100_000)])
+print(f"mean {u.mean():.4f} (expect 0.5), variance {u.var():.4f} (expect {1/12:.4f})")
+```
+
+Nobody outside can reset `state` by accident, which is the whole point. Now let's see why the details are the way they are.
+
+A good generator should visit all $2^{64}$ states before it repeats. For a power-of-two modulus, the Hull-Dobell theorem says this full period happens exactly when $c$ is odd and $a - 1$ is divisible by 4 (Knuth, Vol. 2, §3.2.1.2). Our $c$ ends in 7, so it's odd, and $a$ ends in 05, so $a \equiv 1 \pmod 4$. Both hold (these are the constants Knuth chose for his MMIX computer).
+
+And why throw away the low 11 bits? Because the low bits of a power-of-two LCG are terrible, and the argument is short. Reducing the recursion modulo $2^{k+1}$ gives *another* LCG whose state can take at most $2^{k+1}$ values, so bit $k$ of the output has period at most $2^{k+1}$. The lowest bit has period 2 and just alternates $0, 1, 0, 1, \ldots$ (you can see the last digits above aren't exactly random-looking either). Only the high bits are anything like random, so we shift right by 11 to keep the top 53, and multiplying by $2^{-53}$ turns that into a float in $[0, 1)$. Since float64 has exactly 53 bits of precision, every one of those values is represented exactly.
+
+```{python}
+ran64, _ = make_lcg(seed=7)
+print("lowest bit:", [ran64() & 1 for _ in range(16)])
+```
+
+For real work we use NumPy's generators, `np.random.default_rng()`, which uses an algorithm called PCG64 (O'Neill, 2014). It's fast, has a period of $2^{128}$, and passes the standard statistical test batteries that a plain LCG fails. The LCG is here because it teaches so much in so few lines. We'll come back to random numbers, and to how bad an LCG can look, in @sec-pseudorandom.
+
+::: {#ex-1-4-1 .exercise}
+[**Exercise 1.4.1 (The period of a tiny LCG)**]{.theorem-title} Write `lcg_period(a, c, m, x0=0)` that iterates $x_{n+1} = (a x_n + c) \bmod m$ from $x_0$ and returns the length of the cycle it eventually falls into. The check verifies the Hull-Dobell prediction for $m = 64$: full period $64$ exactly when $c$ is odd and $a \equiv 1 \pmod 4$.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def lcg_period(a, c, m, x0=0):
+    """Return the length of the cycle that x -> (a x + c) mod m eventually enters, starting from x0."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    m = 64
+    ok = True
+    full = []
+    for a in range(m):
+        for c in range(m):
+            p = lcg_period(a, c, m)
+            predicted = (c % 2 == 1) and (a % 4 == 1)
+            if (p == m) != predicted:
+                print(f"a = {a}, c = {c}: period {p}, Hull-Dobell says full period is {predicted}")
+                ok = False
+            if p == m and c == 1:
+                full.append(a)
+    print("multipliers with full period for c = 1:", full)
+    return ok and lcg_period(5, 1, 8) == 8 and lcg_period(1, 0, 8) == 1
+check("Exercise 1.4.1", test)
+```
+
+### Habits for fast numerical Python {#sec-habits}
+
+Here's what all of this adds up to, as a list of habits. Most of them have an exact Julia twin in the PY502 slides, which I think is a sign that they're really about computers rather than about any one language.
+
+1. **Vectorize.** Push loops into NumPy (@sec-overhead). When you can't, keep the Python loop as the *outer* loop over something small (time steps, say) and make each step an array operation.
+2. **Put work in functions, and don't lean on globals** (@sec-scope).
+3. **Respect memory order.** With NumPy's default layout, the last index should vary fastest (@sec-memory-layout).
+4. **Avoid needless allocation.** Allocate work arrays once outside a time loop and update them in place, with `out=` arguments or augmented assignment like `x += dt * v`, which writes into `x` instead of creating a new array.
+5. **Watch your dtypes.** An integer array silently stays integer (`np.array([1, 2]) / 2` is fine, but `a = np.array([1, 2]); a[0] = 0.5` stores 0), and mixing float32 into float64 code quietly costs you accuracy. This is Python's version of Julia's "type stability".
+6. **Measure, don't guess.** Time things more than once (the first run often includes one-off costs), and look at the best time, not the first one.
+
+## A Worked Example: The Harmonic Oscillator {#sec-oscillator-example}
+
+Let's end by putting the pieces together in a small but honest physics computation, which is also a preview of @sec-equations-of-motion. We integrate Newton's equation for a harmonic oscillator, $\ddot{x} = -\omega^2 x$, with two methods and keep track of the energy $E = \tfrac{1}{2}v^2 + \tfrac{1}{2}\omega^2 x^2$, which the exact motion conserves.
+
+First a little analysis, so we know what the code *should* print. The forward Euler method updates the position and velocity using only the old values,
+$$
+x_{n+1} = x_n + v_n\,\Delta t, \qquad v_{n+1} = v_n - \omega^2 x_n\,\Delta t .
+$$
+Substitute these into $2E_{n+1} = v_{n+1}^2 + \omega^2 x_{n+1}^2$. The cross terms $\pm 2\omega^2 x_n v_n \Delta t$ cancel and what's left factorizes,
+$$
+2E_{n+1} = v_n^2 + \omega^2 x_n^2 + \omega^2\Delta t^2\left(v_n^2 + \omega^2 x_n^2\right) = (1 + \omega^2\Delta t^2)\, 2E_n .
+$$
+So Euler multiplies the energy by exactly $1 + \omega^2\Delta t^2$ every single step. With $\omega = 1$, $\Delta t = 0.01$ and $10^4$ steps (a total time of 100) that's $(1.0001)^{10000} \approx e$. The energy grows without bound, and no amount of waiting makes it settle down.
+
+The velocity Verlet method instead takes a half step in velocity, a full step in position, and another half step in velocity using the new force. We'll derive it properly in @sec-velocity-verlet, but for now we can just try it.
+
+```{python}
+def euler_step(x, v, dt, w):
+    return x + v * dt, v - w**2 * x * dt
+
+def verlet_step(x, v, dt, w):
+    vh = v - 0.5 * w**2 * x * dt
+    xn = x + vh * dt
+    return xn, vh - 0.5 * w**2 * xn * dt
+
+def simulate(step, x0=1.0, v0=0.0, w=1.0, dt=0.01, nsteps=10_000):
+    x, v = x0, v0
+    E = np.empty(nsteps + 1)                 # allocate once, fill in the loop
+    E[0] = 0.5 * v**2 + 0.5 * w**2 * x**2
+    for n in range(1, nsteps + 1):
+        x, v = step(x, v, dt, w)
+        E[n] = 0.5 * v**2 + 0.5 * w**2 * x**2
+    return E
+
+for step in (euler_step, verlet_step):
+    E = simulate(step)
+    print(f"{step.__name__:12s} E_final/E_0 = {E[-1] / E[0]:.10f}   max |E/E_0 - 1| = {np.abs(E / E[0] - 1).max():.3e}")
+print(f"prediction for Euler: {(1 + 0.01**2) ** 10000:.10f}")
+```
+
+The Euler number matches the prediction $(1.0001)^{10000}$ to every digit shown, which is a really satisfying check that the code does what the algebra says. Verlet's worst deviation is $2.5 \times 10^{-5}$, which happens to be exactly $(\omega\Delta t)^2/4$ here, and it doesn't grow at all. Let's look at it.
+
+```{python}
+#| fig-cap: "Energy of the oscillator over 16 periods. Euler's energy grows exponentially; velocity Verlet's wiggles at the level of $(\\omega\\Delta t)^2$ and never drifts."
+t = 0.01 * np.arange(10_001)
+fig, ax = plt.subplots(1, 2, figsize=(9, 3.2))
+ax[0].plot(t, simulate(euler_step) / 0.5, color="#3B6FB6")
+ax[0].set_xlabel("$t$"); ax[0].set_ylabel("$E/E_0$"); ax[0].set_title("Euler")
+ax[1].plot(t, simulate(verlet_step) / 0.5 - 1, color="#E07A3F", lw=0.8)
+ax[1].set_xlabel("$t$"); ax[1].set_ylabel("$E/E_0 - 1$"); ax[1].set_title("velocity Verlet")
+fig.tight_layout(); plt.show()
+```
+
+The interesting thing here is that the two methods do basically the same amount of work per step, and Verlet even has the same order of accuracy per step as a naive count would suggest for Euler's big brother, and yet one of them is qualitatively wrong for long times and the other isn't. Figuring out why is most of @sec-equations-of-motion.
+
+::: {#ex-1-5-1 .exercise}
+[**Exercise 1.5.1 (Halve the time step)**]{.theorem-title} Write `verlet_drift(dt)` that runs the velocity Verlet oscillator above with $\omega = 1$ up to $t = 100$ (so `round(100/dt)` steps) and returns $\max_n |E_n/E_0 - 1|$. The check confirms that the drift is $(\omega\Delta t)^2/4$ and so shrinks by a factor of four each time $\Delta t$ is halved, which is the signature of a second-order method.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def verlet_drift(dt):
+    """Return max |E/E_0 - 1| for velocity Verlet on the oscillator (omega = 1, x0 = 1, v0 = 0) up to t = 100."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    ok = True
+    prev = None
+    for dt in [0.04, 0.02, 0.01]:
+        d = verlet_drift(dt)
+        print(f"dt = {dt:5.2f}   drift {d:.3e}   (dt^2/4 = {dt**2 / 4:.3e})" + (f"   ratio {prev / d:.2f}" if prev else ""))
+        ok = ok and abs(d / (dt**2 / 4) - 1) < 0.05
+        prev = d
+    return ok
+check("Exercise 1.5.1", test)
+```

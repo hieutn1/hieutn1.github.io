@@ -1,0 +1,23 @@
+# Preface {.unnumbered}
+
+These notes started as my attempt to turn the PY502 lectures on computational physics at Boston University (taught by Anders Sandvik) into something I could actually read on my own, with all the reasoning that gets said out loud in lecture but never makes it onto the slides filled back in. The course itself is taught in Julia, and I like Julia a lot (we'll see why in the first chapter), but almost everyone I know who does physics also ends up writing Python at some point, and Python has the huge advantage that it can run right here in your browser. So everything in this book is done in Python, with NumPy, SciPy and Matplotlib, and the places where the Julia way of doing things teaches us something about how computers work are still in there, just translated.
+
+The book follows the first block of the course, which is basically everything you need before you can start doing real simulations. [Chapter 1](01-scientific-computing.html) is about what numbers actually are inside a computer (this sounds boring, but it's where most of the weird bugs come from) and how to write numerical Python that isn't painfully slow. [Chapter 2](02-integration.html) is about computing integrals, first on a grid and then with random numbers, which is our first taste of Monte Carlo. [Chapter 3](03-equations-of-motion.html) solves Newton's equations, and the punchline there is that the "best" method isn't always the one with the smallest error per step. [Chapter 4](04-schrodinger.html) does the same for quantum mechanics, the time-independent Schrödinger equation in one, two and many dimensions and then the time-dependent one.
+
+My bias is that of a physicist. I care more about why a method works (and why it fails) than about stating it in its most general form, so you'll see a lot of Taylor expansions and a lot of small experiments where we test a method on a problem we can solve exactly. I'd honestly recommend doing the same in your own work, since a method you haven't tested on a problem with a known answer is a method you don't actually trust yet.
+
+::: {.callout-note}
+## Running the code in these notes
+
+Every Python cell in this book was run when the page was built, so the output is already there to read. Each cell also has a *Run* button. The first time you press one, the page downloads Python together with NumPy, SciPy and Matplotlib (about 40 MB, which your browser then keeps) and runs the code right in the page. Nothing needs installing. You can edit any cell and run it again, and your output replaces the printed one.
+
+Python in the browser is quite a bit slower than on a laptop, so a few of the bigger computations will take a while there (I've tried to keep them small). If that bothers you, run the code on your own computer instead. Download `start_kernel.py` and `requirements.txt` from the [course page](../), install the packages with `pip install -r requirements.txt`, and run `python start_kernel.py`. It opens this book connected to Python on your machine.
+
+:::
+
+::: {.callout-tip}
+## Exercises
+
+Each chapter has programming exercises at the end of the sections they practise. Each one has a cell for your code, which starts as a function whose body simply raises `NotImplementedError`, followed by a check cell. Press *Edit* on the exercise cell, replace the `raise` line with your own code, press *Run*, and then run the check below it. The checks print what they find and never stop the page, so *Run all* works whether or not you've done any exercises yet.
+
+:::

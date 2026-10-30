@@ -1,0 +1,6 @@
+# What a reader needs to run the code in the book (python start_kernel.py)
+numpy
+scipy
+matplotlib
+ipykernel
+jupyter_server>=2

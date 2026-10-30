@@ -41,7 +41,7 @@
     <header class="course-head">
       <a class="crumb" href="/#notes">← All notes</a>
       <h1>Computational Physics</h1>
-      <p class="course-meta"><span>Physics</span><span>In progress</span></p>
+      <p class="course-meta"><span>Physics</span><span>Full notes online</span></p>
       <div class="course-intro">
         <p>Notes on computational methods in statistical physics, inspired by PY502 taught by Anders Sandvik.</p>
       </div>
@@ -55,23 +55,72 @@
             <span class="doc-num" aria-hidden="true">·</span>
             <div class="doc-body">
               <h3>Full notes</h3>
-              <p>Every chapter in a single PDF.</p>
+              <p>Every chapter in one book that runs its own code. Read it as it is, or press Run on any cell to run it, change it and run it again.</p>
             </div>
-            <span class="doc-link soon">Coming soon</span>
-            <!-- To publish: upload the PDF into this folder, then replace the "Coming soon" line above with
-               <a class="doc-link" href="FILE-NAME.pdf">PDF</a> -->
+            <a class="doc-link" href="book/">Read</a>
           </li>
-          <li class="doc doc-empty">
-            <div class="doc-body"><p>Chapters will be listed here, each with its own PDF.</p></div>
-            <!-- To add a chapter, replace this item with one like:
           <li class="doc">
             <span class="doc-num">1</span>
             <div class="doc-body">
-              <h3>Chapter title</h3>
-              <p>Topics, in a sentence.</p>
+              <h3>Scientific computing in Python</h3>
+              <p>Why Python is slow and how NumPy gets around it, integers and floating-point numbers, arrays and memory layout, and a first look at the harmonic oscillator. With 7 programming exercises.</p>
             </div>
-            <a class="doc-link" href="chapter-1.pdf">PDF</a>
-          </li>  -->
+            <a class="doc-link" href="book/01-scientific-computing.html">Read</a>
+          </li>
+          <li class="doc">
+            <span class="doc-num">2</span>
+            <div class="doc-body">
+              <h3>Numerical and Monte Carlo integration</h3>
+              <p>Trapezoid and Simpson, Romberg and Gaussian quadrature, singular integrands, Monte Carlo error bars and binning, pseudo-random numbers and importance sampling. With 5 programming exercises.</p>
+            </div>
+            <a class="doc-link" href="book/02-integration.html">Read</a>
+          </li>
+          <li class="doc">
+            <span class="doc-num">3</span>
+            <div class="doc-body">
+              <h3>Equations of motion</h3>
+              <p>Euler and why it fails, leapfrog and Verlet, time reversibility, Runge-Kutta with adaptive steps, planetary orbits, the driven pendulum and the logistic map. With 5 programming exercises.</p>
+            </div>
+            <a class="doc-link" href="book/03-equations-of-motion.html">Read</a>
+          </li>
+          <li class="doc">
+            <span class="doc-num">4</span>
+            <div class="doc-body">
+              <h3>The Schrödinger equation</h3>
+              <p>Numerov and shooting, variational methods, grids and the Lanczos method, and time evolution with the split-operator FFT method. With 4 programming exercises.</p>
+            </div>
+            <a class="doc-link" href="book/04-schrodinger.html">Read</a>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="course-section" aria-labelledby="h-running">
+      <h2 id="h-running" class="label">Running the code</h2>
+      <div>
+        <ol class="docs">
+          <li class="doc">
+            <span class="doc-num" aria-hidden="true">·</span>
+            <div class="doc-body">
+              <h3>In your browser</h3>
+              <p>Nothing to install. The first time you press Run, the page downloads Python with NumPy, SciPy and Matplotlib (about 40&nbsp;MB, kept by your browser afterwards) and runs the code inside the page.</p>
+            </div>
+          </li>
+          <li class="doc">
+            <span class="doc-num" aria-hidden="true">·</span>
+            <div class="doc-body">
+              <h3>On your computer</h3>
+              <p>Faster, which helps with the longer simulations. Install the packages with <code>pip install -r requirements.txt</code>, then run <code>python start_kernel.py</code>. It opens the notes connected to your own Python.</p>
+            </div>
+            <a class="doc-link" href="start_kernel.py" download>Download</a>
+          </li>
+          <li class="doc">
+            <span class="doc-num" aria-hidden="true">·</span>
+            <div class="doc-body">
+              <h3>The packages</h3>
+              <p>The Python packages the notes use, for <code>pip install -r requirements.txt</code>.</p>
+            </div>
+            <a class="doc-link" href="requirements.txt" download>Download</a>
           </li>
         </ol>
       </div>

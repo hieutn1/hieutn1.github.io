@@ -1,0 +1,226 @@
+/*-- scss:defaults --*/
+
+// =====================================================================
+//  THE PREAMBLE
+//  Everything about the look of the book is set by the variables in this
+//  block, the way a LaTeX preamble sets fonts, colours and page width.
+//  Change a value, re-run `quarto render` (or keep `quarto preview` open),
+//  and every page follows.
+// =====================================================================
+
+// Fonts. The Latin Modern and CMU files live in ../fonts and are loaded below.
+$tb-body-font:      "Latin Modern Roman", "Latin Modern", Georgia, "Times New Roman", serif;
+$tb-heading-font:   $tb-body-font;
+$tb-code-font:      "CMU Typewriter Text", "Latin Modern Mono", Menlo, Consolas, monospace;
+
+// Size and rhythm. 1.2rem is close to an 11pt LaTeX page read on a screen.
+$tb-font-size:      1.2rem;
+$tb-line-height:    1.6;
+$tb-code-size:      0.86em;
+$tb-justify:        true;          // false gives a ragged right margin
+
+// Colours.
+$tb-ink:            #1c1b19;       // body text
+$tb-paper:          #fcfbf7;       // page background, a faintly warm white
+$tb-accent:         #8a2a2b;       // section numbers, exercise rule, chapter label
+$tb-link:           #1f4a7d;       // hyperref-style links
+$tb-muted:          #6b665c;       // captions, small print
+$tb-rule:           #ddd7c9;       // hairlines
+$tb-code-bg:        #f3f0e8;       // code cells
+$tb-output-bg:      #ffffff;       // printed output under a cell
+$tb-exercise-bg:    #f7f1ea;       // exercise boxes
+
+// ---------------------------------------------------------------------
+//  Below this line the preamble is mapped onto Quarto and Bootstrap.
+//  You rarely need to touch it.
+// ---------------------------------------------------------------------
+$body-bg:                 $tb-paper;
+$body-color:              $tb-ink;
+$link-color:              $tb-link;
+$font-family-sans-serif:  $tb-body-font;
+$font-family-monospace:   $tb-code-font;
+$headings-font-family:    $tb-heading-font;
+$headings-font-weight:    700;
+$font-size-root:          $tb-font-size;
+$line-height-base:        $tb-line-height;
+$code-color:              $tb-ink;
+$code-block-bg:           $tb-code-bg;
+$code-block-border-left:  $tb-accent;
+$code-block-bg-padding:   0.9em;
+$toc-color:               $tb-link;
+$sidebar-bg:              $tb-paper;
+$sidebar-fg:              $tb-ink;
+$footer-bg:               $tb-paper;
+$border-color:            $tb-rule;
+$table-border-color:      $tb-rule;
+$callout-color-note:      $tb-link;
+$callout-color-tip:       $tb-accent;
+$code-bg:                 transparent;
+
+
+/*-- scss:rules --*/
+
+// ---------- fonts ----------
+@font-face { font-family: "Latin Modern Roman"; src: url("fonts/LM-regular.woff2") format("woff2");
+  font-weight: normal; font-style: normal; font-display: swap; }
+@font-face { font-family: "Latin Modern Roman"; src: url("fonts/LM-italic.woff2") format("woff2");
+  font-weight: normal; font-style: italic; font-display: swap; }
+@font-face { font-family: "Latin Modern Roman"; src: url("fonts/LM-bold.woff2") format("woff2");
+  font-weight: bold; font-style: normal; font-display: swap; }
+@font-face { font-family: "Latin Modern Roman"; src: url("fonts/LM-bold-italic.woff2") format("woff2");
+  font-weight: bold; font-style: italic; font-display: swap; }
+@font-face { font-family: "CMU Typewriter Text"; src: url("fonts/cmu-typewriter-text-500-roman.woff2") format("woff2");
+  font-weight: normal; font-style: normal; font-display: swap; }
+@font-face { font-family: "CMU Typewriter Text"; src: url("fonts/cmu-typewriter-text-500-italic.woff2") format("woff2");
+  font-weight: normal; font-style: italic; font-display: swap; }
+@font-face { font-family: "CMU Typewriter Text"; src: url("fonts/cmu-typewriter-text-700-roman.woff2") format("woff2");
+  font-weight: bold; font-style: normal; font-display: swap; }
+
+// ---------- body text ----------
+main.content {
+  font-feature-settings: "liga" 1, "kern" 1;
+  -webkit-font-smoothing: antialiased;
+}
+main.content p {
+  @if $tb-justify { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
+}
+main.content li { hyphens: auto; -webkit-hyphens: auto; }   // lists stay ragged right, like most LaTeX lists with long links
+main.content p { margin-bottom: 0.9em; }
+::selection { background: rgba($tb-accent, 0.15); }
+
+a { text-decoration: none; }
+a:hover { text-decoration: underline; text-decoration-thickness: 0.06em; }
+
+// ---------- chapter title, LaTeX book style ----------
+#title-block-header { margin-bottom: 2.2rem; }
+#title-block-header h1.title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  font-weight: 700;
+  margin-top: 1.2rem;
+  border-bottom: none;
+}
+h1.title .chapter-number {
+  display: block;
+  font-size: 0.6em;
+  font-weight: normal;
+  letter-spacing: 0.04em;
+  color: $tb-accent;
+  margin-bottom: 0.45em;
+  &::before { content: "Chapter "; }
+}
+h1.title .chapter-title { display: block; }
+.quarto-title .subtitle { color: $tb-muted; font-style: italic; font-weight: normal; }
+
+// ---------- section headings ----------
+main.content h2, main.content h3 {
+  border-bottom: none;
+  margin-top: 2.2rem;
+  margin-bottom: 0.9rem;
+  font-weight: 700;
+}
+main.content h2 { font-size: 1.5rem; }
+main.content h3 { font-size: 1.2rem; }
+.header-section-number {
+  color: $tb-accent;
+  margin-right: 0.7em;
+}
+
+// ---------- maths ----------
+mjx-container[display="true"] { margin: 1.1em 0 !important; }
+
+// ---------- code cells ----------
+div.sourceCode, pre.sourceCode {
+  border-radius: 2px;
+  border: none;
+}
+div.sourceCode {
+  background: $tb-code-bg;
+  border-left: 3px solid rgba($tb-accent, 0.55);
+  margin: 1.1em 0 0.6em 0;
+}
+pre, code, kbd { font-family: $tb-code-font; }
+div.sourceCode pre, div.sourceCode code { font-size: $tb-code-size; line-height: 1.45; }
+div.sourceCode { overflow-x: auto; }
+div.sourceCode pre.sourceCode { overflow: visible; }
+main.content code:not(.sourceCode), .callout code:not(.sourceCode) {
+  background: transparent !important;
+  padding: 0;
+  font-size: 0.93em;
+  color: $tb-ink;
+}
+
+// printed output under a cell
+.cell-output, .cell-output-display {
+  margin: 0 0 1.2em 0;
+}
+.cell-output pre, .cell-output-stdout pre, .cell-output-error pre {
+  background: $tb-output-bg;
+  border: 1px solid $tb-rule;
+  border-left: 3px solid $tb-rule;
+  border-radius: 2px;
+  padding: 0.6em 0.9em;
+  font-size: $tb-code-size;
+  margin: 0;
+}
+.cell-output-error pre { border-left-color: #b4453c; color: #7a2620; }
+.cell-output-display img { max-width: 100%; }
+
+// folded setup cells
+details.code-fold > summary {
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  color: $tb-muted;
+  font-size: 0.95em;
+}
+
+// ---------- exercises, in the style of an amsthm environment ----------
+div.theorem.exercise, div.exercise {
+  background: $tb-exercise-bg;
+  border-left: 3px solid $tb-accent;
+  padding: 0.9em 1.15em 0.2em 1.15em;
+  margin: 2em 0 0.8em 0;
+  .theorem-title, .theorem-title strong { color: $tb-accent; }
+}
+
+// ---------- callouts, toned down ----------
+.callout {
+  border: none !important;
+  border-left: 3px solid $tb-rule !important;
+  border-radius: 0 !important;
+  box-shadow: none;
+  background: transparent;
+  margin: 1.6em 0;
+  .callout-header {
+    background: transparent !important;
+    border: none !important;
+    padding-left: 0.9em;
+  }
+  .callout-title-container { font-weight: 700; font-variant: small-caps; letter-spacing: 0.03em; }
+  .callout-icon-container { display: none; }
+  .callout-body-container { padding-left: 0.9em; }
+}
+.callout.callout-style-default.callout-tip { border-left-color: rgba($tb-accent, 0.6) !important; }
+.callout.callout-style-default.callout-note { border-left-color: rgba($tb-link, 0.6) !important; }
+
+// ---------- navigation chrome in the same serif ----------
+.sidebar, #TOC, #quarto-margin-sidebar, .quarto-title-meta, .nav-page {
+  font-family: $tb-body-font;
+}
+#TOC .nav-link.active { color: $tb-accent; }
+.sidebar-item .chapter-number { color: $tb-accent; }
+.quarto-title-meta-heading { font-variant: small-caps; letter-spacing: 0.05em; }
+
+// ---------- figures ----------
+figure figcaption, .figure-caption {
+  color: $tb-muted;
+  font-size: 0.92em;
+  text-align: center;
+}
+
+// ---------- small screens ----------
+@media (max-width: 700px) {
+  html { font-size: 1rem; }
+  main.content p, main.content li { text-align: left; }
+  #title-block-header h1.title { font-size: 1.9rem; }
+}

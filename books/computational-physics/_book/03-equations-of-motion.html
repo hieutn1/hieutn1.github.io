@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.20">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>3&nbsp; Equations of Motion – Computational Physics</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./04-schrodinger.html" rel="next">
+<link href="./02-integration.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-da0f4d964b336c7357bd1e6e7fe8ee30.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-42a672b7a9700d1436569573ce3dcc0e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/quarto-contrib/livecells-0.2.0/livecells.css" rel="stylesheet">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script>window.LIVECELLS_CONFIG = {"server": "http://127.0.0.1:8888", "kernelName": "python3", "pyodide": "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/", "packages": ["numpy", "scipy", "matplotlib"]};</script>
+  <script defer="" src="mathjax/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./03-equations-of-motion.html"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Equations of Motion</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto"><div class="quarto-sidebar-header"><div class="sidebar-header-item">
+<p><a href="../">← Course page</a></p>
+</div></div>
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Computational Physics</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01-scientific-computing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Scientific Computing in Python</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02-integration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Numerical and Monte Carlo Integration</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03-equations-of-motion.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Equations of Motion</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04-schrodinger.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">The Schrödinger Equation</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active" data-toc-expanded="1">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#sec-newton" id="toc-sec-newton" class="nav-link active" data-scroll-target="#sec-newton"><span class="header-section-number">3.1</span> From Newton To A Computer</a>
+  <ul class="collapse">
+  <li><a href="#sec-first-order" id="toc-sec-first-order" class="nav-link" data-scroll-target="#sec-first-order"><span class="header-section-number">3.1.1</span> Equations of motion as a first-order system</a></li>
+  <li><a href="#sec-euler" id="toc-sec-euler" class="nav-link" data-scroll-target="#sec-euler"><span class="header-section-number">3.1.2</span> The Euler method</a></li>
+  <li><a href="#sec-euler-wrong" id="toc-sec-euler-wrong" class="nav-link" data-scroll-target="#sec-euler-wrong"><span class="header-section-number">3.1.3</span> What goes wrong with Euler</a></li>
+  <li><a href="#sec-euler-cromer" id="toc-sec-euler-cromer" class="nav-link" data-scroll-target="#sec-euler-cromer"><span class="header-section-number">3.1.4</span> A one-line fix, and the idea behind it</a></li>
+  </ul></li>
+  <li><a href="#sec-verlet" id="toc-sec-verlet" class="nav-link" data-scroll-target="#sec-verlet"><span class="header-section-number">3.2</span> Leapfrog And Verlet</a>
+  <ul class="collapse">
+  <li><a href="#sec-leapfrog" id="toc-sec-leapfrog" class="nav-link" data-scroll-target="#sec-leapfrog"><span class="header-section-number">3.2.1</span> Velocities on half steps</a></li>
+  <li><a href="#sec-verlet-form" id="toc-sec-verlet-form" class="nav-link" data-scroll-target="#sec-verlet-form"><span class="header-section-number">3.2.2</span> The Verlet form and the true step error</a></li>
+  <li><a href="#sec-velocity-verlet" id="toc-sec-velocity-verlet" class="nav-link" data-scroll-target="#sec-velocity-verlet"><span class="header-section-number">3.2.3</span> Velocity Verlet</a></li>
+  <li><a href="#sec-reversibility" id="toc-sec-reversibility" class="nav-link" data-scroll-target="#sec-reversibility"><span class="header-section-number">3.2.4</span> Time reversibility and bounded errors</a></li>
+  <li><a href="#sec-verlet-exact" id="toc-sec-verlet-exact" class="nav-link" data-scroll-target="#sec-verlet-exact"><span class="header-section-number">3.2.5</span> The oscillator solved exactly</a></li>
+  <li><a href="#sec-error-accumulation" id="toc-sec-error-accumulation" class="nav-link" data-scroll-target="#sec-error-accumulation"><span class="header-section-number">3.2.6</span> How errors accumulate in general</a></li>
+  <li><a href="#sec-damping" id="toc-sec-damping" class="nav-link" data-scroll-target="#sec-damping"><span class="header-section-number">3.2.7</span> Adding damping</a></li>
+  </ul></li>
+  <li><a href="#sec-runge-kutta" id="toc-sec-runge-kutta" class="nav-link" data-scroll-target="#sec-runge-kutta"><span class="header-section-number">3.3</span> Runge-Kutta Methods</a>
+  <ul class="collapse">
+  <li><a href="#sec-rk2" id="toc-sec-rk2" class="nav-link" data-scroll-target="#sec-rk2"><span class="header-section-number">3.3.1</span> Second order, the midpoint rule</a></li>
+  <li><a href="#sec-rk4" id="toc-sec-rk4" class="nav-link" data-scroll-target="#sec-rk4"><span class="header-section-number">3.3.2</span> Fourth order, the Simpson rule</a></li>
+  <li><a href="#sec-rk4-drift" id="toc-sec-rk4-drift" class="nav-link" data-scroll-target="#sec-rk4-drift"><span class="header-section-number">3.3.3</span> Energy drift, and when leapfrog wins anyway</a></li>
+  <li><a href="#sec-adaptive-steps" id="toc-sec-adaptive-steps" class="nav-link" data-scroll-target="#sec-adaptive-steps"><span class="header-section-number">3.3.4</span> Adaptive time steps</a></li>
+  </ul></li>
+  <li><a href="#sec-orbits-chaos" id="toc-sec-orbits-chaos" class="nav-link" data-scroll-target="#sec-orbits-chaos"><span class="header-section-number">3.4</span> Orbits And Chaos</a>
+  <ul class="collapse">
+  <li><a href="#sec-orbits" id="toc-sec-orbits" class="nav-link" data-scroll-target="#sec-orbits"><span class="header-section-number">3.4.1</span> Planetary orbits</a></li>
+  <li><a href="#sec-chaos" id="toc-sec-chaos" class="nav-link" data-scroll-target="#sec-chaos"><span class="header-section-number">3.4.2</span> Chaos in a driven pendulum</a></li>
+  <li><a href="#sec-logistic" id="toc-sec-logistic" class="nav-link" data-scroll-target="#sec-logistic"><span class="header-section-number">3.4.3</span> Universality, the logistic map and Lyapunov exponents</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span id="sec-equations-of-motion" class="quarto-section-identifier"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Equations of Motion</span></span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>Newton’s second law is a differential equation, and except for a handful of textbook cases (the oscillator, the Kepler problem, a few others) we can’t solve it with pen and paper. So in this chapter we teach the computer to do it. The naive method takes about three lines and is wrong in a really instructive way, and fixing it leads to the idea that runs through this whole chapter, which is that a good integrator isn’t just one with a small error per step, it’s one that respects the <em>structure</em> of the equations (time reversibility, conservation of phase space volume) so that its errors don’t pile up over long times. At the end we’ll point our integrators at planetary orbits and at chaos, where the question of what “accurate” even means gets a little philosophical.</p>
+<div id="18ed311a" class="cell lc-autorun" data-execution_count="1">
+<details class="code-fold">
+<summary>Setup: imports and the helper used by the exercise checks</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># [Setup] Run once. Imports what this chapter uses and defines the helper that every check cell calls.</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy <span class="im">import</span> special</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> check(name, test):</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Run test(), which returns True or False, and report the result without ever raising."""</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>        ok <span class="op">=</span> test()</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> <span class="pp">NotImplementedError</span>:</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: not attempted yet"</span>)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> <span class="pp">Exception</span> <span class="im">as</span> err:</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: your code raised </span><span class="sc">{</span><span class="bu">type</span>(err)<span class="sc">.</span><span class="va">__name__</span><span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>err<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: "</span> <span class="op">+</span> (<span class="st">"passed"</span> <span class="cf">if</span> ok <span class="cf">else</span> <span class="st">"not yet. Something is off, see the output above."</span>))</span></code></pre></div>
+</details>
+</div>
+<section id="sec-newton" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="sec-newton"><span class="header-section-number">3.1</span> From Newton To A Computer</h2>
+<section id="sec-first-order" class="level3" data-number="3.1.1">
+<h3 data-number="3.1.1" class="anchored" data-anchor-id="sec-first-order"><span class="header-section-number">3.1.1</span> Equations of motion as a first-order system</h3>
+<p>A point particle of mass <span class="math inline">\(m\)</span> moving in one dimension obeys <span class="math display">\[
+\ddot{x}(t) = \frac{1}{m}F\big[x(t), \dot{x}(t), t\big],
+\]</span> where the force can depend on position (a potential), on velocity (friction or damping) and explicitly on time (a driving force). Numerical methods are most naturally written for <em>first-order</em> equations, so we introduce the velocity <span class="math inline">\(v\)</span> as a second unknown and turn one second-order equation into two first-order ones, <span class="math display">\[
+\dot{x} = v, \qquad \dot{v} = a(x, v, t) = \frac{1}{m}F(x, v, t).
+\]</span> This trick is completely general. Any system of ordinary differential equations of any order can be rewritten as a first-order system for a longer vector of unknowns, and every method below works on such vectors. The pair <span class="math inline">\((x, v)\)</span> is a point in <em>phase space</em>, and the solution is a curve through it. We then discretize time into steps <span class="math inline">\(t_n = t_0 + n\Delta t\)</span> and try to compute <span class="math inline">\(x_n \approx x(t_n)\)</span> and <span class="math inline">\(v_n \approx v(t_n)\)</span>, starting from the given <span class="math inline">\(x_0\)</span> and <span class="math inline">\(v_0\)</span>.</p>
+</section>
+<section id="sec-euler" class="level3" data-number="3.1.2">
+<h3 data-number="3.1.2" class="anchored" data-anchor-id="sec-euler"><span class="header-section-number">3.1.2</span> The Euler method</h3>
+<p>The obvious first attempt Taylor expands both unknowns about <span class="math inline">\(t_n\)</span> and keeps the linear terms, <span class="math display">\[
+x_{n+1} = x_n + \Delta t\, v_n, \qquad v_{n+1} = v_n + \Delta t\, a_n, \qquad a_n = a(x_n, v_n, t_n).
+\]</span> The terms we dropped start at <span class="math inline">\(\tfrac{1}{2}\Delta t^2 a_n\)</span>, so the <em>step error</em> (also called the local error) is <span class="math inline">\(O(\Delta t^2)\)</span>. To reach a fixed final time <span class="math inline">\(T\)</span> we take <span class="math inline">\(T/\Delta t\)</span> steps, and if the step errors simply added up, the global error at <span class="math inline">\(T\)</span> would be about <span class="math inline">\((T/\Delta t)\times\Delta t^2 = T\Delta t\)</span>, so Euler is a <em>first-order</em> method. (They don’t always simply add up, as we’re about to see, and that’s really the point of this whole section.)</p>
+<div id="60012460" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> euler(acc, x0, v0, dt, nsteps):</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    x, v <span class="op">=</span> x0, v0</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    xs, vs <span class="op">=</span> [x], [v]</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> n <span class="kw">in</span> <span class="bu">range</span>(nsteps):</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        t <span class="op">=</span> n <span class="op">*</span> dt</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>        a <span class="op">=</span> acc(x, v, t)                 <span class="co"># evaluated with the OLD x, v, t</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        x, v <span class="op">=</span> x <span class="op">+</span> dt <span class="op">*</span> v, v <span class="op">+</span> dt <span class="op">*</span> a</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        xs.append(x)<span class="op">;</span> vs.append(v)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.array(xs), np.array(vs)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>osc <span class="op">=</span> <span class="kw">lambda</span> x, v, t: <span class="op">-</span>x                 <span class="co"># harmonic oscillator with omega = 1</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> dt <span class="kw">in</span> [<span class="fl">0.01</span>, <span class="fl">0.001</span>]:</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    xs, vs <span class="op">=</span> euler(osc, <span class="fl">1.0</span>, <span class="fl">0.0</span>, dt, <span class="bu">round</span>(<span class="dv">50</span> <span class="op">/</span> dt))</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    E <span class="op">=</span> <span class="fl">0.5</span> <span class="op">*</span> (vs[<span class="op">-</span><span class="dv">1</span>] <span class="op">**</span> <span class="dv">2</span> <span class="op">+</span> xs[<span class="op">-</span><span class="dv">1</span>] <span class="op">**</span> <span class="dv">2</span>)</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"dt = </span><span class="sc">{</span>dt<span class="sc">}</span><span class="ss">:  E(50) = </span><span class="sc">{</span>E<span class="sc">:.4f}</span><span class="ss">   (exact 0.5)   relative error </span><span class="sc">{</span>E <span class="op">/</span> <span class="fl">0.5</span> <span class="op">-</span> <span class="dv">1</span><span class="sc">:.1%}</span><span class="ss">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>dt = 0.01:  E(50) = 0.8243   (exact 0.5)   relative error 64.9%
+dt = 0.001:  E(50) = 0.5256   (exact 0.5)   relative error 5.1%</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-euler-wrong" class="level3" data-number="3.1.3">
+<h3 data-number="3.1.3" class="anchored" data-anchor-id="sec-euler-wrong"><span class="header-section-number">3.1.3</span> What goes wrong with Euler</h3>
+<p>For the oscillator we can compute Euler’s behavior exactly (we did this in <a href="01-scientific-computing.html#sec-oscillator-example" class="quarto-xref"><span>Section 1.5</span></a>). Substituting the update rule into <span class="math inline">\(2E_{n+1} = v_{n+1}^2 + \omega^2 x_{n+1}^2\)</span>, the cross terms cancel and <span class="math display">\[
+E_{n+1} = (1 + \omega^2\Delta t^2)\,E_n \quad\Longrightarrow\quad E(t) = E_0\,(1+\omega^2\Delta t^2)^{t/\Delta t} \approx E_0\, e^{\omega^2\Delta t\,t}.
+\]</span> The energy grows <em>exponentially</em> in time, with a rate proportional to <span class="math inline">\(\Delta t\)</span>. With <span class="math inline">\(\Delta t = 0.01\)</span> that’s <span class="math inline">\(0.5\,e^{0.5} = 0.824\)</span> at <span class="math inline">\(t = 50\)</span>, and with <span class="math inline">\(\Delta t = 10^{-3}\)</span> it’s <span class="math inline">\(0.5\,e^{0.05} = 0.526\)</span>, exactly what the code printed. So the error isn’t really <span class="math inline">\(T\Delta t\)</span>, it’s <span class="math inline">\(e^{\omega^2\Delta t T} - 1\)</span>, which looks like <span class="math inline">\(T\Delta t\)</span> for short times and then runs away.</p>
+<p>There’s a nice geometric way to see what’s happening. Each Euler step is a linear map on phase space, <span class="math display">\[
+\begin{pmatrix} x_{n+1} \\ v_{n+1}\end{pmatrix} = A\begin{pmatrix} x_n \\ v_n\end{pmatrix}, \qquad A = \begin{pmatrix} 1 &amp; \Delta t \\ -\omega^2\Delta t &amp; 1\end{pmatrix}, \qquad \det A = 1 + \omega^2\Delta t^2 .
+\]</span> The determinant is the factor by which the map stretches areas in phase space, and it’s bigger than one, so every step inflates phase space a little bit, and the orbit spirals outward.</p>
+</section>
+<section id="sec-euler-cromer" class="level3" data-number="3.1.4">
+<h3 data-number="3.1.4" class="anchored" data-anchor-id="sec-euler-cromer"><span class="header-section-number">3.1.4</span> A one-line fix, and the idea behind it</h3>
+<p>Here’s the surprise. Update the velocity <em>first</em>, and then use the <em>new</em> velocity to update the position:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>v <span class="op">=</span> v <span class="op">+</span> dt <span class="op">*</span> acc(x, t)      <span class="co"># velocity first</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> x <span class="op">+</span> dt <span class="op">*</span> v              <span class="co"># position with the updated velocity</span></span></code></pre></div>
+<p>This is sometimes called the semi-implicit or Euler-Cromer method, and its matrix for the oscillator is <span class="math display">\[
+A' = \begin{pmatrix} 1 - \omega^2\Delta t^2 &amp; \Delta t \\ -\omega^2\Delta t &amp; 1 \end{pmatrix}, \qquad \det A' = 1 .
+\]</span> The determinant is <em>exactly</em> one. A map with determinant one preserves areas in phase space, and Hamiltonian flow has precisely this property (Liouville’s theorem), so the swapped scheme respects a geometric property of the exact dynamics that Euler violates. Its eigenvalues are then complex conjugates of modulus one as long as <span class="math inline">\(\omega\Delta t &lt; 2\)</span>, which means the numerical orbit is a closed ellipse (a slightly squashed one) instead of a spiral, and the energy oscillates but never drifts. Swapping two lines changed the long-time behavior completely. Methods with this area-preserving property are called <em>symplectic</em>, and they’re what we want for anything conservative.</p>
+<div id="ex-3-1-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 3.1.1 (Euler versus Euler-Cromer)</strong></span> Write <code>euler_cromer(acc, x0, v0, dt, nsteps)</code> with the same interface as <code>euler</code> above (returning the arrays of positions and velocities, including the initial ones). The check runs both on the oscillator for <span class="math inline">\(t = 50\)</span> with <span class="math inline">\(\Delta t = 0.01\)</span> and compares the worst energy error, and then checks that Euler-Cromer’s energy error doesn’t grow between the first and last tenth of a much longer run.</p>
+</div>
+<div id="c358f096" class="cell lc-exercise" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> euler_cromer(acc, x0, v0, dt, nsteps):</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Semi-implicit Euler: update v with the old x, then x with the new v. Return arrays xs, vs."""</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="84f21ac4" class="cell lc-check" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    xs, vs <span class="op">=</span> euler_cromer(osc, <span class="fl">1.0</span>, <span class="fl">0.0</span>, <span class="fl">0.01</span>, <span class="dv">5000</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    E <span class="op">=</span> <span class="fl">0.5</span> <span class="op">*</span> (xs<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> vs<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    xe, ve <span class="op">=</span> euler(osc, <span class="fl">1.0</span>, <span class="fl">0.0</span>, <span class="fl">0.01</span>, <span class="dv">5000</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    Ee <span class="op">=</span> <span class="fl">0.5</span> <span class="op">*</span> (xe<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> ve<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"max |E/E0 - 1|:  Euler </span><span class="sc">{</span>np<span class="sc">.</span><span class="bu">abs</span>(Ee <span class="op">/</span> <span class="fl">0.5</span> <span class="op">-</span> <span class="dv">1</span>)<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.3e}</span><span class="ss">   Euler-Cromer </span><span class="sc">{</span>np<span class="sc">.</span><span class="bu">abs</span>(E <span class="op">/</span> <span class="fl">0.5</span> <span class="op">-</span> <span class="dv">1</span>)<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.3e}</span><span class="ss">"</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    xs, vs <span class="op">=</span> euler_cromer(osc, <span class="fl">1.0</span>, <span class="fl">0.0</span>, <span class="fl">0.01</span>, <span class="dv">100000</span>)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    E <span class="op">=</span> <span class="fl">0.5</span> <span class="op">*</span> (xs<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> vs<span class="op">**</span><span class="dv">2</span>) <span class="op">/</span> <span class="fl">0.5</span> <span class="op">-</span> <span class="dv">1</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    early, late <span class="op">=</span> np.<span class="bu">abs</span>(E[:<span class="dv">10000</span>]).<span class="bu">max</span>(), np.<span class="bu">abs</span>(E[<span class="op">-</span><span class="dv">10000</span>:]).<span class="bu">max</span>()</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"long run: worst error in first tenth </span><span class="sc">{</span>early<span class="sc">:.3e}</span><span class="ss">, in last tenth </span><span class="sc">{</span>late<span class="sc">:.3e}</span><span class="ss">"</span>)</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">len</span>(xs) <span class="op">==</span> <span class="dv">100001</span> <span class="kw">and</span> np.<span class="bu">abs</span>(E).<span class="bu">max</span>() <span class="op">&lt;</span> <span class="fl">0.006</span> <span class="kw">and</span> late <span class="op">&lt;</span> <span class="fl">1.1</span> <span class="op">*</span> early</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 3.1.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 3.1.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-verlet" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="sec-verlet"><span class="header-section-number">3.2</span> Leapfrog And Verlet</h2>
+<p>For this section we’ll assume the force doesn’t depend on velocity, so <span class="math inline">\(a = a(x, t)\)</span>. Damping comes back in <a href="#sec-damping" class="quarto-xref"><span>Section 3.2.7</span></a>.</p>
+<section id="sec-leapfrog" class="level3" data-number="3.2.1">
+<h3 data-number="3.2.1" class="anchored" data-anchor-id="sec-leapfrog"><span class="header-section-number">3.2.1</span> Velocities on half steps</h3>
+<p>Start from the second-order Taylor expansion of the position, <span class="math display">\[
+x_{n+1} = x_n + \Delta t\, v_n + \tfrac{1}{2}\Delta t^2 a_n + O(\Delta t^3) = x_n + \Delta t\Big(v_n + \frac{\Delta t}{2}a_n\Big) + O(\Delta t^3).
+\]</span> The bracket is just the first-order Taylor expansion of the velocity half a step later, <span class="math inline">\(v(t_n + \Delta t/2)\)</span>, so we can write <span class="math display">\[
+x_{n+1} = x_n + \Delta t\, v_{n+1/2} + O(\Delta t^3).
+\]</span> The position update wants the velocity at the <em>midpoint</em> of the step, which makes sense, since the midpoint slope is the best single slope to use over an interval (that’s the midpoint rule of <a href="02-integration.html#sec-midpoint" class="quarto-xref"><span>Section 2.1.4</span></a>). So let’s keep the velocities on the half-integer grid <span class="math inline">\(t_{n+1/2}\)</span> and the positions on the integer grid <span class="math inline">\(t_n\)</span>. To step the velocity from <span class="math inline">\(t_{n-1/2}\)</span> to <span class="math inline">\(t_{n+1/2}\)</span> we need the acceleration at the midpoint of <em>that</em> interval, which is <span class="math inline">\(t_n\)</span>, exactly where we know the position. So the two updates leapfrog over each other, <span class="math display">\[
+v_{n+1/2} = v_{n-1/2} + \Delta t\, a(x_n, t_n), \qquad x_{n+1} = x_n + \Delta t\, v_{n+1/2},
+\]</span> and this is the <em>leapfrog</em> algorithm. (It’s literally Euler-Cromer, with the velocities reinterpreted as living on half steps, which is why that swap worked so well.) The only subtlety is getting started: given <span class="math inline">\(v_0\)</span>, we need <span class="math inline">\(v_{1/2} = v_0 + \tfrac{1}{2}\Delta t\,a_0\)</span>, or equivalently <span class="math inline">\(v_{-1/2} = v_0 - \tfrac{1}{2}\Delta t\,a_0\)</span>.</p>
+</section>
+<section id="sec-verlet-form" class="level3" data-number="3.2.2">
+<h3 data-number="3.2.2" class="anchored" data-anchor-id="sec-verlet-form"><span class="header-section-number">3.2.2</span> The Verlet form and the true step error</h3>
+<p>We expanded <span class="math inline">\(x\)</span> only to second order above, so it looks as if the step error is <span class="math inline">\(O(\Delta t^3)\)</span>. It’s actually better. Write the Taylor expansions one step forward and one step back, <span class="math display">\[
+x_{n\pm1} = x_n \pm \Delta t\, v_n + \tfrac{1}{2}\Delta t^2 a_n \pm \tfrac{1}{6}\Delta t^3\dot{a}_n + O(\Delta t^4),
+\]</span> and add them. Every odd power cancels (the same symmetry trick as Simpson’s rule), leaving the <em>Verlet algorithm</em> (Verlet, 1967), <span class="math display">\[
+x_{n+1} = 2x_n - x_{n-1} + \Delta t^2\, a_n + O(\Delta t^4).
+\]</span> It needs no velocities at all, just the two previous positions. And Verlet and leapfrog are the same algorithm: subtracting the leapfrog position updates for two consecutive steps gives <span class="math inline">\(x_{n+1} - 2x_n + x_{n-1} = \Delta t(v_{n+1/2} - v_{n-1/2}) = \Delta t^2 a_n\)</span>. So the leapfrog position also has an <span class="math inline">\(O(\Delta t^4)\)</span> step error, one order better than the naive count, and the method is globally second order.</p>
+</section>
+<section id="sec-velocity-verlet" class="level3" data-number="3.2.3">
+<h3 data-number="3.2.3" class="anchored" data-anchor-id="sec-velocity-verlet"><span class="header-section-number">3.2.3</span> Velocity Verlet</h3>
+<p>Sometimes we want <span class="math inline">\(x\)</span> and <span class="math inline">\(v\)</span> on the <em>same</em> time grid, for example to compute the energy at each step. A third equivalent form does that. Define the velocity by the symmetric difference <span class="math inline">\(v_n = (x_{n+1} - x_{n-1})/(2\Delta t)\)</span>, and a bit of algebra with the Verlet formula gives <span class="math display">\[
+x_{n+1} = x_n + \Delta t\, v_n + \tfrac{1}{2}\Delta t^2 a_n, \qquad v_{n+1} = v_n + \tfrac{1}{2}\Delta t\,(a_n + a_{n+1}).
+\]</span> The position line is the second-order Taylor series, and the velocity line is the trapezoidal rule applied to the acceleration. In code we keep the acceleration from the previous step, so there’s still only one force evaluation per step, which matters a lot when the force is the expensive part (in a molecular dynamics code with a million atoms, it’s basically the only part).</p>
+<div id="a48bdbef" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> velocity_verlet(acc, x0, v0, dt, nsteps):</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    x, v <span class="op">=</span> x0, v0</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    a <span class="op">=</span> acc(x, <span class="fl">0.0</span>)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    xs, vs <span class="op">=</span> [x], [v]</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> n <span class="kw">in</span> <span class="bu">range</span>(nsteps):</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>        x <span class="op">=</span> x <span class="op">+</span> dt <span class="op">*</span> v <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> dt<span class="op">**</span><span class="dv">2</span> <span class="op">*</span> a</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>        a_new <span class="op">=</span> acc(x, (n <span class="op">+</span> <span class="dv">1</span>) <span class="op">*</span> dt)</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>        v <span class="op">=</span> v <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> dt <span class="op">*</span> (a <span class="op">+</span> a_new)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>        a <span class="op">=</span> a_new</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        xs.append(x)<span class="op">;</span> vs.append(v)</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.array(xs), np.array(vs)</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>xs, vs <span class="op">=</span> velocity_verlet(<span class="kw">lambda</span> x, t: <span class="op">-</span>x, <span class="fl">1.0</span>, <span class="fl">0.0</span>, <span class="fl">0.01</span>, <span class="dv">5000</span>)</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>E <span class="op">=</span> <span class="fl">0.5</span> <span class="op">*</span> (xs<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> vs<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"max |E/E0 - 1| = </span><span class="sc">{</span>np<span class="sc">.</span><span class="bu">abs</span>(E <span class="op">/</span> <span class="fl">0.5</span> <span class="op">-</span> <span class="dv">1</span>)<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.3e}</span><span class="ss">,   position error at t = 50: </span><span class="sc">{</span>xs[<span class="op">-</span><span class="dv">1</span>] <span class="op">-</span> math<span class="sc">.</span>cos(<span class="dv">50</span>)<span class="sc">:.2e}</span><span class="ss">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>max |E/E0 - 1| = 2.500e-05,   position error at t = 50: 5.46e-05</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-reversibility" class="level3" data-number="3.2.4">
+<h3 data-number="3.2.4" class="anchored" data-anchor-id="sec-reversibility"><span class="header-section-number">3.2.4</span> Time reversibility and bounded errors</h3>
+<p>The key property of leapfrog is that it’s <em>time reversible</em>. Suppose we step from <span class="math inline">\(x_n\)</span> to <span class="math inline">\(x_{n+1}\)</span> using <span class="math inline">\(v_{n+1/2}\)</span>. To step back we reverse the velocity, and the backward step uses <span class="math inline">\(-v_{n+1/2}\)</span>, the same number with the opposite sign, so in exact arithmetic we land exactly on <span class="math inline">\(x_n\)</span>. Euler isn’t reversible: it steps forward with <span class="math inline">\(v_n\)</span> but would step back with <span class="math inline">\(-v_{n+1}\)</span>, a different value. We can test this directly. Run 5000 steps forward, then flip the velocity and run 5000 more.</p>
+<div id="639d5e8c" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> run_back_and_forth(stepper, nsteps<span class="op">=</span><span class="dv">5000</span>, dt<span class="op">=</span><span class="fl">0.01</span>):</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    x, v <span class="op">=</span> <span class="fl">1.0</span>, <span class="fl">0.0</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(nsteps):</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>        x, v <span class="op">=</span> stepper(x, v, dt)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    v <span class="op">=</span> <span class="op">-</span>v</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(nsteps):</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>        x, v <span class="op">=</span> stepper(x, v, dt)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> x, <span class="op">-</span>v</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>euler_step <span class="op">=</span> <span class="kw">lambda</span> x, v, dt: (x <span class="op">+</span> dt <span class="op">*</span> v, v <span class="op">-</span> dt <span class="op">*</span> x)</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> vv_step(x, v, dt):</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    vh <span class="op">=</span> v <span class="op">-</span> <span class="fl">0.5</span> <span class="op">*</span> dt <span class="op">*</span> x</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    xn <span class="op">=</span> x <span class="op">+</span> dt <span class="op">*</span> vh</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> xn, vh <span class="op">-</span> <span class="fl">0.5</span> <span class="op">*</span> dt <span class="op">*</span> xn</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, s <span class="kw">in</span> [(<span class="st">"Euler"</span>, euler_step), (<span class="st">"velocity Verlet"</span>, vv_step)]:</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>    x, v <span class="op">=</span> run_back_and_forth(s)</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">:16s}</span><span class="ss"> returns to x = </span><span class="sc">{</span>x<span class="sc">:.15f}</span><span class="ss">, v = </span><span class="sc">{</span>v<span class="sc">: .2e}</span><span class="ss">   (started at 1, 0)"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Euler            returns to x = 1.648680055931177, v =  3.73e-15   (started at 1, 0)
+velocity Verlet  returns to x = 0.999999999999999, v =  2.16e-15   (started at 1, 0)</code></pre>
+</div>
+</div>
+<p>Verlet comes back to the starting point up to roundoff, after 10000 steps. Euler comes back somewhere else entirely, because going forward inflated phase space and going “backward” inflated it again.</p>
+<p>Why does reversibility matter for accuracy? Here’s the intuition. A systematic drift in the energy is a quantity that changes <em>sign</em> under time reversal (if the energy grows going forward, it would shrink going backward). A reversible method can’t have a systematic drift, because running it backward has to retrace exactly the same states. What’s left over can only be errors that oscillate. This is the deep reason why leapfrog is the workhorse of molecular dynamics, celestial mechanics and plasma physics (Hairer, Lubich and Wanner, 2003).</p>
+</section>
+<section id="sec-verlet-exact" class="level3" data-number="3.2.5">
+<h3 data-number="3.2.5" class="anchored" data-anchor-id="sec-verlet-exact"><span class="header-section-number">3.2.5</span> The oscillator solved exactly</h3>
+<p>For the harmonic oscillator we can do better than an argument, because the Verlet recursion can be solved in closed form. With <span class="math inline">\(a = -\omega^2 x\)</span> it reads <span class="math display">\[
+x_{n+1} - 2x_n + x_{n-1} = -\omega^2\Delta t^2\, x_n .
+\]</span> This is a linear recursion with constant coefficients, so we try <span class="math inline">\(x_n = e^{i\tilde{\omega}n\Delta t}\)</span>, where <span class="math inline">\(\tilde{\omega}\)</span> is some frequency to be found. Dividing through by <span class="math inline">\(x_n\)</span> gives <span class="math inline">\(2\cos(\tilde{\omega}\Delta t) - 2 = -\omega^2\Delta t^2\)</span>, and using <span class="math inline">\(1 - \cos\theta = 2\sin^2(\theta/2)\)</span>, <span class="math display">\[
+\sin\Big(\frac{\tilde{\omega}\,\Delta t}{2}\Big) = \frac{\omega\,\Delta t}{2} \quad\Longrightarrow\quad \tilde{\omega} = \frac{2}{\Delta t}\arcsin\frac{\omega\Delta t}{2} \approx \omega\Big(1 + \frac{\omega^2\Delta t^2}{24}\Big).
+\]</span> Three things follow at once. The numerical motion is an exact sinusoid of constant amplitude, just with a slightly wrong frequency, so <em>nothing grows</em>. The method is stable only for <span class="math inline">\(\omega\Delta t &lt; 2\)</span> (beyond that the arcsine has no real solution, <span class="math inline">\(\tilde{\omega}\)</span> becomes complex and the solution blows up exponentially), which in practice means we need at least <span class="math inline">\(\pi\)</span> steps per period, and really something like 20 or more to be accurate. And the only error is a phase error, <span class="math inline">\((\tilde{\omega} - \omega)t \approx \omega^3\Delta t^2 t/24\)</span>, which grows linearly in time. So the <em>position</em> error does grow, slowly, but the energy error stays bounded forever.</p>
+<div id="5f5fff95" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>dt, T <span class="op">=</span> <span class="fl">0.1</span>, <span class="fl">100.0</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>xs, _ <span class="op">=</span> velocity_verlet(<span class="kw">lambda</span> x, t: <span class="op">-</span>x, <span class="fl">1.0</span>, <span class="fl">0.0</span>, dt, <span class="bu">round</span>(T <span class="op">/</span> dt))</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>wt <span class="op">=</span> <span class="dv">2</span> <span class="op">/</span> dt <span class="op">*</span> math.asin(dt <span class="op">/</span> <span class="dv">2</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"predicted frequency </span><span class="sc">{</span>wt<span class="sc">:.8f}</span><span class="ss">   (exact 1)"</span>)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.optimize <span class="im">import</span> curve_fit</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>t <span class="op">=</span> dt <span class="op">*</span> np.arange(<span class="bu">len</span>(xs))</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>(A, w_fit, phi), _ <span class="op">=</span> curve_fit(<span class="kw">lambda</span> t, A, w, phi: A <span class="op">*</span> np.cos(w <span class="op">*</span> t <span class="op">+</span> phi), t, xs, p0<span class="op">=</span>[<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>])</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"measured frequency  </span><span class="sc">{</span>w_fit<span class="sc">:.8f}</span><span class="ss">,   amplitude </span><span class="sc">{</span><span class="bu">abs</span>(A)<span class="sc">:.6f}</span><span class="ss">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>predicted frequency 1.00041714   (exact 1)
+measured frequency  1.00041714,   amplitude 1.000000</code></pre>
+</div>
+</div>
+<p>(The measured numbers come from a least-squares fit of a pure cosine to all 1000 steps, and the fit lands on the predicted frequency and on an amplitude of exactly one, which is the “nothing grows” statement in numerical form.)</p>
+</section>
+<section id="sec-error-accumulation" class="level3" data-number="3.2.6">
+<h3 data-number="3.2.6" class="anchored" data-anchor-id="sec-error-accumulation"><span class="header-section-number">3.2.6</span> How errors accumulate in general</h3>
+<p>For a general force we can’t solve the recursion, but there’s a neat continuum argument. Write <span class="math inline">\(x_n = x^{\text{ex}}_n + \delta_n\)</span>, where <span class="math inline">\(x^{\text{ex}}\)</span> is the exact solution and <span class="math inline">\(\delta_n\)</span> the error, and substitute into the Verlet formula. The combinations <span class="math inline">\(f_{n+1} - 2f_n + f_{n-1}\)</span> appearing for both <span class="math inline">\(x^{\text{ex}}\)</span> and <span class="math inline">\(\delta\)</span> are discrete second derivatives, <span class="math inline">\(\Delta t^2\ddot{f} + O(\Delta t^4)\)</span>, and if everything is smooth on the scale <span class="math inline">\(\Delta t\)</span> we can replace them by continuum derivatives. Since the exact solution satisfies <span class="math inline">\(\ddot{x}^{\text{ex}} = a\)</span>, what’s left (to leading order, ignoring how <span class="math inline">\(a\)</span> itself responds to <span class="math inline">\(\delta\)</span>) is <span class="math display">\[
+\ddot{\delta}(t) = \Delta t^2\, g(t), \qquad \delta(T) = \Delta t^2\int_0^T\!dt\int_0^{t}\!g(t')\,dt',
+\]</span> where <span class="math inline">\(g\)</span> collects the fourth-derivative terms. It’s unknown in general, but we can see the possibilities. If <span class="math inline">\(g\)</span> is roughly constant the error grows like <span class="math inline">\(\Delta t^2 T^2\)</span>, which is typical of regular non-periodic motion. If <span class="math inline">\(g\)</span> oscillates around zero, as for periodic motion, the cancellations make the growth much slower, and our exact oscillator result, an error growing like <span class="math inline">\(\Delta t^2 T\)</span>, sits in between. And if the motion is chaotic, the neglected response of <span class="math inline">\(a\)</span> to <span class="math inline">\(\delta\)</span> takes over and errors grow exponentially no matter what we do (<a href="#sec-chaos" class="quarto-xref"><span>Section 3.4.2</span></a>).</p>
+</section>
+<section id="sec-damping" class="level3" data-number="3.2.7">
+<h3 data-number="3.2.7" class="anchored" data-anchor-id="sec-damping"><span class="header-section-number">3.2.7</span> Adding damping</h3>
+<p>A velocity-dependent force breaks the leapfrog scheme, because the acceleration <span class="math inline">\(a_n = a(x_n, v_n, t_n)\)</span> is needed at integer times, where leapfrog doesn’t have a velocity. Separate the damping from the rest of the force, <span class="math inline">\(a(x, v, t) = \tfrac{1}{m}\big[F(x, t) - G(v)\big]\)</span>. The naive fix substitutes the nearest available velocity, <span class="math inline">\(G(v_{n-1/2})\)</span>, but that makes an <span class="math inline">\(O(\Delta t)\)</span> error in <span class="math inline">\(a\)</span>, which turns into an <span class="math inline">\(O(\Delta t^3)\)</span> step error in <span class="math inline">\(x\)</span> and a global error of only <span class="math inline">\(O(\Delta t)\)</span>, as bad as Euler.</p>
+<p>The fix is a predictor-corrector step. First make a trial step with the naive velocity, then use the trial position to get a <em>centered</em> velocity estimate, and redo the step: <span class="math display">\[
+\begin{aligned}
+\hat{v}_{n+1/2} &amp;= v_{n-1/2} + \Delta t\,[F(x_n,t_n) - G(v_{n-1/2})]/m, &amp; \hat{x}_{n+1} &amp;= x_n + \Delta t\,\hat{v}_{n+1/2},\\
+v_n &amp;\approx \frac{\hat{x}_{n+1} - x_{n-1}}{2\Delta t}, &amp; v_{n+1/2} &amp;= v_{n-1/2} + \Delta t\,[F(x_n,t_n) - G(v_n)]/m,
+\end{aligned}
+\]</span> followed by the usual <span class="math inline">\(x_{n+1} = x_n + \Delta t\,v_{n+1/2}\)</span>. The centered estimate of <span class="math inline">\(v_n\)</span> has error <span class="math inline">\(O(\Delta t^2)\)</span>, which restores the second-order accuracy, at the cost of a second (cheap, since <span class="math inline">\(F\)</span> doesn’t change) evaluation of the damping force.</p>
+<div id="ex-3-2-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 3.2.1 (Pendulum periods)</strong></span> A pendulum <span class="math inline">\(\ddot{\theta} = -\sin\theta\)</span> released from rest at amplitude <span class="math inline">\(\theta_0\)</span> has period <span class="math inline">\(T = 4K\big(\sin^2(\theta_0/2)\big)\)</span>, where <span class="math inline">\(K(m)\)</span> is the complete elliptic integral (<code>scipy.special.ellipk</code>). For small <span class="math inline">\(\theta_0\)</span> this goes to <span class="math inline">\(2\pi\)</span>, and it grows as <span class="math inline">\(\theta_0 \to \pi\)</span>. Write <code>pendulum_period(theta0, dt)</code> that integrates the pendulum with velocity Verlet until the angular velocity first changes sign from positive to negative (the pendulum swings down, through the bottom, up the other side, back again, and that sign change happens right when it’s back at its starting point) and returns the period, using linear interpolation between the two steps where <span class="math inline">\(\dot{\theta}\)</span> crosses zero. The check compares with the elliptic integral for a few amplitudes.</p>
+</div>
+<div id="80a7df3b" class="cell lc-exercise" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pendulum_period(theta0, dt):</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Period of theta'' = -sin(theta) released from rest at theta0, measured with velocity Verlet."""</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="f7415266" class="cell lc-check" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    ok <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> th <span class="kw">in</span> [<span class="fl">0.1</span>, <span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>]:</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>        T <span class="op">=</span> pendulum_period(th, <span class="fl">0.002</span>)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>        exact_T <span class="op">=</span> <span class="dv">4</span> <span class="op">*</span> special.ellipk(math.sin(th <span class="op">/</span> <span class="dv">2</span>) <span class="op">**</span> <span class="dv">2</span>)</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"theta0 = </span><span class="sc">{</span>th<span class="sc">}</span><span class="ss">:  measured </span><span class="sc">{</span>T<span class="sc">:.6f}</span><span class="ss">   exact </span><span class="sc">{</span>exact_T<span class="sc">:.6f}</span><span class="ss">"</span>)</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>        ok <span class="op">=</span> ok <span class="kw">and</span> <span class="bu">abs</span>(T <span class="op">/</span> exact_T <span class="op">-</span> <span class="dv">1</span>) <span class="op">&lt;</span> <span class="fl">1e-4</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ok</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 3.2.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 3.2.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-runge-kutta" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="sec-runge-kutta"><span class="header-section-number">3.3</span> Runge-Kutta Methods</h2>
+<p>The Runge-Kutta (RK) family is the classic route to high accuracy for <em>any</em> system of ordinary differential equations, not only Newton’s. The idea connects directly to <a href="02-integration.html" class="quarto-xref"><span>Chapter 2</span></a>. Integrating <span class="math inline">\(\dot{u} = f(u, t)\)</span> over one step gives <span class="math display">\[
+u_{n+1} = u_n + \int_{t_n}^{t_{n+1}} f\big(u(t), t\big)\,dt ,
+\]</span> so stepping an ODE is the same problem as numerical integration, with one twist: the integrand depends on the unknown <span class="math inline">\(u(t)\)</span> inside the interval, so its values there have to be estimated too.</p>
+<section id="sec-rk2" class="level3" data-number="3.3.1">
+<h3 data-number="3.3.1" class="anchored" data-anchor-id="sec-rk2"><span class="header-section-number">3.3.1</span> Second order, the midpoint rule</h3>
+<p>The midpoint rule integrates over a step with error <span class="math inline">\(O(\Delta t^3)\)</span>, <em>if</em> we know <span class="math inline">\(f\)</span> at the midpoint. We don’t know <span class="math inline">\(u_{n+1/2}\)</span>, but an Euler half step estimates it with error <span class="math inline">\(O(\Delta t^2)\)</span>, and since that estimate gets multiplied by <span class="math inline">\(\Delta t\)</span> in the integral, the step error stays <span class="math inline">\(O(\Delta t^3)\)</span>: <span class="math display">\[
+k_1 = \Delta t\, f(u_n, t_n), \qquad k_2 = \Delta t\, f\big(u_n + \tfrac{1}{2}k_1,\; t_n + \tfrac{1}{2}\Delta t\big), \qquad u_{n+1} = u_n + k_2 .
+\]</span> This is the second-order Runge-Kutta method (RK2). It’s rarely used in practice for mechanics, since leapfrog is simpler and better for conservative forces, but it’s the right warm-up for RK4.</p>
+</section>
+<section id="sec-rk4" class="level3" data-number="3.3.2">
+<h3 data-number="3.3.2" class="anchored" data-anchor-id="sec-rk4"><span class="header-section-number">3.3.2</span> Fourth order, the Simpson rule</h3>
+<p>Now use Simpson’s rule, which integrates over a step with error <span class="math inline">\(O(\Delta t^5)\)</span> from the values of <span class="math inline">\(f\)</span> at the start, middle and end, <span class="math display">\[
+u_{n+1} = u_n + \frac{\Delta t}{6}\big(f_n + 4f_{n+1/2} + f_{n+1}\big) + O(\Delta t^5).
+\]</span> The midpoint value is estimated twice, once with an Euler half step using the slope at the start (<span class="math inline">\(k_1\)</span>) and once with a half step using the slope at that first estimate (<span class="math inline">\(k_2\)</span>), and the two get averaged. The endpoint value uses a full step with the slope from the second midpoint estimate (<span class="math inline">\(k_3\)</span>). The result is the famous classical RK4 scheme, <span class="math display">\[
+\begin{aligned}
+k_1 &amp;= \Delta t\, f(u_n, t_n), &amp; k_2 &amp;= \Delta t\, f\big(u_n + \tfrac{1}{2}k_1,\; t_n + \tfrac{1}{2}\Delta t\big),\\
+k_3 &amp;= \Delta t\, f\big(u_n + \tfrac{1}{2}k_2,\; t_n + \tfrac{1}{2}\Delta t\big), &amp; k_4 &amp;= \Delta t\, f\big(u_n + k_3,\; t_n + \Delta t\big),\\
+u_{n+1} &amp;= u_n + \tfrac{1}{6}\big(k_1 + 2k_2 + 2k_3 + k_4\big). &amp;&amp;
+\end{aligned}
+\]</span> Showing that the step error really is <span class="math inline">\(O(\Delta t^5)\)</span> (and that the funny averaging of <span class="math inline">\(k_2\)</span> and <span class="math inline">\(k_3\)</span> is what makes it work) takes a page of Taylor expansions that I’d honestly recommend doing once in your life and then never again. Written for a NumPy state vector, one function serves every problem in this chapter.</p>
+<div id="ex-3-3-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 3.3.1 (RK4)</strong></span> Write <code>rk4_step(f, u, t, dt)</code> that returns <span class="math inline">\(u_{n+1}\)</span> for a state vector <code>u</code> (a NumPy array) and a right-hand side <code>f(u, t)</code> that returns an array of the same shape. The check runs it on the oscillator written as <span class="math inline">\(u = (x, v)\)</span>, <span class="math inline">\(f = (v, -x)\)</span>, and confirms fourth-order convergence of the error at <span class="math inline">\(t = 10\)</span>.</p>
+</div>
+<div id="27b401b6" class="cell lc-exercise" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rk4_step(f, u, t, dt):</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""One classical fourth-order Runge-Kutta step for du/dt = f(u, t)."""</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="03398893" class="cell lc-check" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    f <span class="op">=</span> <span class="kw">lambda</span> u, t: np.array([u[<span class="dv">1</span>], <span class="op">-</span>u[<span class="dv">0</span>]])</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    errs <span class="op">=</span> []</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> dt <span class="kw">in</span> [<span class="fl">0.1</span>, <span class="fl">0.05</span>]:</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>        u <span class="op">=</span> np.array([<span class="fl">1.0</span>, <span class="fl">0.0</span>])</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> n <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">round</span>(<span class="dv">10</span> <span class="op">/</span> dt)):</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>            u <span class="op">=</span> rk4_step(f, u, n <span class="op">*</span> dt, dt)</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>        errs.append(<span class="bu">abs</span>(u[<span class="dv">0</span>] <span class="op">-</span> math.cos(<span class="dv">10</span>)))</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"dt = </span><span class="sc">{</span>dt<span class="sc">}</span><span class="ss">: error in x(10) = </span><span class="sc">{</span>errs[<span class="op">-</span><span class="dv">1</span>]<span class="sc">:.3e}</span><span class="ss">"</span>)</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"ratio </span><span class="sc">{</span>errs[<span class="dv">0</span>] <span class="op">/</span> errs[<span class="dv">1</span>]<span class="sc">:.1f}</span><span class="ss"> (fourth order means 16)"</span>)</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    ut <span class="op">=</span> rk4_step(<span class="kw">lambda</span> u, t: np.array([t<span class="op">**</span><span class="dv">3</span>]), np.array([<span class="fl">0.0</span>]), <span class="fl">0.0</span>, <span class="fl">1.0</span>)  <span class="co"># exact for a cubic in t</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">14</span> <span class="op">&lt;</span> errs[<span class="dv">0</span>] <span class="op">/</span> errs[<span class="dv">1</span>] <span class="op">&lt;</span> <span class="dv">18</span> <span class="kw">and</span> <span class="bu">abs</span>(ut[<span class="dv">0</span>] <span class="op">-</span> <span class="fl">0.25</span>) <span class="op">&lt;</span> <span class="fl">1e-14</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 3.3.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 3.3.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-rk4-drift" class="level3" data-number="3.3.3">
+<h3 data-number="3.3.3" class="anchored" data-anchor-id="sec-rk4-drift"><span class="header-section-number">3.3.3</span> Energy drift, and when leapfrog wins anyway</h3>
+<p>For the oscillator, one RK4 step multiplies the complex amplitude <span class="math inline">\(x + iv/\omega\)</span> by the polynomial <span class="math inline">\(R(z) = 1 + z + z^2/2 + z^3/6 + z^4/24\)</span> evaluated at <span class="math inline">\(z = -i\omega\Delta t\)</span>, the Taylor series of <span class="math inline">\(e^z\)</span> cut off after four terms. Separating real and imaginary parts and squaring, with <span class="math inline">\(h = \omega\Delta t\)</span>, <span class="math display">\[
+|R(ih)|^2 = \Big(1 - \frac{h^2}{2} + \frac{h^4}{24}\Big)^2 + \Big(h - \frac{h^3}{6}\Big)^2 = 1 - \frac{h^6}{72} + \frac{h^8}{576}.
+\]</span> Every step multiplies the energy by this factor, slightly <em>less</em> than one. So RK4 slowly drains energy, and after a time <span class="math inline">\(t\)</span> the relative loss is about <span class="math inline">\(\omega^6\Delta t^5 t/72\)</span>. Two more facts drop out of the same formula. RK4 is stable on the oscillator only when <span class="math inline">\(h^8/576 \le h^6/72\)</span>, that is <span class="math inline">\(\omega\Delta t \le 2\sqrt{2} \approx 2.83\)</span>. And the error has no time-reversal symmetry to bound it, so it grows linearly forever.</p>
+<div id="2150883f" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rk4_osc_energy(dt, T):</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    h <span class="op">=</span> dt</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    factor <span class="op">=</span> (<span class="dv">1</span> <span class="op">-</span> h<span class="op">**</span><span class="dv">2</span> <span class="op">/</span> <span class="dv">2</span> <span class="op">+</span> h<span class="op">**</span><span class="dv">4</span> <span class="op">/</span> <span class="dv">24</span>) <span class="op">**</span> <span class="dv">2</span> <span class="op">+</span> (h <span class="op">-</span> h<span class="op">**</span><span class="dv">3</span> <span class="op">/</span> <span class="dv">6</span>) <span class="op">**</span> <span class="dv">2</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fl">0.5</span> <span class="op">*</span> factor <span class="op">**</span> <span class="bu">round</span>(T <span class="op">/</span> dt)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> dt <span class="kw">in</span> [<span class="fl">0.2</span>, <span class="fl">0.1</span>]:</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"dt = </span><span class="sc">{</span>dt<span class="sc">}</span><span class="ss">:  RK4 E(50) = </span><span class="sc">{</span>rk4_osc_energy(dt, <span class="dv">50</span>)<span class="sc">:.7f}</span><span class="ss">   relative error </span><span class="sc">{</span><span class="dv">1</span> <span class="op">-</span> rk4_osc_energy(dt, <span class="dv">50</span>) <span class="op">/</span> <span class="fl">0.5</span><span class="sc">:.1e}</span><span class="ss">"</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>          <span class="ss">f"   (velocity Verlet: bounded by </span><span class="sc">{</span>dt<span class="op">**</span><span class="dv">2</span> <span class="op">/</span> <span class="dv">4</span><span class="sc">:.1e}</span><span class="ss">)"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>dt = 0.2:  RK4 E(50) = 0.4998895   relative error 2.2e-04   (velocity Verlet: bounded by 1.0e-02)
+dt = 0.1:  RK4 E(50) = 0.4999965   relative error 6.9e-06   (velocity Verlet: bounded by 2.5e-03)</code></pre>
+</div>
+</div>
+<p>So which is better? RK4 is far more accurate per step, and for a few periods it wins easily. But it costs four force evaluations per step against Verlet’s one, and over very long times its energy drifts while Verlet’s doesn’t. For a planetary system integrated over the age of the solar system, or a protein simulated for a billion steps, the bounded error of a symplectic method is worth more than the small error of RK4. For a short, accurate trajectory of a dissipative system, RK4 (or one of its adaptive cousins) is the right tool.</p>
+</section>
+<section id="sec-adaptive-steps" class="level3" data-number="3.3.4">
+<h3 data-number="3.3.4" class="anchored" data-anchor-id="sec-adaptive-steps"><span class="header-section-number">3.3.4</span> Adaptive time steps</h3>
+<p>RK has one more structural advantage. Each step uses only the state at <span class="math inline">\(t_n\)</span>, so the step size can change freely from one step to the next. (Leapfrog can’t do this without losing its time-reversal symmetry, since a step needs data at both <span class="math inline">\(t_n\)</span> and <span class="math inline">\(t_{n+1/2}\)</span>.) The simplest adaptive scheme is <em>step doubling</em>: take one step of size <span class="math inline">\(\Delta t\)</span>, and separately two steps of size <span class="math inline">\(\Delta t/2\)</span>. Both results have leading errors proportional to <span class="math inline">\(\Delta t^5\)</span>, the second sixteen times smaller, so their difference estimates the error, <span class="math inline">\(\varepsilon \approx |u_{\text{two halves}} - u_{\text{one step}}|/15\)</span>. (That’s exactly the Richardson idea from <a href="02-integration.html#sec-romberg" class="quarto-xref"><span>Section 2.2.1</span></a>.) If <span class="math inline">\(\varepsilon\)</span> exceeds the tolerance, the step gets rejected and retried with a smaller <span class="math inline">\(\Delta t\)</span>. Either way, the next step size is set from the error estimate using the fact that the error scales like <span class="math inline">\(\Delta t^5\)</span>, <span class="math display">\[
+\Delta t_{\text{new}} = 0.9\,\Delta t\,\Big(\frac{\text{tol}}{\varepsilon}\Big)^{1/5},
+\]</span> where the 0.9 is a safety factor. We’ll use this on an orbit that really needs it.</p>
+<div id="521a2f77" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rk4(f, u, t, dt):</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>    k1 <span class="op">=</span> dt <span class="op">*</span> f(u, t)</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    k2 <span class="op">=</span> dt <span class="op">*</span> f(u <span class="op">+</span> k1 <span class="op">/</span> <span class="dv">2</span>, t <span class="op">+</span> dt <span class="op">/</span> <span class="dv">2</span>)</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    k3 <span class="op">=</span> dt <span class="op">*</span> f(u <span class="op">+</span> k2 <span class="op">/</span> <span class="dv">2</span>, t <span class="op">+</span> dt <span class="op">/</span> <span class="dv">2</span>)</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    k4 <span class="op">=</span> dt <span class="op">*</span> f(u <span class="op">+</span> k3, t <span class="op">+</span> dt)</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> u <span class="op">+</span> (k1 <span class="op">+</span> <span class="dv">2</span> <span class="op">*</span> k2 <span class="op">+</span> <span class="dv">2</span> <span class="op">*</span> k3 <span class="op">+</span> k4) <span class="op">/</span> <span class="dv">6</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rk4_adaptive(f, u, t0, T, dt<span class="op">=</span><span class="fl">1e-3</span>, tol<span class="op">=</span><span class="fl">1e-10</span>):</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    t, ts, us <span class="op">=</span> t0, [t0], [u]</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> t <span class="op">&lt;</span> T:</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>        dt <span class="op">=</span> <span class="bu">min</span>(dt, T <span class="op">-</span> t)</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>        big <span class="op">=</span> rk4(f, u, t, dt)</span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>        half <span class="op">=</span> rk4(f, rk4(f, u, t, dt <span class="op">/</span> <span class="dv">2</span>), t <span class="op">+</span> dt <span class="op">/</span> <span class="dv">2</span>, dt <span class="op">/</span> <span class="dv">2</span>)</span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>        err <span class="op">=</span> np.<span class="bu">max</span>(np.<span class="bu">abs</span>(half <span class="op">-</span> big)) <span class="op">/</span> <span class="dv">15</span></span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> err <span class="op">&lt;=</span> tol:                      <span class="co"># accept, using the more accurate result</span></span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>            t, u <span class="op">=</span> t <span class="op">+</span> dt, half <span class="op">+</span> (half <span class="op">-</span> big) <span class="op">/</span> <span class="dv">15</span></span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>            ts.append(t)<span class="op">;</span> us.append(u)</span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>        dt <span class="op">=</span> <span class="fl">0.9</span> <span class="op">*</span> dt <span class="op">*</span> (tol <span class="op">/</span> <span class="bu">max</span>(err, <span class="fl">1e-300</span>)) <span class="op">**</span> <span class="fl">0.2</span></span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.array(ts), np.array(us)</span></code></pre></div>
+</div>
+<p>(The accepted value <span class="math inline">\(u_{\text{half}} + (u_{\text{half}} - u_{\text{big}})/15\)</span> is the Richardson-extrapolated one, which is actually fifth order. It’s a free upgrade, so we take it.)</p>
+</section>
+</section>
+<section id="sec-orbits-chaos" class="level2" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="sec-orbits-chaos"><span class="header-section-number">3.4</span> Orbits And Chaos</h2>
+<section id="sec-orbits" class="level3" data-number="3.4.1">
+<h3 data-number="3.4.1" class="anchored" data-anchor-id="sec-orbits"><span class="header-section-number">3.4.1</span> Planetary orbits</h3>
+<p>In two or three dimensions the equations of motion become vector equations, <span class="math inline">\(\dot{\mathbf{r}} = \mathbf{v}\)</span> and <span class="math inline">\(\dot{\mathbf{v}} = \mathbf{F}/m\)</span>, and every method above carries over unchanged, since NumPy arrays make the vector arithmetic look exactly like the scalar version. The standard example is a planet orbiting a star. Strictly this is a two-body problem that reduces to one body with the reduced mass, but for a star much heavier than the planet we can treat the star as fixed, and the acceleration is <span class="math inline">\(-GM\,\mathbf{r}/r^3\)</span>. Good units make the numbers pleasant: with distances in astronomical units and time in years, Kepler’s third law for the Earth fixes <span class="math inline">\(GM_\odot = 4\pi^2\ \text{AU}^3/\text{yr}^2\)</span>, and a circular orbit at <span class="math inline">\(r = 1\)</span> has speed <span class="math inline">\(2\pi\)</span> AU/yr.</p>
+<p>Let’s pick a nasty eccentric orbit to make life hard for the integrator. Start at <span class="math inline">\(\mathbf{r} = (1, 0)\)</span> with <span class="math inline">\(\mathbf{v} = (0, \pi)\)</span>, half the circular speed. The energy is <span class="math inline">\(E = \pi^2/2 - 4\pi^2 = -7\pi^2/2\)</span>, so the semi-major axis is <span class="math inline">\(a = -GM/(2E) = 4/7\)</span> AU, and since the start is the aphelion, <span class="math inline">\(1 = a(1 + e)\)</span> gives eccentricity <span class="math inline">\(e = 3/4\)</span>. The perihelion is at <span class="math inline">\(a(1 - e) = 1/7\)</span> AU, where the planet moves seven times faster than at aphelion, and the period is <span class="math inline">\(a^{3/2} \approx 0.432\)</span> years. An integrator with a fixed step has to resolve the fast perihelion passage, and wastes most of its steps on the slow part of the orbit.</p>
+<div id="d5bbdd10" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>GM <span class="op">=</span> <span class="dv">4</span> <span class="op">*</span> np.pi<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>kepler_acc <span class="op">=</span> <span class="kw">lambda</span> r: <span class="op">-</span>GM <span class="op">*</span> r <span class="op">/</span> np.linalg.norm(r) <span class="op">**</span> <span class="dv">3</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>energy <span class="op">=</span> <span class="kw">lambda</span> r, v: <span class="fl">0.5</span> <span class="op">*</span> v <span class="op">@</span> v <span class="op">-</span> GM <span class="op">/</span> np.linalg.norm(r)</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> leapfrog_orbit(dt, T):</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    r, v <span class="op">=</span> np.array([<span class="fl">1.0</span>, <span class="fl">0.0</span>]), np.array([<span class="fl">0.0</span>, np.pi])</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>    v <span class="op">=</span> v <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> dt <span class="op">*</span> kepler_acc(r)            <span class="co"># v_{1/2}</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>    rs <span class="op">=</span> [r]</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">round</span>(T <span class="op">/</span> dt)):</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>        r <span class="op">=</span> r <span class="op">+</span> dt <span class="op">*</span> v</span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>        v <span class="op">=</span> v <span class="op">+</span> dt <span class="op">*</span> kepler_acc(r)</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>        rs.append(r)</span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.array(rs), r, v <span class="op">-</span> <span class="fl">0.5</span> <span class="op">*</span> dt <span class="op">*</span> kepler_acc(r)   <span class="co"># synchronize v back to an integer step</span></span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>f_kep <span class="op">=</span> <span class="kw">lambda</span> u, t: np.concatenate([u[<span class="dv">2</span>:], kepler_acc(u[:<span class="dv">2</span>])])</span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>E0 <span class="op">=</span> energy(np.array([<span class="fl">1.0</span>, <span class="fl">0.0</span>]), np.array([<span class="fl">0.0</span>, np.pi]))</span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>P <span class="op">=</span> (<span class="dv">4</span> <span class="op">/</span> <span class="dv">7</span>) <span class="op">**</span> <span class="fl">1.5</span></span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>rs_lf, r_end, v_end <span class="op">=</span> leapfrog_orbit(<span class="fl">1e-3</span>, <span class="dv">10</span> <span class="op">*</span> P)</span>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>ts, us <span class="op">=</span> rk4_adaptive(f_kep, np.array([<span class="fl">1.0</span>, <span class="fl">0.0</span>, <span class="fl">0.0</span>, np.pi]), <span class="fl">0.0</span>, <span class="dv">10</span> <span class="op">*</span> P, tol<span class="op">=</span><span class="fl">1e-9</span>)</span>
+<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"leapfrog, fixed dt = 1e-3:  </span><span class="sc">{</span><span class="bu">round</span>(<span class="dv">10</span> <span class="op">*</span> P <span class="op">/</span> <span class="fl">1e-3</span>)<span class="sc">}</span><span class="ss"> steps,  energy error </span><span class="sc">{</span>energy(r_end, v_end) <span class="op">/</span> E0 <span class="op">-</span> <span class="dv">1</span><span class="sc">: .2e}</span><span class="ss">"</span>)</span>
+<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"adaptive RK4:               </span><span class="sc">{</span><span class="bu">len</span>(ts) <span class="op">-</span> <span class="dv">1</span><span class="sc">}</span><span class="ss"> steps,  energy error </span><span class="sc">{</span>energy(us[<span class="op">-</span><span class="dv">1</span>, :<span class="dv">2</span>], us[<span class="op">-</span><span class="dv">1</span>, <span class="dv">2</span>:]) <span class="op">/</span> E0 <span class="op">-</span> <span class="dv">1</span><span class="sc">: .2e}</span><span class="ss">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>leapfrog, fixed dt = 1e-3:  4320 steps,  energy error -6.16e-11
+adaptive RK4:               2401 steps,  energy error -1.41e-08</code></pre>
+</div>
+</div>
+<div id="5c3956ae" class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="fl">3.6</span>))</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].plot(rs_lf[:, <span class="dv">0</span>], rs_lf[:, <span class="dv">1</span>], lw<span class="op">=</span><span class="fl">0.6</span>)<span class="op">;</span> ax[<span class="dv">0</span>].plot(<span class="dv">0</span>, <span class="dv">0</span>, <span class="st">"o"</span>, color<span class="op">=</span><span class="st">"#E07A3F"</span>)</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].set_aspect(<span class="st">"equal"</span>)<span class="op">;</span> ax[<span class="dv">0</span>].set_xlabel(<span class="st">"x (AU)"</span>)<span class="op">;</span> ax[<span class="dv">0</span>].set_ylabel(<span class="st">"y (AU)"</span>)</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>one <span class="op">=</span> ts <span class="op">&lt;=</span> P</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].semilogy(ts[one][<span class="dv">1</span>:], np.diff(ts[one]), color<span class="op">=</span><span class="st">"#3B6FB6"</span>)</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].set_xlabel(<span class="st">"t (yr)"</span>)<span class="op">;</span> ax[<span class="dv">1</span>].set_ylabel(<span class="st">"step size"</span>)</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>fig.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="03-equations-of-motion_files/figure-html/cell-16-output-1.png" width="854" height="336" class="figure-img"></p>
+<figcaption>Ten periods of the eccentric orbit. Left: leapfrog with a fixed step. Right: the step size chosen by adaptive RK4 over one period, which shrinks by a large factor at perihelion.</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Notice that the leapfrog orbit slowly rotates (the ellipse <em>precesses</em>). That’s not physics, the Kepler orbit is exactly closed, it’s the phase error of <a href="#sec-verlet-exact" class="quarto-xref"><span>Section 3.2.5</span></a> showing up as an angle. The energy, though, stays put, just like for the oscillator.</p>
+<div id="ex-3-4-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 3.4.1 (Measure the period)</strong></span> Write <code>orbit_period(dt)</code> that integrates the eccentric orbit above with leapfrog and returns the time of the first return to aphelion, defined as the first time <span class="math inline">\(y\)</span> changes sign from negative to positive (after starting at <span class="math inline">\(y = 0\)</span>), with linear interpolation between the two steps. Compare with Kepler’s third law, <span class="math inline">\(T = a^{3/2}\)</span> with <span class="math inline">\(a = 4/7\)</span>. The check expects second-order convergence of the period error.</p>
+</div>
+<div id="7c540c41" class="cell lc-exercise" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> orbit_period(dt):</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Time of the first upward crossing of y = 0 for the eccentric orbit, integrated with leapfrog."""</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="aa7713e4" class="cell lc-check" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    e1, e2 <span class="op">=</span> orbit_period(<span class="fl">2e-4</span>) <span class="op">-</span> P, orbit_period(<span class="fl">1e-4</span>) <span class="op">-</span> P</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"period error dt = 2e-4: </span><span class="sc">{</span>e1<span class="sc">:.3e}</span><span class="ss">   dt = 1e-4: </span><span class="sc">{</span>e2<span class="sc">:.3e}</span><span class="ss">   ratio </span><span class="sc">{</span>e1 <span class="op">/</span> e2<span class="sc">:.2f}</span><span class="ss">"</span>)</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">abs</span>(e2) <span class="op">&lt;</span> <span class="fl">1e-4</span> <span class="kw">and</span> <span class="dv">3</span> <span class="op">&lt;</span> e1 <span class="op">/</span> e2 <span class="op">&lt;</span> <span class="dv">5</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 3.4.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 3.4.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-chaos" class="level3" data-number="3.4.2">
+<h3 data-number="3.4.2" class="anchored" data-anchor-id="sec-chaos"><span class="header-section-number">3.4.2</span> Chaos in a driven pendulum</h3>
+<p>Now we turn from accuracy to a phenomenon where accuracy itself becomes a slippery notion. <em>Deterministic chaos</em> means motion governed by exact equations that’s nonetheless aperiodic and exquisitely sensitive to initial conditions, so that its long-time behavior is unpredictable in practice. It isn’t randomness, though. Chaotic motion has a definite structure in phase space, and many completely different systems show the same kinds of chaos.</p>
+<p>In one dimension, chaos needs both a periodic driving force and dissipation. Here’s a quick reason why the driving is necessary: an undriven system in one dimension has a two-dimensional phase space <span class="math inline">\((x, v)\)</span>, and the Poincaré-Bendixson theorem says that trajectories in a plane can’t cross, which leaves no room for chaos. A periodic drive adds its phase as a third dimension, and three dimensions are enough. Dissipation is what lets trajectories settle onto <em>attractors</em> (without it a driven system can still be chaotic, but the motion fills regions of phase space instead of converging onto a structure we can draw).</p>
+<p>The standard example is the damped, driven pendulum, <span class="math display">\[
+\ddot{\theta} = -\sin\theta - \frac{1}{q}\dot{\theta} + g\cos(\Omega t),
+\]</span> with damping <span class="math inline">\(q = 2\)</span> and driving frequency <span class="math inline">\(\Omega = 2/3\)</span>, and we turn up the drive strength <span class="math inline">\(g\)</span>. The cleanest way to look at the motion is a <em>Poincaré section</em>: instead of plotting the whole trajectory, we record <span class="math inline">\((\theta, \dot{\theta})\)</span> once per drive period, always at the same phase of the drive. A periodic orbit with the same period as the drive shows up as one point, a period-doubled orbit as two, and a chaotic one as a fractal set of infinitely many points.</p>
+<div id="4c219bad" class="cell" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pendulum_rhs(u, t, g, q<span class="op">=</span><span class="fl">2.0</span>, W<span class="op">=</span><span class="dv">2</span><span class="op">/</span><span class="dv">3</span>):</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.array([u[<span class="dv">1</span>], <span class="op">-</span>math.sin(u[<span class="dv">0</span>]) <span class="op">-</span> u[<span class="dv">1</span>] <span class="op">/</span> q <span class="op">+</span> g <span class="op">*</span> math.cos(W <span class="op">*</span> t)])</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> poincare(g, periods<span class="op">=</span><span class="dv">300</span>, skip<span class="op">=</span><span class="dv">100</span>, steps_per_period<span class="op">=</span><span class="dv">100</span>):</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>    Td <span class="op">=</span> <span class="dv">2</span> <span class="op">*</span> np.pi <span class="op">/</span> (<span class="dv">2</span> <span class="op">/</span> <span class="dv">3</span>)</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>    dt <span class="op">=</span> Td <span class="op">/</span> steps_per_period</span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>    u, t, pts <span class="op">=</span> np.array([<span class="fl">0.2</span>, <span class="fl">0.0</span>]), <span class="fl">0.0</span>, []</span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> p <span class="kw">in</span> <span class="bu">range</span>(periods):</span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(steps_per_period):</span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>            u <span class="op">=</span> rk4(<span class="kw">lambda</span> u, t: pendulum_rhs(u, t, g), u, t, dt)</span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a>            t <span class="op">+=</span> dt</span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> p <span class="op">&gt;=</span> skip:</span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a>            pts.append(((u[<span class="dv">0</span>] <span class="op">+</span> np.pi) <span class="op">%</span> (<span class="dv">2</span> <span class="op">*</span> np.pi) <span class="op">-</span> np.pi, u[<span class="dv">1</span>]))   <span class="co"># wrap theta into [-pi, pi)</span></span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.array(pts)</span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-16"><a href="#cb29-16" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">3</span>), sharey<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb29-17"><a href="#cb29-17" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> a_, g <span class="kw">in</span> <span class="bu">zip</span>(ax, [<span class="fl">0.9</span>, <span class="fl">1.07</span>, <span class="fl">1.15</span>]):</span>
+<span id="cb29-18"><a href="#cb29-18" aria-hidden="true" tabindex="-1"></a>    pts <span class="op">=</span> poincare(g, periods<span class="op">=</span><span class="dv">400</span> <span class="cf">if</span> g <span class="op">==</span> <span class="fl">1.15</span> <span class="cf">else</span> <span class="dv">150</span>)</span>
+<span id="cb29-19"><a href="#cb29-19" aria-hidden="true" tabindex="-1"></a>    a_.plot(pts[:, <span class="dv">0</span>], pts[:, <span class="dv">1</span>], <span class="st">"."</span>, ms<span class="op">=</span><span class="dv">2</span>, color<span class="op">=</span><span class="st">"#3B6FB6"</span>)</span>
+<span id="cb29-20"><a href="#cb29-20" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"g = </span><span class="sc">{</span>g<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span><span class="bu">len</span>(np.unique(np.<span class="bu">round</span>(pts, <span class="dv">4</span>), axis<span class="op">=</span><span class="dv">0</span>))<span class="sc">}</span><span class="ss"> distinct points in the section"</span>)</span>
+<span id="cb29-21"><a href="#cb29-21" aria-hidden="true" tabindex="-1"></a>    a_.set_xlim(<span class="op">-</span>np.pi, np.pi)<span class="op">;</span> a_.set_xlabel(<span class="vs">r"</span><span class="dv">$</span><span class="ch">\t</span><span class="vs">heta</span><span class="dv">$</span><span class="vs">"</span>)</span>
+<span id="cb29-22"><a href="#cb29-22" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].set_ylabel(<span class="vs">r"</span><span class="dv">$\d</span><span class="vs">ot</span><span class="ch">\t</span><span class="vs">heta</span><span class="dv">$</span><span class="vs">"</span>)</span>
+<span id="cb29-23"><a href="#cb29-23" aria-hidden="true" tabindex="-1"></a>fig.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>g = 0.9: 1 distinct points in the section
+g = 1.07: 2 distinct points in the section
+g = 1.15: 300 distinct points in the section</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="03-equations-of-motion_files/figure-html/cell-19-output-2.png" width="950" height="278" class="figure-img"></p>
+<figcaption>Poincaré sections of the driven pendulum, recording <span class="math inline">\((\theta, \dot\theta)\)</span> once per drive period after the transient has died out. Left, <span class="math inline">\(g = 0.9\)</span>: every point lands in the same place, a periodic orbit. Middle, <span class="math inline">\(g = 1.07\)</span>: the points alternate between two places, a period-doubled orbit. Right, <span class="math inline">\(g = 1.15\)</span>: the points spread over a strange attractor.</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>At <span class="math inline">\(g = 0.9\)</span> the pendulum settles into a periodic orbit at the drive frequency (one point), at <span class="math inline">\(g = 1.07\)</span> the period has doubled (two points), and at <span class="math inline">\(g = 1.15\)</span> the motion is chaotic and the section fills out a strange attractor (it would look much richer with a few thousand periods, which I’ve skipped so this runs in your browser).</p>
+<p>What does “accurate” mean here? Two trajectories that start <span class="math inline">\(10^{-10}\)</span> apart separate exponentially fast, <span class="math inline">\(|\delta(t)| \approx |\delta(0)|e^{\lambda t}\)</span>, with a <em>Lyapunov exponent</em> <span class="math inline">\(\lambda &gt; 0\)</span>. So <em>any</em> error, including roundoff, eventually grows to the size of the attractor, and no integrator can follow a single chaotic trajectory for long. What survives are the statistical properties of the attractor (its shape, its Lyapunov exponents, time averages), and those a good integrator does get right. This is the shadowing idea: the numerical trajectory isn’t the true trajectory from our initial condition, but it stays close to <em>some</em> true trajectory from a nearby initial condition.</p>
+</section>
+<section id="sec-logistic" class="level3" data-number="3.4.3">
+<h3 data-number="3.4.3" class="anchored" data-anchor-id="sec-logistic"><span class="header-section-number">3.4.3</span> Universality, the logistic map and Lyapunov exponents</h3>
+<p>The same period-doubling sequence appears in a much simpler system, the <em>logistic map</em>, an iteration with one control parameter <span class="math inline">\(\mu\)</span>, <span class="math display">\[
+x_{n+1} = \mu\, x_n (1 - x_n), \qquad x_0 \in (0, 1), \quad 0 &lt; \mu \le 4 .
+\]</span> Here we can derive the first bifurcations by hand. A fixed point satisfies <span class="math inline">\(x^* = \mu x^*(1 - x^*)\)</span>, so <span class="math inline">\(x^* = 1 - 1/\mu\)</span>, and it’s stable when the map’s slope there has magnitude below one, <span class="math inline">\(|f'(x^*)| = |2 - \mu| &lt; 1\)</span>, which fails at <span class="math inline">\(\mu_1 = 3\)</span>. Beyond that, the iteration alternates between two values <span class="math inline">\(x_1, x_2\)</span> with <span class="math inline">\(f(x_1) = x_2\)</span> and <span class="math inline">\(f(x_2) = x_1\)</span>. This 2-cycle is stable while the product of slopes <span class="math inline">\(f'(x_1)f'(x_2) = -\mu^2 + 2\mu + 4\)</span> stays above <span class="math inline">\(-1\)</span>, which gives <span class="math inline">\(\mu^2 - 2\mu - 5 = 0\)</span> at the boundary, so <span class="math inline">\(\mu_2 = 1 + \sqrt{6} \approx 3.4495\)</span>. The doublings then come faster and faster, at <span class="math inline">\(\mu_3 \approx 3.54409\)</span>, <span class="math inline">\(\mu_4 \approx 3.56441\)</span>, <span class="math inline">\(\mu_5 \approx 3.56876\)</span>, and they pile up at <span class="math inline">\(\mu_\infty \approx 3.56995\)</span>, beyond which the map is (mostly) chaotic. The ratios of successive gaps, <span class="math display">\[
+\delta_k = \frac{\mu_k - \mu_{k-1}}{\mu_{k+1} - \mu_k} \to \delta = 4.6692\ldots,
+\]</span> converge to the Feigenbaum constant, and here’s the remarkable part: <em>the same number</em> shows up for the driven pendulum, for dripping faucets, for convection cells in liquid helium, for essentially every system that goes to chaos through period doubling (Feigenbaum, 1978). That’s universality, and the explanation is a renormalization group argument very much like the ones in statistical physics.</p>
+<div id="ae7decc2" class="cell" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>mu <span class="op">=</span> np.linspace(<span class="fl">2.8</span>, <span class="fl">4.0</span>, <span class="dv">1600</span>)</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.full_like(mu, <span class="fl">0.4</span>)</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>lyap <span class="op">=</span> np.zeros_like(mu)</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> n <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">600</span>):                          <span class="co"># transient</span></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>    x <span class="op">=</span> mu <span class="op">*</span> x <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> x)</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>pts_mu, pts_x <span class="op">=</span> [], []</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> n <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">400</span>):</span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>    x <span class="op">=</span> mu <span class="op">*</span> x <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> x)</span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>    lyap <span class="op">+=</span> np.log(np.<span class="bu">abs</span>(mu <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> <span class="dv">2</span> <span class="op">*</span> x)))</span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> n <span class="op">%</span> <span class="dv">4</span> <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>        pts_mu.append(mu.copy())<span class="op">;</span> pts_x.append(x.copy())</span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>lyap <span class="op">/=</span> <span class="dv">400</span></span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">2</span>, <span class="dv">1</span>, figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">5</span>), sharex<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].plot(np.concatenate(pts_mu), np.concatenate(pts_x), <span class="st">","</span>, color<span class="op">=</span><span class="st">"#3B6FB6"</span>, alpha<span class="op">=</span><span class="fl">0.4</span>)</span>
+<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].set_ylabel(<span class="st">"$x$"</span>)</span>
+<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].plot(mu, lyap, lw<span class="op">=</span><span class="fl">0.7</span>, color<span class="op">=</span><span class="st">"#E07A3F"</span>)<span class="op">;</span> ax[<span class="dv">1</span>].axhline(<span class="dv">0</span>, color<span class="op">=</span><span class="st">"k"</span>, lw<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb31-17"><a href="#cb31-17" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].set_ylim(<span class="op">-</span><span class="dv">2</span>, <span class="dv">1</span>)<span class="op">;</span> ax[<span class="dv">1</span>].set_xlabel(<span class="vs">r"</span><span class="dv">$\m</span><span class="vs">u</span><span class="dv">$</span><span class="vs">"</span>)<span class="op">;</span> ax[<span class="dv">1</span>].set_ylabel(<span class="vs">r"</span><span class="dv">$</span><span class="er">\</span><span class="vs">lambda</span><span class="dv">$</span><span class="vs">"</span>)</span>
+<span id="cb31-18"><a href="#cb31-18" aria-hidden="true" tabindex="-1"></a>fig.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="03-equations-of-motion_files/figure-html/cell-20-output-1.png" width="758" height="470" class="figure-img"></p>
+<figcaption>The bifurcation diagram of the logistic map (top) and its Lyapunov exponent (bottom). Wherever <span class="math inline">\(\lambda &gt; 0\)</span> the motion is chaotic, and the windows where <span class="math inline">\(\lambda\)</span> dips below zero are periodic orbits embedded in the chaos.</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The Lyapunov exponent of a one-dimensional map has a simple formula. A small perturbation gets multiplied by <span class="math inline">\(f'(x_n)\)</span> at each step, so after <span class="math inline">\(N\)</span> steps it’s multiplied by <span class="math inline">\(\prod_n f'(x_n)\)</span>, and the exponential rate is <span class="math display">\[
+\lambda = \lim_{N\to\infty}\frac{1}{N}\sum_{n=0}^{N-1}\ln|f'(x_n)| ,
+\]</span> which is what the code above computes for every <span class="math inline">\(\mu\)</span> at once (one of my favorite uses of NumPy vectorization, since every <span class="math inline">\(\mu\)</span> is just another element of the array).</p>
+<div id="ex-3-4-2" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 3.4.2 (The Lyapunov exponent at μ = 4)</strong></span> At <span class="math inline">\(\mu = 4\)</span> the logistic map is fully chaotic, and its Lyapunov exponent is exactly <span class="math inline">\(\ln 2\)</span> (the substitution <span class="math inline">\(x = \sin^2(\pi y/2)\)</span> turns it into the doubling map <span class="math inline">\(y \to 2y \bmod 1\)</span>, which stretches every interval by exactly 2). Write <code>lyapunov(mu, x0, n_transient, n_avg)</code> that iterates the map, discards a transient, and returns the average of <span class="math inline">\(\ln|\mu(1 - 2x_n)|\)</span> over the next <code>n_avg</code> iterations. The check compares with <span class="math inline">\(\ln 2\)</span> and with the stable 2-cycle at <span class="math inline">\(\mu = 3.2\)</span>, where <span class="math inline">\(\lambda = \ln|f'(x_1)f'(x_2)|/2 = \tfrac{1}{2}\ln|-\mu^2 + 2\mu + 4|\)</span>.</p>
+</div>
+<div id="58aa7f75" class="cell lc-exercise" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> lyapunov(mu, x0, n_transient, n_avg):</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Average of ln|mu (1 - 2 x_n)| over n_avg iterations of the logistic map, after n_transient iterations."""</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="861c811b" class="cell lc-check" data-execution_count="21">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>    l4 <span class="op">=</span> lyapunov(<span class="fl">4.0</span>, <span class="fl">0.123</span>, <span class="dv">100</span>, <span class="dv">200_000</span>)</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    l32 <span class="op">=</span> lyapunov(<span class="fl">3.2</span>, <span class="fl">0.3</span>, <span class="dv">1000</span>, <span class="dv">1000</span>)</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    pred <span class="op">=</span> <span class="fl">0.5</span> <span class="op">*</span> math.log(<span class="bu">abs</span>(<span class="op">-</span><span class="fl">3.2</span><span class="op">**</span><span class="dv">2</span> <span class="op">+</span> <span class="dv">2</span> <span class="op">*</span> <span class="fl">3.2</span> <span class="op">+</span> <span class="dv">4</span>))</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"mu = 4:   lambda = </span><span class="sc">{</span>l4<span class="sc">:.4f}</span><span class="ss">   (ln 2 = </span><span class="sc">{</span>math<span class="sc">.</span>log(<span class="dv">2</span>)<span class="sc">:.4f}</span><span class="ss">)"</span>)</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"mu = 3.2: lambda = </span><span class="sc">{</span>l32<span class="sc">:.5f}</span><span class="ss">   (2-cycle prediction </span><span class="sc">{</span>pred<span class="sc">:.5f}</span><span class="ss">)"</span>)</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">abs</span>(l4 <span class="op">-</span> math.log(<span class="dv">2</span>)) <span class="op">&lt;</span> <span class="fl">0.01</span> <span class="kw">and</span> <span class="bu">abs</span>(l32 <span class="op">-</span> pred) <span class="op">&lt;</span> <span class="fl">1e-6</span></span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 3.4.2"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 3.4.2: not attempted yet</code></pre>
+</div>
+</div>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./02-integration.html" class="pagination-link" aria-label="Numerical and Monte Carlo Integration">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Numerical and Monte Carlo Integration</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./04-schrodinger.html" class="pagination-link" aria-label="The Schrödinger Equation">
+        <span class="nav-page-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">The Schrödinger Equation</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p><a href="../">← Computational Physics</a> · <a href="../../../#notes">All notes</a></p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+<p>© 2026 Hieu Nguyen</p>
+</div>
+  </div>
+</footer>
+
+
+
+
+<script src="site_libs/quarto-contrib/livecells-0.2.0/livecells.js"></script>
+</body></html>
