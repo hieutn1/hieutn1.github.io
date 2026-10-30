@@ -1,0 +1,12 @@
+/.quarto/
+**/*.quarto_ipynb
+
+# files the code cells write while the book is rendered
+/clip.avi
+/face.jpg
+/mystery.raw
+/picture.raw
+/tiny.png
+/workspace/
+/_book/
+__pycache__/

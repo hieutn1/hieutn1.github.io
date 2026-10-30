@@ -1,0 +1,66 @@
+project:
+  type: book
+  output-dir: _book
+  post-render: tools/publish.py   # tidies the pages and copies _book into ../../notes/computer-vision/book
+  render:
+    - index.qmd
+    - 01-programming-with-images.qmd
+    - references.qmd
+  resources:
+    - mathjax/          # a local copy of MathJax, so the maths also works offline
+
+book:
+  title: "Computer Vision"
+  subtitle: "Lecture notes on image and video computing"
+  author: "Hieu Nguyen"
+  date: "2026-10-29"
+  chapters:
+    - index.qmd
+    - 01-programming-with-images.qmd
+    - references.qmd
+  search: true
+  page-navigation: true
+  sidebar:
+    style: floating
+    header: "[← Course page](../)"         # relative: Quarto reads a leading / as the book's own root
+  page-footer:
+    left: "[← Computer Vision](../) · [All notes](../../../#notes)"
+    right: "© 2026 Hieu Nguyen"
+
+# The live-cell runtime (see _extensions/livecells). Cells run in the reader's browser with
+# Pyodide unless the reader connects a Python kernel on their own computer (start_kernel.py).
+filters:
+  - livecells
+livecells:
+  pyodide: "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/"
+  packages: [numpy, opencv-python, matplotlib]
+  server: "http://127.0.0.1:8888"
+  kernel: python3
+
+format:
+  html:
+    theme:
+      - default
+      - theme/textbook.scss
+    number-sections: true
+    number-depth: 3
+    toc: true
+    toc-depth: 3
+    toc-expand: 1
+    toc-title: "On this page"
+    code-copy: false
+    highlight-style: theme/textbook.theme
+    html-math-method:
+      method: mathjax
+      url: "mathjax/tex-chtml-full.js"
+    fig-align: center
+    grid:
+      sidebar-width: 260px
+      body-width: 780px
+      margin-width: 230px
+
+execute:
+  freeze: auto
+  echo: true
+
+jupyter: python3

@@ -1,0 +1,1904 @@
+# Programming with Images {#sec-programming-with-images}
+
+## Images Are Grids of Numbers {#sec-images}
+
+The first thing to absorb is almost embarrassingly simple. To a program, a picture is a rectangular array of integers. That is all it is. Every hard problem in computer vision lives in the gap between that array and the things we see in it, a face or a tumor. But before we worry about that gap we should be completely at home with the array itself, because a surprising number of bugs in vision code have nothing to do with vision.
+
+```{python}
+#| code-fold: true
+#| code-summary: "Setup: create the test files used in this chapter"
+#| classes: lc-autorun
+# [Setup] Not part of the lecture notes. This cell creates the small test files that the code
+# below expects to find: face.jpg (a synthetic scene with a skin-coloured face and a wooden door),
+# picture.raw (a 512 x 512 grey image stored as raw bytes) and clip.avi (a short video of a
+# dark square sliding across a noisy background). Run it once before anything else.
+import numpy as np
+import cv2
+
+rng = np.random.default_rng(0)
+
+# face.jpg
+scene = np.full((240, 320, 3), (90, 100, 95), np.uint8)
+scene = np.clip(scene + rng.normal(0, 6, scene.shape), 0, 255).astype(np.uint8)
+face_mask = np.zeros((240, 320), np.uint8)
+cv2.ellipse(face_mask, (200, 120), (35, 48), 0, 0, 360, 1, -1)
+shade = np.linspace(0.6, 1.1, 320)[None, :, None]          # uneven lighting, left to right
+skin = np.clip(np.array([120, 150, 200], float) * shade + rng.normal(0, 5, scene.shape), 0, 255)
+scene[face_mask == 1] = skin[face_mask == 1].astype(np.uint8)
+scene[30:200, 20:70] = (60, 110, 165)                       # a wooden door
+cv2.imwrite("face.jpg", scene, [cv2.IMWRITE_JPEG_QUALITY, 95])
+
+# picture.raw
+pic = np.full((512, 512), 200, np.uint8)
+pic[:, 100:140] = 30          # a dark vertical bar starting at column 100
+pic[300:320, :] = 90          # a grey horizontal bar
+pic.tofile("picture.raw")
+
+# clip.avi
+bg = cv2.GaussianBlur(rng.uniform(120, 220, (120, 160)), (0, 0), 3)
+writer = cv2.VideoWriter("clip.avi", cv2.VideoWriter_fourcc(*"MJPG"), 30, (160, 120))
+for t in range(30):
+    f = bg.copy()
+    f[50:80, 10 + 3 * t : 40 + 3 * t] = 40                  # moves 3 pixels per frame
+    f = np.clip(f + rng.normal(0, 3, f.shape), 0, 255).astype(np.uint8)
+    writer.write(cv2.cvtColor(f, cv2.COLOR_GRAY2BGR))
+writer.release()
+print("created face.jpg, picture.raw and clip.avi")
+```
+
+```{python}
+#| code-fold: true
+#| code-summary: "Setup: imports and the helper used by the exercise checks"
+#| classes: lc-autorun
+# [Exercise setup] Run once. Defines the helper used by every check cell and writes mystery.raw for Exercise 1.1.5.
+import numpy as np
+import cv2
+import matplotlib.pyplot as plt
+
+def check(name, test):
+    """Run test(), which returns True or False, and report the result without ever raising."""
+    try:
+        ok = test()
+    except NotImplementedError:
+        print(f"{name}: not attempted yet")
+        return
+    except Exception as err:
+        print(f"{name}: your code raised {type(err).__name__}: {err}")
+        return
+    print(f"{name}: " + ("passed" if ok else "not yet. Something is off, see the output above."))
+
+_rng = np.random.default_rng(42)
+_smooth = cv2.GaussianBlur(_rng.uniform(0, 255, (240, 360)), (0, 0), 6)
+_smooth = cv2.normalize(_smooth, None, 20, 235, cv2.NORM_MINMAX)
+_ramp = np.linspace(0, 1, 360)[None, :] * 40
+np.clip(_smooth + _ramp, 0, 255).astype(np.uint8).tofile("mystery.raw")
+```
+
+::: {.callout-tip}
+## Exercises
+
+Programming exercises appear at the end of the subsections they practise, numbered by subsection. Each has a cell for your code, which starts as a function whose body simply raises `NotImplementedError`, followed by a check cell. Press *Edit* on the exercise cell, replace the `raise` line with your own code, press *Run*, and then run the check below it. The checks print what they find and never stop the page, so *Run all* works whether or not you have done any exercises yet.
+
+:::
+
+### From light to numbers {#sec-from-light-to-numbers}
+
+Picture the image plane inside a camera. Light lands on it, and at each point (x, y) there is some brightness. Call it E(x, y). This is a function of two continuous variables that takes continuous values, and a computer can store neither. So the camera does two things to it.
+
+First it *samples*. The sensor is a grid of small light-sensitive cells, and each cell reports the light averaged over its own little patch. The continuous plane becomes a grid with M rows and N columns, and each cell of the grid is a *pixel*, short for picture element.
+
+Then it *quantizes*. The value reported by each cell is rounded to one of a finite number of levels. Almost always there are 256 levels, the integers 0 through 255, because that is exactly what fits in one byte. Zero means black and 255 means white. Szeliski goes through both steps, and the many ways real sensors fall short of this tidy picture, in Sections 2.3.1 and 2.3.2 of his book ([Szeliski, 2nd ed., 2022](https://szeliski.org/Book/)).
+
+It is worth pausing on how much information quantization throws away, because the answer is reassuringly little. Suppose brightness runs from 0 to 1 and we use L equally spaced levels, so the spacing is Δ = 1/(L − 1). Rounding to the nearest level makes an error e that lies somewhere between −Δ/2 and Δ/2. If the true brightness is not conspiring against us, e is equally likely to be anywhere in that interval, and its mean squared size is
+
+$$
+\langle e^2 \rangle = \frac{1}{\Delta}\int_{-\Delta/2}^{\Delta/2} e^2 \, de = \frac{1}{\Delta}\left[\frac{e^3}{3}\right]_{-\Delta/2}^{\Delta/2} = \frac{\Delta^2}{12}.
+$$
+
+With L = 256 the root mean square error is Δ/√12, which is about 0.0011, roughly a tenth of a percent of the full range. Our eyes cannot see that. Camera noise is usually bigger. So eight bits per pixel is not a crude approximation at all, and it is why the format has lasted.
+
+A colour image just repeats the whole construction three times, once each for red, green and blue light. Each pixel then holds three bytes instead of one.
+
+Files on disk add another layer. A JPEG throws away detail the eye is unlikely to miss in order to make the file small, while a PNG compresses without losing anything. You will meet both. For our purposes the important point is that once a file is loaded, the format is forgotten and we are left with the array. If you are ever measuring something delicate, like the tiny brightness changes between two video frames, prefer lossless files, since JPEG's compression leaves faint blocky artifacts of its own that can look like real signal.
+
+::: {#ex-1-1-1 .exercise}
+[**Exercise 1.1.1 (Quantization error by experiment)**]{.theorem-title} We showed that rounding to L equally spaced levels between 0 and 1 leaves a root mean square error of Δ/√12, where Δ = 1/(L − 1). Let us test the claim. Write `quantize(signal, L)`, which rounds every value of an array in [0, 1] to the nearest of the levels 0, Δ, 2Δ and so on up to 1. The check runs it on a long, finely spaced ramp and compares the measured error with the formula for several values of L.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def quantize(signal, L):
+    """Round each value of signal (all in [0, 1]) to the nearest of L equally spaced levels."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    ramp = np.linspace(0, 1, 200_001)
+    ok = True
+    for L in [4, 16, 64, 256]:
+        q = quantize(ramp, L)
+        delta = 1 / (L - 1)
+        on_levels = np.allclose(q / delta, np.round(q / delta))
+        rms = np.sqrt(np.mean((ramp - q) ** 2))
+        predicted = delta / np.sqrt(12)
+        print(f"L = {L:3d}   measured RMS {rms:.6f}   predicted {predicted:.6f}")
+        ok = ok and on_levels and abs(rms / predicted - 1) < 0.01
+    return ok
+
+check("Exercise 1.1.1", test)
+```
+
+### Opening an image {#sec-opening-an-image}
+
+Here is how we load an image in Python and look at what we get back. OpenCV is imported under the name `cv2`, for historical reasons nobody remembers fondly.
+
+```{python}
+import cv2
+import numpy as np
+
+img = cv2.imread("face.jpg")   # put the name of any image file here
+
+print(type(img))    # <class 'numpy.ndarray'>
+print(img.shape)    # e.g. (480, 640, 3): rows, columns, colour channels
+print(img.dtype)    # uint8: unsigned 8-bit integers, 0 to 255
+print(img[100, 200])  # the three numbers stored at row 100, column 200
+```
+
+That is the whole story. The image is a NumPy array of shape (rows, columns, 3) whose entries are bytes.
+
+There is one trap already. If the file name is wrong, `cv2.imread` does not raise an error. It prints a warning and quietly returns `None`, a behaviour described in the OpenCV documentation for the image codecs module ([OpenCV, imgcodecs](https://docs.opencv.org/4.x/d4/da8/group__imgcodecs.html)). The program then crashes several lines later with a confusing message about `NoneType`. So it is a good habit to check straight away.
+
+```{python}
+img = cv2.imread("face.jpg")
+if img is None:
+    raise FileNotFoundError("Could not read face.jpg. Check the path.")
+```
+
+We do not always need a file. Since an image is just an array, we can build one by hand, and for testing algorithms this is often the best thing to do, because we know exactly what the right answer is.
+
+```{python}
+# A 4 x 6 black image with a small red square in it.
+img = np.zeros((4, 6, 3), dtype=np.uint8)
+img[1:3, 2:4] = (0, 0, 255)     # why (0, 0, 255) means red is explained in 1.1.4
+
+cv2.imwrite("tiny.png", img)     # save it
+back = cv2.imread("tiny.png")    # and read it back
+print(np.array_equal(img, back)) # True, because PNG is lossless
+```
+
+To look at an image we will use Matplotlib, which plays nicely with notebooks.
+
+```{python}
+import matplotlib.pyplot as plt
+
+rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)   # again, see 1.1.4
+plt.imshow(rgb)
+plt.axis("off")
+plt.show()
+```
+
+### Rows, columns, x and y {#sec-rows-columns-x-and-y}
+
+Now the trap that catches everyone at least once. Mathematicians write points as (x, y), with x going right and y going up. Arrays are indexed as `img[row, col]`, with the row counting *down* from the top. So the pixel at horizontal position x and vertical position y is
+
+```{python}
+#| code-fold: true
+#| code-summary: "Setup: choose a pixel"
+#| classes: lc-setup
+# [Setup] Not part of the lecture notes. Choose a pixel of the tiny image to look at.
+x, y = 3, 1
+```
+
+```{python}
+value = img[y, x]      # row first, then column
+```
+
+and the origin is the top-left corner, with y increasing downward. The shape of an image is likewise (height, width), the opposite of the "640 by 480" way we usually describe screens. To make matters worse, many OpenCV drawing functions take points as (x, y). So when we draw a circle at the pixel we found with `img[y, x]`, we pass `(x, y)`.
+
+```{python}
+#| output: false
+#| classes: lc-quiet
+h, w = img.shape[:2]                     # height first
+cv2.circle(img, (x, y), 5, (0, 255, 0))  # but drawing wants (x, y)
+```
+
+There is a quieter consequence that matters in @sec-binary. With y pointing down, the coordinate system is a mirror image of the one in textbooks. An angle that is measured counter-clockwise on paper comes out clockwise on the screen. Horn's derivations in *Robot Vision* use the textbook convention, so when we turn his formula for an object's orientation into code we have to remember which way our y axis points. It is a sign error waiting to happen, and we will point it out again when we get there.
+
+::: {#ex-1-1-2 .exercise}
+[**Exercise 1.1.2 (Rows, columns, x and y)**]{.theorem-title} Write `mark_pixel(img, x, y, colour)`, which paints the pixel at horizontal position x and vertical position y in the BGR colour `colour`, together with its neighbours directly above, below, left and right. Neighbours that fall outside the image should be skipped quietly. The function should change `img` in place and also return it. The check marks a pixel on a small black canvas and compares every entry of the array with what it should be, so a swapped x and y will not slip through.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def mark_pixel(img, x, y, colour):
+    """Paint pixel (x, y) and its four neighbours in the given BGR colour."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    canvas = np.zeros((6, 8, 3), np.uint8)
+    mark_pixel(canvas, 5, 2, (0, 255, 0))
+    expected = np.zeros((6, 8, 3), np.uint8)
+    for row, col in [(2, 5), (1, 5), (3, 5), (2, 4), (2, 6)]:
+        expected[row, col] = (0, 255, 0)
+    corner = np.zeros((6, 8, 3), np.uint8)
+    mark_pixel(corner, 0, 0, (255, 0, 0))          # two neighbours fall off the image
+    corner_ok = corner[:, :, 0].sum() == 3 * 255 and corner[0, 0, 0] == 255
+    if not np.array_equal(canvas, expected):
+        print("pixels painted (row, col):", [tuple(int(v) for v in p) for p in np.argwhere(canvas.any(axis=2))])
+    return np.array_equal(canvas, expected) and corner_ok
+
+check("Exercise 1.1.2", test)
+```
+
+### Colour and grey {#sec-colour-and-grey}
+
+The third index of a colour image picks the channel. You would guess the order is red, green, blue. In OpenCV it is blue, green, red. The default loading flag is literally named `IMREAD_COLOR_BGR` in the documentation ([OpenCV, imgcodecs](https://docs.opencv.org/4.x/d4/da8/group__imgcodecs.html)), and it is a leftover from the days when BGR was a common ordering in camera drivers and Windows bitmap files. Nobody has dared change it since. That is why the red square above was written as (0, 0, 255). Matplotlib, and nearly every other library, expects red first. If you show an OpenCV image in Matplotlib without converting it, faces turn blue and the sky turns orange.
+
+Many algorithms want a single number per pixel, a *greyscale* image. The simplest choice is the plain average, and the course slides use exactly that when describing a segmentation pipeline ([Betke, Segmentation lecture, slide 4](https://www.cs.bu.edu/fac/betke/cs585/open/2024-SegmentationBoundaryHausdorffCurvature.pdf)).
+
+$$
+I = \frac{R + G + B}{3}
+$$
+
+OpenCV uses a weighted average instead, which its documentation gives as ([OpenCV, colour conversions](https://docs.opencv.org/4.x/de/d25/imgproc_color_conversions.html))
+
+$$
+Y = 0.299\,R + 0.587\,G + 0.114\,B .
+$$
+
+The weights come from television engineering. Our eyes are far more sensitive to green light than to blue, so a pure green patch looks much brighter to us than a pure blue patch of the same physical strength. The weighted sum tries to match perceived brightness. For most of what follows the choice barely matters, but it is good to know that "grey" is a convention and not a fact.
+
+```{python}
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)   # uses the weighted formula
+
+# The same thing by hand, to see there is no magic. Note the BGR order.
+b = img[:, :, 0].astype(float)
+g = img[:, :, 1].astype(float)
+r = img[:, :, 2].astype(float)
+mine = np.round(0.299 * r + 0.587 * g + 0.114 * b).astype(np.uint8)
+```
+
+On our tiny test image both give 76 inside the red square, which is just 0.299 × 255 rounded.
+
+::: {#ex-1-1-3 .exercise}
+[**Exercise 1.1.3 (Two kinds of grey)**]{.theorem-title} Write `gray_average(img)`, which returns the plain average (R + G + B)/3 of a BGR image as a `uint8` image, rounded to the nearest whole number. The overflow trap of @sec-arithmetic-that-bites is waiting for anyone who adds the three channels as they come. The check compares your result with OpenCV's weighted grey on face.jpg and reports where the two disagree most. Look at the colour of that pixel and think about why the disagreement is largest there. As a warm-up, convince yourself that `img[:, :, ::-1]`, which reverses the order of the channel axis, is the same array as `cv2.cvtColor(img, cv2.COLOR_BGR2RGB)`. The check tests that too.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def gray_average(img):
+    """(R + G + B) / 3 of a BGR uint8 image, rounded, as a uint8 image."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    scene = cv2.imread("face.jpg")
+    mine = gray_average(scene)
+    reference = np.round(scene.astype(float).mean(axis=2)).astype(np.uint8)
+    flip_ok = np.array_equal(scene[:, :, ::-1], cv2.cvtColor(scene, cv2.COLOR_BGR2RGB))
+    print("img[:, :, ::-1] equals the BGR to RGB conversion:", flip_ok)
+    gap = np.abs(mine.astype(int) - cv2.cvtColor(scene, cv2.COLOR_BGR2GRAY).astype(int))
+    r, c = np.unravel_index(np.argmax(gap), gap.shape)
+    print(f"largest disagreement {gap.max()} grey levels, at row {r}, column {c}, where (B, G, R) = {tuple(int(v) for v in scene[r, c])}")
+    return mine.dtype == np.uint8 and np.array_equal(mine, reference)
+
+check("Exercise 1.1.3", test)
+```
+
+### Arithmetic that bites {#sec-arithmetic-that-bites}
+
+Here is the most important pitfall in the whole section. The entries of an image are of type `uint8`, unsigned 8-bit integers. When arithmetic on them goes outside the range 0 to 255, NumPy does not complain and does not clip. It wraps around, keeping only the remainder after division by 256. The NumPy documentation warns about this in its section on overflow errors for fixed-size types ([NumPy, Data types](https://numpy.org/doc/1.22/user/basics.types.html)).
+
+```{python}
+a = np.array([200, 50], dtype=np.uint8)
+b = np.array([100, 100], dtype=np.uint8)
+
+print(a + b)   # [ 44 150]   because 300 - 256 = 44
+print(a - b)   # [100 206]   because -50 + 256 = 206
+```
+
+Read that second line again. Subtracting a brighter pixel from a darker one gives a large *positive* number. In @sec-motion we will subtract one video frame from the next to find motion, and if we forget this, every dark object moving across a bright background produces nonsense. The cure is to convert to a wider type before doing any arithmetic, and convert back only at the end, if at all.
+
+```{python}
+print(a.astype(int) + b)   # [300 150]
+print(a.astype(int) - b)   # [100 -50]
+```
+
+We will do this every time. It costs a little memory and saves a great deal of confusion.
+
+The second pitfall is subtler. Slicing a NumPy array does not copy it. It gives a *view* into the same memory, so writing into the slice writes into the original image.
+
+```{python}
+big = np.zeros((5, 5), dtype=np.uint8)
+crop = big[1:3, 1:3]
+crop[:] = 255          # this also changes big!
+
+safe = big[1:3, 1:3].copy()   # an independent copy
+```
+
+This is sometimes exactly what we want, and sometimes the reason a template we cut from the first video frame keeps changing as we draw on later frames. OpenCV's drawing functions also change the image you hand them in place, so if you want to keep the original, draw on a copy.
+
+The last pitfall is about display. When Matplotlib is handed a single-channel image it does not show it in grey by default, and it rescales the values so the darkest pixel is black and the brightest is white. An almost uniform image therefore looks like it has dramatic contrast. To see what is really there, say so explicitly.
+
+```{python}
+plt.imshow(gray, cmap="gray", vmin=0, vmax=255)
+```
+
+::: {#ex-1-1-4 .exercise}
+[**Exercise 1.1.4 (Brightening without wrap-around)**]{.theorem-title} Write `brighten(img, amount)`, which adds `amount` to every pixel of a `uint8` image and returns a new `uint8` image. The amount may be negative. Values should stop at 0 and 255 instead of wrapping around, and the image you were handed must not change. When your function passes, the check shows face.jpg brightened by 100 the naive way, with `img + 100`, next to your version. The naive one is worth a long look, because those garish patches are what wrap-around looks like in the wild.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def brighten(img, amount):
+    """Add amount to every pixel, clipping to [0, 255]. Returns a new uint8 image."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    a = np.array([[0, 100, 250]], dtype=np.uint8)
+    up, down = brighten(a, 10), brighten(a, -50)
+    ok = (up.dtype == np.uint8 and up.tolist() == [[10, 110, 255]]
+          and down.tolist() == [[0, 50, 200]] and a.tolist() == [[0, 100, 250]])
+    if ok:
+        scene = cv2.imread("face.jpg")
+        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+        axes[0].imshow(cv2.cvtColor(scene + 100, cv2.COLOR_BGR2RGB)); axes[0].set_title("scene + 100 (wraps around)")
+        axes[1].imshow(cv2.cvtColor(brighten(scene, 100), cv2.COLOR_BGR2RGB)); axes[1].set_title("brighten(scene, 100)")
+        for ax in axes:
+            ax.axis("off")
+        plt.show()
+    else:
+        print("brighten([[0, 100, 250]], 10) gave", up.tolist(), "and with -50 gave", down.tolist())
+    return ok
+
+check("Exercise 1.1.4", test)
+```
+
+### When the bytes are read wrong {#sec-when-the-bytes-are-read-wrong}
+
+Lecture notes 1 has a sentence that every vision programmer eventually learns the hard way. When an image comes out looking strange, the path from the strange look back to the actual bug is often far from obvious ([Lecture notes 1, slide 4](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-Program-with-Images-Pitfalls.pdf)). The deck then walks through a gallery of characteristic failures. Each one has a recognizable visual signature, and once you know the signatures you can diagnose the bug from the picture. The deck also recommends two tools of the trade. One is OpenCV, which began as an Intel project and has become the standard open-source vision library. The other is IrfanView, a free image viewer that is handy for flipping through thousands of saved video frames in a batch.
+
+The colour-order mistake from @sec-colour-and-grey is the first entry in the gallery, with a portrait turned eerily blue ([Lecture notes 1, slide 5](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-Program-with-Images-Pitfalls.pdf)). The others appear when we read pixel data ourselves rather than through `cv2.imread`. That happens more often than you might think. Camera drivers hand over raw buffers, and some scientific instruments write files with no header at all. All such data is stored the same way, one row after another, and NumPy can read it directly.
+
+```{python}
+W, H = 512, 512                                     # we must know these from somewhere
+raw = np.fromfile("picture.raw", dtype=np.uint8)    # every byte in the file
+print(raw.size, "bytes; expected", W * H)
+img = raw.reshape(H, W)                             # cut the long line into rows
+```
+
+The `print` line is the most useful debugging tool in this subsection. If the byte count is not exactly width × height × channels, one of those three numbers is wrong, and no amount of staring at the picture will be as quick.
+
+**Wrong width.** Suppose the true width is W but we reshape with a slightly smaller width W′ = W − δ. The slides show the case W = 512, W′ = 508 and get an image full of strong diagonal stripes ([Lecture notes 1, slide 6](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-Program-with-Images-Pitfalls.pdf)). We can predict exactly what those stripes look like. Because rows are stored one after another, the pixel in row r and column c lives at position k = rW + c in the file. When we reshape with width W′ it is displayed in row ⌊k/W′⌋ and column k mod W′. Now write
+
+$$
+k = rW + c = rW' + (r\delta + c).
+$$
+
+As long as rδ + c is still less than W′, this pixel lands in the same row r but in column c + rδ. Each row is displayed δ pixels further to the right than the row above it. A vertical edge at column c₀ therefore becomes a slanted line, moving δ pixels to the right for every row it descends. With δ = 4 that is a shallow line about 14° below the horizontal, since arctan(1/4) ≈ 14°. Once the shift grows past the width, after W′/δ = 127 rows, it wraps around and the pattern repeats. That is precisely the striped look on the slide. In our own test with a dark vertical bar at column 100, the wrongly reshaped image had the bar start at column 104 in row 1, 108 in row 2 and 140 in row 10.
+
+```{python}
+wrong = raw[: (raw.size // 508) * 508].reshape(-1, 508)   # deliberately wrong width
+```
+
+**Wrong colour depth.** A grey image uses one byte per pixel and a colour image uses three. If we mix them up, the arithmetic goes wrong in an equally predictable way ([Lecture notes 1, slide 7](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-Program-with-Images-Pitfalls.pdf)). Suppose a grey image is read as if it were colour, with the right width W. Each displayed pixel then grabs three neighbouring grey values and treats them as blue, green and red. Neighbouring pixels are similar, so the result looks roughly grey, but the small differences between them show up as faint colour. On smooth gradients the three channels drift in and out of step, and up close you see bands of rainbow. The geometry breaks as well. A displayed row now consumes 3W bytes, which is three real rows. Its first third shows real row 3r′ squeezed horizontally by a factor of three, its middle third shows row 3r′ + 1, and its last third shows row 3r′ + 2. So the picture comes out as three narrow copies of itself side by side, only a third as tall. Read a colour image as grey and the opposite happens, the picture is stretched and covered in fine vertical stripes.
+
+**Text mode versus binary mode.** The last gotcha in the deck is the strangest-looking one ([Lecture notes 1, slide 8](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-Program-with-Images-Pitfalls.pdf)). Files can be opened as text or as raw binary data. In text mode, the operating system tries to be helpful about line endings. Windows marks the end of a line with two bytes, a carriage return followed by a newline, and when a file is opened as text the carriage returns are quietly removed. The slide writes the carriage return's value as 20, but it is byte 13 in decimal, or 0x0D in hexadecimal. In an image, of course, 13 is just a rather dark grey value, and it turns up all over the place.
+
+Every time a byte disappears, every byte after it shifts one place to the left. In a colour image this rotates the channels, so what should have been blue is read as green and green as red, until the next lost byte rotates them again. The picture breaks into horizontal bands of wrong colour, each starting at a row where a 13 happened to occur. Python 3 does this translation in text mode on every operating system, not just Windows, and with its default text encoding it will usually crash with a decoding error before you even get that far. In our test, the bytes [10, 13, 10, 200, 13, 13, 10, 26, 5] came back from a text-mode read as [10, 10, 200, 10, 10, 26, 5]. The fix is a single letter.
+
+```{python}
+with open("picture.raw", "rb") as f:      # the b means binary. Never leave it out.
+    data = f.read()
+img = np.frombuffer(data, dtype=np.uint8).reshape(H, W)
+```
+
+None of these traps is deep. But every one of them has cost students hours, and every one of them shows up again in the algorithms below. With the array firmly in hand, we can start asking it questions.
+
+::: {#ex-1-1-5 .exercise}
+[**Exercise 1.1.5 (The mystery file)**]{.theorem-title} The setup cell at the top of this chapter wrote a file called mystery.raw. It holds a grey image, one byte per pixel and no header, and nobody told us its width. Write `guess_width(raw, candidates)`, which picks the width from a list of candidates. Here is the idea. At the right width, each row sits directly above the row that really followed it, and in a natural picture neighbouring rows look alike. At a wrong width the rows are sheared against each other, as we saw in @sec-when-the-bytes-are-read-wrong. So try each candidate, reshape, and measure the average absolute difference between consecutive rows. The smallest wins. The check passes in every width that divides the file size exactly, and shows you the picture at the width you chose.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def guess_width(raw, candidates):
+    """Return the candidate width that makes neighbouring rows of the image most alike."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    raw = np.fromfile("mystery.raw", dtype=np.uint8)
+    candidates = [w for w in range(64, 2001) if raw.size % w == 0]
+    print(len(candidates), "candidate widths, from", candidates[0], "to", candidates[-1])
+    w = guess_width(raw, candidates)
+    picture = raw.reshape(-1, w)
+    plt.imshow(picture, cmap="gray", vmin=0, vmax=255)
+    plt.title(f"mystery.raw at width {w}")
+    plt.show()
+    row_change = np.mean(np.abs(np.diff(picture.astype(int), axis=0)))
+    print(f"average change between neighbouring rows at this width: {row_change:.2f} grey levels")
+    return row_change < 3.5
+
+check("Exercise 1.1.5", test)
+```
+
+## Binary Images and the Shapes in Them {#sec-binary}
+
+The simplest thing we can do with a grey image is to throw away almost everything in it. We decide, pixel by pixel, whether it belongs to the thing we care about or to the background, and we write down a 1 or a 0. What is left is a *binary image*. It sounds like a crude move, and it is. But it is remarkable how much can be measured from a binary image, and the measurements turn out to have a clean mathematical structure. Both lectures we follow lean on this material, and the course lists it as reading for this block, in the form of the Wikipedia article on image moments, notes on binary image analysis, a reading on thresholding and Horn's Chapter 3. The slides that go with it come from the neighbouring lectures, the blackboard lecture on moments and the January 25 deck ([Betke, Jan 25 2024, slides 2 to 13](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-cs585-projections-localization-floodfill-Jan25.pdf)), with Chapter 3 of Horn's *Robot Vision* as the main reference for the derivations.
+
+Throughout, B(x, y) is the binary image. It equals 1 on the object and 0 elsewhere.
+
+### Thresholding {#sec-thresholding}
+
+The standard way to get B from a grey image I is to pick a number τ, called the *threshold*, and compare every pixel against it. The slides write this as
+
+$$
+B(x,y) = \begin{cases} 1 & \text{if } I(x,y) > \tau, \\ 0 & \text{otherwise.} \end{cases}
+$$
+
+This marks bright things as the object. When the object is dark on a light background, as with the bat in the slides, we simply flip the inequality. In code the whole operation is a single comparison, which NumPy applies to every pixel at once.
+
+```{python}
+#| code-fold: true
+#| code-summary: "Setup: the test ellipse used in this section"
+#| classes: lc-setup
+# [Setup] Not part of the lecture notes. The test image used throughout Section 1.2: a dark ellipse
+# (grey value 60, semi-axes 80 and 25, tilted 30 degrees) on a background of 180, plus noise of
+# standard deviation 10. img is a colour copy to draw on.
+rng = np.random.default_rng(0)
+gray = np.full((200, 300), 180, dtype=np.uint8)
+cv2.ellipse(gray, (150, 100), (80, 25), 30, 0, 360, 60, -1)
+gray = np.clip(gray.astype(float) + rng.normal(0, 10, gray.shape), 0, 255).astype(np.uint8)
+img = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+```
+
+```{python}
+def threshold(gray, tau):
+    """Binary image that is 1 wherever the pixel is darker than tau."""
+    return (gray < tau).astype(np.uint8)
+
+B = threshold(gray, 120)
+```
+
+The interesting question is how to choose τ. The segmentation lecture lists several methods ([Betke, Segmentation lecture, slides 5 to 10](https://www.cs.bu.edu/fac/betke/cs585/open/2024-SegmentationBoundaryHausdorffCurvature.pdf)), and almost all of them start from the *histogram*. The histogram H(g) counts how many pixels have grey value g, for each g from 0 to 255.
+
+```{python}
+hist = np.bincount(gray.ravel(), minlength=256)   # hist[g] = number of pixels with value g
+
+plt.bar(range(256), hist, width=1.0)
+plt.xlabel("grey value"); plt.ylabel("number of pixels")
+plt.show()
+```
+
+If the picture is a dark object on a light background, the histogram typically has two humps, one for the object and one for the background, with a valley in between. Every method below is a different way of finding that valley.
+
+**Absolute thresholding.** Look at the histogram and pick τ by eye. This works surprisingly often, for a single image. Its weakness is that it assumes the same grey value means the same thing everywhere in the picture. If one side of the scene is lit more brightly than the other, a single τ will be too low on one side and too high on the other. The lecture notes that MRI scanners have exactly this kind of slowly varying bias across the image.
+
+**The percentile method.** Suppose we happen to know that the object takes up a fraction p of the picture. Perhaps it is a printed character and we know roughly how much ink a character uses. Then we do not need the histogram's shape at all. If there are n pixels, we declare the m = pn darkest ones to be the object, which is the same as setting τ at the p-th quantile of the grey values.
+
+```{python}
+def percentile_threshold(gray, p):
+    """The object is assumed dark and to cover a fraction p of the image."""
+    return np.quantile(gray, p)
+```
+
+**The mode method.** Here we take the two-hump picture seriously. We look for two peaks g~i~ and g~j~ in the histogram with a valley g~k~ between them, and we measure how pronounced the valley is with the *peakiness*
+
+$$
+p(i,j,k) = \frac{\min\{H(g_i),\, H(g_j)\}}{H(g_k)} .
+$$
+
+Two tall peaks with a deep valley give a large value. We try every pair of peaks, keep the one with the largest peakiness, and set τ = g~k~. The method needs the object and background to be fairly uniform and the object to be not too small, otherwise its hump is lost in the noise. Real histograms are jagged, so it helps to smooth them a little first, or every tiny wiggle counts as a peak.
+
+```{python}
+def mode_threshold(hist):
+    h = np.convolve(hist, np.ones(5) / 5, mode="same")    # light smoothing
+    peaks = [g for g in range(1, 255)
+             if h[g] > 0 and h[g] >= h[g - 1] and h[g] >= h[g + 1]]
+    best_T, best_p = None, 0.0
+    for i in peaks:
+        for j in peaks:
+            if j <= i:
+                continue
+            k = i + np.argmin(h[i:j + 1])                  # the valley between them
+            p = min(h[i], h[j]) / max(h[k], 1.0)           # avoid dividing by zero
+            if p > best_p:
+                best_T, best_p = k, p
+    return best_T
+```
+
+**The iterative method.** Start with τ equal to the mean grey value. Split the pixels into those below τ and those above. Compute the mean of each group, μ~below~ and μ~above~, and move τ to the midpoint between them. Repeat until τ stops moving. This procedure is usually credited to Ridler and Calvard in 1978.
+
+```{python}
+def iterative_threshold(gray, tol=0.5):
+    T = gray.mean()
+    while True:
+        mu_below = gray[gray <= T].mean()
+        mu_above = gray[gray > T].mean()
+        T_new = 0.5 * (mu_below + mu_above)
+        if abs(T_new - T) < tol:
+            return T_new
+        T = T_new
+```
+
+It is worth seeing why this is a sensible thing to do, because the slides state it without motivation. Suppose we want to summarize all the grey values with just two numbers, a dark value μ₁ and a light value μ₂, and assign each pixel to whichever is closer. The natural measure of how well we have done is the total squared error
+
+$$
+J = \sum_{g \le \tau} (g - \mu_1)^2 + \sum_{g > \tau} (g - \mu_2)^2 .
+$$
+
+If we hold τ fixed and minimize over μ₁, setting the derivative to zero gives μ₁ equal to the mean of the dark group, and similarly for μ₂. If instead we hold μ₁ and μ₂ fixed, each pixel should go to the nearer of the two, and the boundary between "nearer to μ₁" and "nearer to μ₂" is exactly their midpoint. So the iterative method alternates between the two halves of this minimization. Each step can only lower J, which is why it settles down. Those who have met machine learning will recognize this as k-means clustering with k = 2, in one dimension.
+
+To check these against each other we made a test image, a dark ellipse with grey value 60 on a background of 180, plus Gaussian noise of standard deviation 10. The iterative method gave τ ≈ 119 and the mode method gave τ = 102. Both sit comfortably in the valley, and both produce essentially the same binary image.
+
+**Adaptive thresholding.** When the lighting changes across the image, the honest fix is to let τ change too. The idea on the slides is to use different thresholds in different regions. A clean way to do this is to compare each pixel with the average of its neighbourhood rather than with a single global number. If a pixel is clearly darker than its surroundings, it is object.
+
+```{python}
+def adaptive_threshold(gray, size=101, C=20):
+    """1 where a pixel is darker than (local mean - C)."""
+    local_mean = cv2.blur(gray.astype(np.float32), (size, size))
+    return (gray < local_mean - C).astype(np.uint8)
+```
+
+OpenCV has the same thing built in as `cv2.adaptiveThreshold`. On our test image with a brightness ramp of 150 grey levels added from left to right, the single global threshold mislabelled 38% of the pixels. The adaptive versions mislabelled under 2%, with the small differences between our function and OpenCV's coming from how each treats the borders of the picture. The size of the neighbourhood matters. It should be noticeably bigger than the object, otherwise the local mean inside a large dark object is itself dark and the middle of the object disappears.
+
+::: {#ex-1-2-1 .exercise}
+[**Exercise 1.2.1 (Thresholds from the histogram alone)**]{.theorem-title} Our `iterative_threshold` looks at every pixel on every pass. Yet the two means it needs depend only on the histogram, so the whole computation can be done on 256 numbers instead of tens of thousands of pixels. Write `iterative_threshold_hist(hist)`, which does exactly that. The mean grey value of all the pixels with values from g₁ to g₂ is
+
+$$
+\bar{g} = \frac{\sum_{g=g_1}^{g_2} g\,H(g)}{\sum_{g=g_1}^{g_2} H(g)} .
+$$
+
+The check compares your answer with `iterative_threshold(gray)` on the test ellipse of this section, so run the cells above first.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def iterative_threshold_hist(hist, tol=0.5):
+    """The iterative threshold, computed from a 256-entry histogram only."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    T_pixels = iterative_threshold(gray)
+    T_hist = iterative_threshold_hist(np.bincount(gray.ravel(), minlength=256))
+    print(f"from the pixels {T_pixels:.3f}, from the histogram {T_hist:.3f}")
+    return abs(T_pixels - T_hist) < 0.5
+
+check("Exercise 1.2.1", test)
+```
+
+### Projections and a quick bounding box {#sec-projections-and-a-quick-bounding-box}
+
+Now we have a binary image, and the first task in the slides is a very practical one. Find a box around the object ([Betke, Jan 25 2024, slides 6 to 10](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-cs585-projections-localization-floodfill-Jan25.pdf)). The trick is to count. For each row y, count the object pixels in that row, and for each column x, count the object pixels in that column.
+
+$$
+P_1(y) = \sum_x B(x,y), \qquad P_2(x) = \sum_y B(x,y).
+$$
+
+These are called *projections*, because we have squashed the two-dimensional picture onto one axis, like the shadow of an object on a wall. The object's box runs from the first row where P₁ is nonzero to the last, and likewise for the columns.
+
+```{python}
+#| output: false
+#| classes: lc-quiet
+P_rows = B.sum(axis=1)     # P1(y): one count per row
+P_cols = B.sum(axis=0)     # P2(x): one count per column
+
+min_count = 3              # ignore rows or columns with only a few stray pixels
+rows = np.nonzero(P_rows >= min_count)[0]
+cols = np.nonzero(P_cols >= min_count)[0]
+top, bottom = rows.min(), rows.max()
+left, right = cols.min(), cols.max()
+
+cv2.rectangle(img, (left, top), (right, bottom), (0, 255, 0), 2)   # note (x, y) order
+```
+
+The `min_count` line is there because of a point the slides stress. The background may contain a few dark pixels of its own, and a single stray pixel near the edge of the picture would otherwise stretch the box all the way out to it. A threshold on the projections themselves is the cheapest defence.
+
+Projections are more useful than they look. Freeman and colleagues built interactive games that tracked a player's hand with exactly these sums, and they point out that every moment we compute below can be obtained from projections alone, with single sums instead of double sums ([Freeman et al. 1998, Sidebar 2.1](https://merl.com/publications/docs/TR99-02.pdf)). They even used a custom chip that computed projections in hardware.
+
+::: {#ex-1-2-2 .exercise}
+[**Exercise 1.2.2 (More than one box)**]{.theorem-title} Projections can find several objects at once, as long as the objects do not overlap when squashed onto an axis. Write `runs(profile, min_count)`, which returns a list of (start, end) pairs, one for each stretch of consecutive entries of a projection that are at least `min_count`. Both ends count as part of the run. The check builds an image with a disc and a rectangle side by side, finds the runs in its column projection, and then, for each run, uses the row projection of just that vertical strip to finish the box.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def runs(profile, min_count=1):
+    """List of (start, end) index pairs, inclusive, where profile >= min_count."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    pic = np.zeros((160, 300), np.uint8)
+    cv2.circle(pic, (70, 80), 40, 1, -1)
+    cv2.rectangle(pic, (180, 30), (260, 120), 1, -1)
+    col_runs = runs(pic.sum(axis=0), 1)
+    print("column runs:", col_runs)
+    boxes = []
+    for left, right in col_runs:
+        strip = pic[:, left:right + 1]
+        (top, bottom), = runs(strip.sum(axis=1), 1)
+        boxes.append((left, top, right, bottom))
+    print("boxes (left, top, right, bottom):", boxes)
+    shown = cv2.cvtColor(pic * 255, cv2.COLOR_GRAY2BGR)
+    for left, top, right, bottom in boxes:
+        cv2.rectangle(shown, (left, top), (right, bottom), (0, 0, 255), 1)
+    plt.imshow(shown[:, :, ::-1]); plt.axis("off"); plt.show()
+    return col_runs == [(30, 110), (180, 260)] and boxes == [(30, 40, 110, 120), (180, 30, 260, 120)]
+
+check("Exercise 1.2.2", test)
+```
+
+### Area and position {#sec-area-and-position}
+
+We now start measuring the shape, following Horn's Chapter 3. Think of the object as a flat plate of uniform density cut out of sheet metal, and B as its density. Then the obvious first questions are how much metal there is and where it balances.
+
+The *area* is the total mass,
+
+$$
+A = \sum_x \sum_y B(x,y).
+$$
+
+The slides call this the *zeroth moment*. The general moment of order (p, q) is
+
+$$
+M_{pq} = \sum_x \sum_y x^p \, y^q \, B(x,y),
+$$
+
+so A = M₀₀. The *centroid*, or centre of mass, comes from the first moments,
+
+$$
+\bar{x} = \frac{M_{10}}{M_{00}} = \frac{1}{A}\sum_x\sum_y x\,B(x,y), \qquad \bar{y} = \frac{M_{01}}{M_{00}} = \frac{1}{A}\sum_x\sum_y y\,B(x,y).
+$$
+
+This is just the average x and average y over all object pixels. There is a nice way to see why the average is the right notion of "position". Ask for the point (x₀, y₀) that is closest to the object overall, in the sense of minimizing the summed squared distance
+
+$$
+S(x_0, y_0) = \sum_x \sum_y \left[ (x - x_0)^2 + (y - y_0)^2 \right] B(x,y).
+$$
+
+Setting ∂S/∂x₀ = 0 gives −2 Σ (x − x₀) B = 0, so x₀ Σ B = Σ x B, which is x₀ = x̄. The same holds for y. So the centroid is the unique point that minimizes the spread of the object around it. We will meet this kind of argument again in a moment, and it will do more work there.
+
+In code, the cleanest approach is to ask NumPy for the coordinates of all object pixels and average them. Remember from @sec-rows-columns-x-and-y that `np.nonzero` gives back rows first.
+
+```{python}
+rows, cols = np.nonzero(B)       # coordinates of every pixel where B == 1
+x = cols.astype(float)           # x is the column
+y = rows.astype(float)           # y is the row (pointing down!)
+
+A = len(x)
+x_bar = x.mean()
+y_bar = y.mean()
+```
+
+### Orientation {#sec-orientation}
+
+Position and size are not enough to tell a pencil lying flat from a pencil standing up. We want a direction. The natural candidate is the line through the object that it is "most spread along", which Horn calls the *axis of least second moment*. In the mechanical picture, it is the axis about which the metal plate is easiest to spin.
+
+So we need a way to describe a line and a way to measure how spread out the object is about it. Horn writes a line in the form
+
+$$
+x \sin\theta - y \cos\theta + \rho = 0 .
+$$
+
+The vector (sin θ, −cos θ) is a unit vector perpendicular to the line, so the line itself points along (cos θ, sin θ) and makes angle θ with the x axis. The beauty of this form is that if we plug any point (x, y) into the left-hand side, we get its signed perpendicular distance r from the line. This sidesteps the problem with y = mx + c, whose slope m is infinite for a vertical line. (The class poll on the slides, which asks which of four line equations is wrong, is testing exactly this fluency with the different forms.)
+
+The second moment of the object about the line is the sum of squared distances,
+
+$$
+E(\theta, \rho) = \sum_x \sum_y \left( x \sin\theta - y\cos\theta + \rho \right)^2 B(x,y).
+$$
+
+We want the line, so both θ and ρ, that makes E as small as possible. Let us do it in two steps.
+
+**Step one, the offset.** Differentiate with respect to ρ and set the result to zero.
+
+$$
+\frac{\partial E}{\partial \rho} = 2\sum_x\sum_y \left( x\sin\theta - y\cos\theta + \rho\right)B(x,y) = 2A\left(\bar{x}\sin\theta - \bar{y}\cos\theta + \rho\right) = 0 .
+$$
+
+The bracket on the right is the line equation evaluated at the centroid. So whatever the angle, the best line passes through the centroid. This settles ρ, and it also tells us that the axis of *most* second moment, the one we get by maximizing over θ instead, goes through the centroid too.
+
+**Step two, the angle.** Since the line goes through (x̄, ȳ), it is convenient to measure everything from there. Define the centred coordinates x′ = x − x̄ and y′ = y − ȳ. In these coordinates ρ = 0 and the distance is simply r = x′ sin θ − y′ cos θ. Expanding the square,
+
+$$
+E(\theta) = \sin^2\theta \sum x'^2 B \; - \; 2\sin\theta\cos\theta \sum x'y' B \; + \; \cos^2\theta \sum y'^2 B .
+$$
+
+The three sums depend only on the shape, not on θ, so we give them names. Following Horn,
+
+$$
+a = \sum_x\sum_y x'^2\, B(x,y), \qquad b = 2\sum_x\sum_y x'y'\, B(x,y), \qquad c = \sum_x\sum_y y'^2\, B(x,y).
+$$
+
+These are the *second central moments*, and the factor of 2 in b is a convention that tidies the formulas below. Now
+
+$$
+E(\theta) = a\sin^2\theta - b\sin\theta\cos\theta + c\cos^2\theta .
+$$
+
+The double angle identities sin²θ = (1 − cos 2θ)/2, cos²θ = (1 + cos 2θ)/2 and sin θ cos θ = (sin 2θ)/2 turn this into
+
+$$
+E(\theta) = \tfrac{1}{2}(a+c) \; - \; \tfrac{1}{2}(a-c)\cos 2\theta \; - \; \tfrac{1}{2}\, b \sin 2\theta .
+$$
+
+The slides write this without the factors of one half, which is just twice the same function and has the same minimum ([Betke, Jan 25 2024, slide 4](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-cs585-projections-localization-floodfill-Jan25.pdf)). Setting dE/dθ = 0 gives (a − c) sin 2θ = b cos 2θ, in other words
+
+$$
+\tan 2\theta = \frac{b}{a-c}.
+$$
+
+This has two solutions between 0 and π, a right angle apart. One is the minimum and the other the maximum, and the equation alone does not say which is which. To find out, we use a trick worth remembering. Any combination of cos 2θ and sin 2θ can be written as a single shifted cosine. Define
+
+$$
+R = \sqrt{b^2 + (a-c)^2}, \qquad \cos\varphi = \frac{a-c}{R}, \qquad \sin\varphi = \frac{b}{R}.
+$$
+
+Then (a − c) cos 2θ + b sin 2θ = R cos(2θ − φ), and
+
+$$
+E(\theta) = \tfrac{1}{2}(a+c) - \tfrac{1}{2}R\cos(2\theta - \varphi).
+$$
+
+Now everything is visible at a glance. E is smallest when the cosine equals +1, at 2θ = φ, and largest when it equals −1, a quarter turn later. The minimizing angle is θ = φ/2, where φ is the angle whose cosine and sine are proportional to a − c and b. That is precisely what the two-argument arctangent computes.
+
+```{python}
+xp = x - x_bar                 # centred coordinates
+yp = y - y_bar
+a = np.sum(xp * xp)
+b = 2 * np.sum(xp * yp)
+c = np.sum(yp * yp)
+
+theta = 0.5 * np.arctan2(b, a - c)      # angle of the axis of least second moment
+```
+
+Here is a pitfall that has nothing to do with images and everything to do with trigonometry. If you write `np.arctan(b / (a - c))` instead, you get the right answer only when a > c. When a < c the one-argument arctangent lands in the wrong quadrant, and you get the axis of *most* second moment, perpendicular to the true one. And when a = c it divides by zero. The two-argument `arctan2` keeps track of the signs separately and always picks the minimum. Freeman and colleagues use exactly this formula, θ = ½ arctan(b, a − c), to read off the orientation of a hand ([Freeman et al. 1998, Sidebar 2.1](https://merl.com/publications/docs/TR99-02.pdf)).
+
+The second pitfall is the one we promised in @sec-rows-columns-x-and-y. Our y is the row index, which points down. The formula does not care, it simply gives the angle from the x axis toward the y axis. But on the screen that is a *clockwise* angle. So an object that looks tilted 30° counter-clockwise will report θ = −30°. If you only use θ to draw the axis back onto the same image, everything is consistent and you need do nothing. If you report the angle to a human, flip its sign.
+
+```{python}
+# Draw the axis through the centroid, 100 pixels each way.
+dx, dy = 100 * np.cos(theta), 100 * np.sin(theta)
+p1 = (int(x_bar - dx), int(y_bar - dy))
+p2 = (int(x_bar + dx), int(y_bar + dy))
+cv2.line(img, p1, p2, (0, 0, 255), 2)
+
+print("angle as a human would see it:", -np.degrees(theta), "degrees")
+```
+
+As a check, OpenCV computes the same central moments for us. In its naming, `mu20` is our a, `mu02` is our c, and `mu11` is *half* our b.
+
+```{python}
+m = cv2.moments(B, binaryImage=True)
+x_bar, y_bar = m["m10"] / m["m00"], m["m01"] / m["m00"]
+a, b, c = m["mu20"], 2 * m["mu11"], m["mu02"]
+```
+
+We drew a filled ellipse with OpenCV at an angle of 30° and ran both versions on it. They agreed to every printed digit, and gave θ = 29.98°.
+
+### Round or elongated? {#sec-round-or-elongated}
+
+The angle tells us which way the object points, but not how strongly it points. A disc has an orientation too, mathematically, but it is meaningless, since every axis through the centre gives the same E. This suggests comparing the smallest and largest values of E. From the shifted-cosine form we can read them off directly,
+
+$$
+E_{\min} = \tfrac{1}{2}(a+c) - \tfrac{1}{2}\sqrt{b^2 + (a-c)^2}, \qquad E_{\max} = \tfrac{1}{2}(a+c) + \tfrac{1}{2}\sqrt{b^2 + (a-c)^2}.
+$$
+
+The ratio
+
+$$
+\text{roundness} = \frac{E_{\min}}{E_{\max}}
+$$
+
+lies between 0 and 1. It is 1 for anything as symmetric as a disc or a square, where a = c and b = 0. It approaches 0 for a long thin line. The slides call it the circularity measure, and use it to tell the American Sign Language letters A and B apart, since a fist is compact and an open flat hand is elongated ([Betke, Jan 25 2024, slides 4 and 5](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-cs585-projections-localization-floodfill-Jan25.pdf)). The same idea separates the round red blood cells from the elongated sickle cells under a microscope.
+
+It is not obvious from the formula that E~min~ can never be negative, though of course it cannot be, since it is a sum of squares. It is a nice exercise to see this directly. Multiply out
+
+$$
+(a+c)^2 - \left[b^2 + (a-c)^2\right] = 4ac - b^2 = 4\left[ \left(\sum x'^2 B\right)\left(\sum y'^2 B\right) - \left(\sum x'y' B\right)^2 \right] .
+$$
+
+The bracket is non-negative by the Cauchy-Schwarz inequality, so a + c is at least as big as the square root and E~min~ ≥ 0. Equality in Cauchy-Schwarz needs y′ to be proportional to x′ for every object pixel, which means every pixel lies on a single straight line through the centroid. Only an infinitely thin line has roundness zero.
+
+There is a deeper way to look at all this, and it connects these formulas to the rest of applied mathematics. Collect the second moments into a symmetric matrix and write the line's unit normal as n,
+
+$$
+C = \begin{pmatrix} a & b/2 \\ b/2 & c \end{pmatrix}, \qquad n = \begin{pmatrix} \sin\theta \\ -\cos\theta \end{pmatrix}.
+$$
+
+Multiplying out shows that E(θ) = nᵀ C n. Minimizing nᵀ C n over unit vectors is the textbook eigenvalue problem, so E~min~ and E~max~ are simply the two eigenvalues of C. Indeed the standard formula for the eigenvalues of a 2 × 2 symmetric matrix is ½(a + c) ± ½√((a − c)² + b²), which is exactly what we found. The axis of least second moment is perpendicular to the eigenvector for E~min~, so it points along the eigenvector for E~max~. Up to a factor of the area, C is the covariance matrix of the pixel coordinates, and finding the main axis of an object is precisely principal component analysis applied to its pixels. The Wikipedia article on [image moments](https://en.wikipedia.org/wiki/Image_moment) states the same connection in its second set of examples.
+
+The eigenvalues also tell us how big the object is along each axis. For a uniformly filled ellipse with semi-axes α and β, a short calculation gives second moments (π/4)αβ³ and (π/4)α³β about its two axes, and area παβ. Dividing,
+
+$$
+\frac{E_{\min}}{A} = \frac{\beta^2}{4}, \qquad \frac{E_{\max}}{A} = \frac{\alpha^2}{4},
+$$
+
+so the semi-axes of the *equivalent ellipse*, the ellipse with the same zeroth, first and second moments as our object, are 2√(E~min~/A) and 2√(E~max~/A). The roundness of an ellipse is therefore (β/α)².
+
+```{python}
+R = np.sqrt(b**2 + (a - c)**2)
+E_min = 0.5 * (a + c) - 0.5 * R
+E_max = 0.5 * (a + c) + 0.5 * R
+
+roundness = E_min / E_max
+semi_major = 2 * np.sqrt(E_max / A)
+semi_minor = 2 * np.sqrt(E_min / A)
+```
+
+Our test ellipse had semi-axes 80 and 25 pixels. The code recovered 80.5 and 25.4, and a roundness of 0.0998 against the exact (25/80)² = 0.0977. The small excess comes from the noise and from the jagged staircase edge of a digital ellipse, which adds a little width.
+
+It is worth stepping back to notice what we have done. With six sums over the pixels we can say how big an object is, where it is, which way it points and how elongated it is. That is enough to steer a game character with your hand, which is exactly what Freeman's group did in the late 1990s on hardware far slower than a modern phone. But it only works when there is one object in the picture. With several, the sums mix them all together. We will need a way to pull separate blobs apart, and that problem comes back in @sec-motion, when several children move about the KidsRoom at once.
+
+::: {#ex-1-2-3 .exercise}
+[**Exercise 1.2.3 (A shape summary)**]{.theorem-title} Gather @sec-binary into one function. Write `shape_stats(B)`, which takes a binary image and returns a dictionary with four entries. `"area"` is A. `"centroid"` is the pair (x̄, ȳ). `"angle"` is the orientation in degrees as a human would read it, counter-clockwise from the x axis, so remember the sign flip of @sec-orientation. `"roundness"` is E~min~/E~max~. The check draws ellipses at known angles with OpenCV, whose own angle argument turns clockwise on the screen, and a disc.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def shape_stats(B):
+    """Area, centroid, orientation (degrees, counter-clockwise) and roundness of a binary image."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    ok = True
+    for cv_angle in [0, 30, 75, 120]:
+        pic = np.zeros((240, 240), np.uint8)
+        cv2.ellipse(pic, (120, 110), (80, 25), cv_angle, 0, 360, 1, -1)
+        s = shape_stats(pic)
+        expected = -cv_angle
+        off = (s["angle"] - expected + 90) % 180 - 90          # angles of an axis repeat every 180 degrees
+        print(f"OpenCV angle {cv_angle:3d}:  your angle {s['angle']:7.2f}   roundness {s['roundness']:.4f}   centroid ({s['centroid'][0]:.1f}, {s['centroid'][1]:.1f})")
+        ok = ok and abs(off) < 0.5 and abs(s["roundness"] - (25 / 80) ** 2) < 0.01
+        ok = ok and abs(s["centroid"][0] - 120) < 0.5 and abs(s["centroid"][1] - 110) < 0.5
+    disc = np.zeros((101, 101), np.uint8)
+    cv2.circle(disc, (50, 50), 40, 1, -1)
+    d = shape_stats(disc)
+    print(f"disc: area {d['area']}, roundness {d['roundness']:.4f}")
+    return ok and d["area"] == int(disc.sum()) and d["roundness"] > 0.99
+
+check("Exercise 1.2.3", test)
+```
+
+::: {#ex-1-2-4 .exercise}
+[**Exercise 1.2.4 (Moments from projections)**]{.theorem-title} Freeman and colleagues computed every moment up to second order from projections, which their retina chip could produce in hardware. First convince yourself that A, M₁₀ and M₂₀ are all sums over the column projection alone, for instance M₂₀ = Σ x² P₂(x), and that the row projection gives M₀₁ and M₀₂ in the same way. The cross moment M₁₁ is harder, because it mixes x and y. The trick is a third projection, along diagonals. Let D(d) be the number of object pixels with x + y = d. Show that
+
+$$
+\sum_d d^2 D(d) = M_{20} + 2M_{11} + M_{02},
+$$
+
+so that M₁₁ follows from the three projections. You will also need to show that the central moments follow from the raw ones, for instance a = M₂₀ − A x̄². Then write `moments_from_projections(B)`, which returns (A, x̄, ȳ, a, b, c) using only P₁, P₂ and D. A hint for D is that `np.bincount(rows + cols)` counts how many object pixels lie on each diagonal. The check compares your numbers with OpenCV's moments of the test ellipse.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def moments_from_projections(B):
+    """(A, x_bar, y_bar, a, b, c) computed from the row, column and diagonal projections of B."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    A, x_bar, y_bar, a, b, c = moments_from_projections(B)
+    m = cv2.moments(B, binaryImage=True)
+    theirs = (m["m00"], m["m10"] / m["m00"], m["m01"] / m["m00"], m["mu20"], 2 * m["mu11"], m["mu02"])
+    for name, mine, ref in zip(["A", "x_bar", "y_bar", "a", "b", "c"], (A, x_bar, y_bar, a, b, c), theirs):
+        print(f"{name:6s} yours {mine:16.4f}   OpenCV {ref:16.4f}")
+    return np.allclose((A, x_bar, y_bar, a, b, c), theirs, rtol=1e-6)
+
+check("Exercise 1.2.4", test)
+```
+
+## Finding a Face {#sec-faces}
+
+Lecture notes 2 sets itself a concrete goal. Given a frame from a webcam, find the face in it and say how big it is ([Lecture notes 2](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-cs585-template-matching-ncc-pyramids-Jan30.pdf)). This is the problem behind the Camera Mouse, the system from Betke's group that lets people with severe motor disabilities steer a cursor with their head, and it is a good problem to learn on because it is hard in instructive ways. Faces come in many sizes and turn up in front of cluttered backgrounds, as slide 17 illustrates. The lecture attacks it with two complementary ideas. The first uses colour, which is cheap and rough. The second compares the picture against a template, which is expensive and precise. At the end the two are combined.
+
+### Skin colour {#sec-skin-colour}
+
+The simplest idea is in the title of slide 3. Find every pixel whose colour looks like skin, and hope that the largest skin-coloured blob is the face. Once we have a binary skin mask, everything from @sec-binary applies. We can find the box with projections, exactly as for the bat, which is how the January 25 lecture presents it ([Betke, Jan 25 2024, slides 14 and 15](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-cs585-projections-localization-floodfill-Jan25.pdf)), or we can keep only the largest connected blob.
+
+The question is what "looks like skin" should mean. Raw RGB values are a poor choice, because the same cheek gives very different numbers in shadow and in sunlight. Slide 16 of the January 25 deck shows the standard fix, a plot of *normalized red* against *normalized green*, taken from Shapiro and Stockman's *Computer Vision*. These are
+
+$$
+r = \frac{R}{R+G+B}, \qquad g = \frac{G}{R+G+B}.
+$$
+
+(There is no need for a normalized blue, since r + g + b = 1 and the third number carries no new information.) The point of dividing by R + G + B is easy to see. If the light falling on a patch of skin gets brighter or dimmer by some factor k, all three channels are multiplied by k, and k cancels from top and bottom. So r and g describe the *hue* of a pixel and ignore its *brightness*. Our test patch with (R, G, B) = (200, 150, 120) and the same patch at half brightness both gave r = 0.426 and g = 0.319. A well-known empirical observation is that skin of very different tones clusters tightly in the (r, g) plane, because much of the difference between skin tones is a difference in overall brightness, which the normalization removes. On the slide, the face, the shadowed parts of the face and the beard each form their own small cluster.
+
+Rather than memorize the boundaries of the skin cluster from a book, it is often more robust to learn them from the person in front of the camera. We cut out a small patch of their cheek, compute the mean and spread of r and g there, and call a pixel skin if it is within a few standard deviations of that mean.
+
+```{python}
+def chromaticity(img):
+    """Normalized red and green for every pixel of a BGR image."""
+    img = img.astype(float)                 # avoid uint8 overflow in the sum!
+    total = img.sum(axis=2) + 1e-6          # tiny number avoids dividing by zero on black pixels
+    r = img[:, :, 2] / total
+    g = img[:, :, 1] / total
+    return r, g
+
+def skin_model(patch):
+    r, g = chromaticity(patch)
+    return r.mean(), r.std(), g.mean(), g.std()
+
+def skin_mask(img, model, k=2.5):
+    r_mean, r_std, g_mean, g_std = model
+    r, g = chromaticity(img)
+    close_in_r = np.abs(r - r_mean) < k * r_std
+    close_in_g = np.abs(g - g_mean) < k * g_std
+    return (close_in_r & close_in_g).astype(np.uint8)
+```
+
+Notice the `astype(float)` at the top of `chromaticity`. Adding three `uint8` channels together is exactly the overflow trap of @sec-arithmetic-that-bites, since 200 + 150 + 120 is already past 255. With the mask in hand we keep the biggest blob. OpenCV will label the blobs and measure them for us in one call. We will see how such labelling works in @sec-subtracting-the-background-instead.
+
+```{python}
+#| code-fold: true
+#| code-summary: "Setup: load the test scene"
+#| classes: lc-setup
+# [Setup] Not part of the lecture notes. Load the synthetic scene made at the top of this chapter.
+frame = cv2.imread("face.jpg")
+```
+
+```{python}
+#| output: false
+#| classes: lc-quiet
+model = skin_model(frame[110:130, 190:210])     # a patch we know is cheek
+M = skin_mask(frame, model)
+
+n, labels, stats, centroids = cv2.connectedComponentsWithStats(M, connectivity=8)
+areas = stats[1:, cv2.CC_STAT_AREA]           # row 0 is the background, so skip it
+face = 1 + np.argmax(areas)                     # label of the largest blob
+x, y, w, h = stats[face, :4]                    # its bounding box
+cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+```
+
+On a synthetic test scene with an unevenly lit skin-coloured ellipse, this found 5,280 of the ellipse's 5,403 pixels and put the box in the right place.
+
+Colour is fast, and it does not care about the size or pose of the face. Its weaknesses are just as clear. Anything skin-coloured counts, and wooden doors are notorious offenders. Hands and arms are skin too, so the largest blob may not be the face. And the colour of the light matters, since warm indoor bulbs shift every pixel toward red. So colour is best used to tell us *where to look*, leaving the final verdict to something more careful.
+
+::: {#ex-1-3-1 .exercise}
+[**Exercise 1.3.1 (When the light changes colour)**]{.theorem-title} Our skin model was learned under one light. Normalizing by R + G + B protected us from the light getting brighter or dimmer, but what if it changes colour? Warm indoor bulbs give out relatively more red and less blue. The starter cell simulates one by multiplying the red channel of face.jpg by 1.3 and the blue channel by 0.8, clipping at 255. Write `face_pixels_found(scene, model)`, which returns how many pixels inside the true face ellipse, `true_face`, the skin mask finds. The check compares three cases, the original model on the original scene, the original model under the warm light, and a model re-learned from the same cheek patch under the warm light. Before running it, predict which case fails, and say why the normalization does not help.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+# [Exercise setup] The warm-light scene and the true face region (no need to change these lines).
+original = cv2.imread("face.jpg")
+warm = original.astype(float)
+warm[:, :, 2] *= 1.3                      # more red
+warm[:, :, 0] *= 0.8                      # less blue
+warm = np.clip(warm, 0, 255).astype(np.uint8)
+true_face = np.zeros(original.shape[:2], np.uint8)
+cv2.ellipse(true_face, (200, 120), (35, 48), 0, 0, 360, 1, -1)
+
+def face_pixels_found(scene, model):
+    """Number of pixels inside true_face that skin_mask(scene, model) marks as skin."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    patch = (slice(110, 130), slice(190, 210))
+    old_model, new_model = skin_model(original[patch]), skin_model(warm[patch])
+    total = int(true_face.sum())
+    cases = {"original model, original light": face_pixels_found(original, old_model),
+             "original model, warm light": face_pixels_found(warm, old_model),
+             "re-learned model, warm light": face_pixels_found(warm, new_model)}
+    for name, found in cases.items():
+        print(f"{name:32s} found {found:5d} of {total} face pixels")
+    reference = int(skin_mask(warm, old_model)[true_face == 1].sum())
+    found = list(cases.values())
+    return found[1] == reference and found[0] > 0.75 * total and found[2] > 0.75 * total and found[1] < 0.25 * total
+
+check("Exercise 1.3.1", test)
+```
+
+### Template matching with the sum of squared differences {#sec-template-matching-with-the-sum-of-squared-differences}
+
+The second idea is more literal. Take a small picture of a face, the *template*, slide it over every position in the scene, and at each position measure how different the scene looks from the template. The position where they differ least is the answer.
+
+Slide 8 makes this precise. Let the template m and the piece of scene underneath it, s, both have n pixels, and write their i-th pixels as m~i~ and s~i~. The *sum of squared differences* is
+
+$$
+\text{SSD} = \sum_{i=1}^{n} (s_i - m_i)^2 .
+$$
+
+It is zero for a perfect match and grows as the two differ. Template matching is an exhaustive search for the position with the smallest SSD. Written out as plainly as possible, it is two loops over positions and a sum inside.
+
+```{python}
+#| code-fold: true
+#| code-summary: "Setup: a textured test image and a template"
+#| classes: lc-setup
+# [Setup] Not part of the lecture notes. A textured grey test image, and a template cut out of it.
+rng = np.random.default_rng(3)
+gray = cv2.GaussianBlur(rng.uniform(0, 255, (120, 160)), (0, 0), 2)
+gray = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+template = gray[40:60, 70:95].copy()
+```
+
+```{python}
+def ssd_map(image, template):
+    """SSD between the template and every window of a grey image."""
+    image = image.astype(float)
+    template = template.astype(float)
+    H, W = image.shape
+    h, w = template.shape
+    out = np.zeros((H - h + 1, W - w + 1))
+    for y in range(H - h + 1):
+        for x in range(W - w + 1):
+            window = image[y:y + h, x:x + w]
+            out[y, x] = np.sum((window - template) ** 2)
+    return out
+
+scores = ssd_map(gray, template)
+y, x = np.unravel_index(np.argmin(scores), scores.shape)   # best position (row, col)
+```
+
+The result is itself an image, a *match map*, whose value at (x, y) says how well the template fits with its top-left corner there. Slides 6, 7 and 9 display such maps, with the best match as a single marked pixel. The map is smaller than the scene by the template size minus one, because the template has to fit inside.
+
+This loop is honest but slow. For a 640 × 480 frame and a 50 × 50 template there are about 270,000 positions with 2,500 pixels each, so roughly 7 × 10⁸ subtractions per frame. Even with NumPy doing each inner sum, our loop took about 1.7 seconds on a 640 × 480 test frame, which is hopeless for video arriving 30 times a second. OpenCV's `cv2.matchTemplate` does the same computation in optimized code. With the method `cv2.TM_SQDIFF` it returns exactly our SSD map, and on our tests the two agreed to about six significant figures. On the same 640 × 480 frame, OpenCV ran the normalized search of the next subsection in about 7 milliseconds.
+
+```{python}
+scores = cv2.matchTemplate(gray.astype(np.float32), template.astype(np.float32), cv2.TM_SQDIFF)
+```
+
+SSD has a serious weakness, and it shows up when we expand the square,
+
+$$
+\text{SSD} = \sum_i s_i^2 \; - \; 2\sum_i s_i m_i \; + \; \sum_i m_i^2 .
+$$
+
+The last term is the same everywhere. The middle term, the *cross-correlation*, is the part that measures whether bright pixels in the template line up with bright pixels in the scene, which is what we actually care about. But the first term depends only on how bright the scene is under the template, so brightness alone moves the score. Suppose the face in the scene is identical to the template except that the room light is dimmer, so that s~i~ = m~i~ − c for every pixel. Then SSD = nc², which can be enormous even though the pattern is a perfect match. In our test we cut a template from an image and then darkened that spot of the image, as a shadow would, halving its contrast and shifting its brightness. SSD then chose a completely different location. We need a score that ignores brightness and contrast.
+
+::: {#ex-1-3-2 .exercise}
+[**Exercise 1.3.2 (SSD without the loops)**]{.theorem-title} NumPy can hand us every window of an image at once. The function `np.lib.stride_tricks.sliding_window_view(image, template.shape)` returns an array of shape (H − h + 1, W − w + 1, h, w) whose entry [y, x] is the window with top-left corner (x, y), without copying a single pixel. Use it to write `ssd_map_fast(image, template)` with no Python loops at all. The check compares it with `ssd_map` on the textured test image and times both.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def ssd_map_fast(image, template):
+    """The same match map as ssd_map, computed without Python loops."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+import time
+
+def test():
+    t0 = time.perf_counter(); slow = ssd_map(gray, template); t1 = time.perf_counter()
+    fast = ssd_map_fast(gray, template); t2 = time.perf_counter()
+    print(f"loops {t1 - t0:.3f} s, sliding windows {t2 - t1:.3f} s")
+    return fast.shape == slow.shape and np.allclose(fast, slow)
+
+check("Exercise 1.3.2", test)
+```
+
+### The normalized correlation coefficient {#sec-the-normalized-correlation-coefficient}
+
+Slides 10 and 11 give the answer. Let s̄ and σ~s~ be the mean and standard deviation of the scene window, and m̄ and σ~m~ those of the template. The *normalized correlation coefficient* is
+
+$$
+r = \frac{1}{n}\sum_{i=1}^{n} \frac{(s_i - \bar{s})\,(m_i - \bar{m})}{\sigma_s\,\sigma_m}.
+$$
+
+Statisticians will recognize this as the ordinary correlation coefficient between the two lists of pixel values. The slides make a point of not naming it after Karl Pearson, observing that he did not invent it and that he is remembered for his role in eugenics, and we follow the slides.
+
+The formula looks busy, but it hides a very simple idea. Define the *standardized* pixel values
+
+$$
+\hat{s}_i = \frac{s_i - \bar{s}}{\sigma_s}, \qquad \hat{m}_i = \frac{m_i - \bar{m}}{\sigma_m}.
+$$
+
+Each list now has mean zero and standard deviation one, and the coefficient is just their average product, r = (1/n) Σ ŝ~i~ m̂~i~. Standardizing is where the magic happens. Suppose the lighting changes so that every scene pixel becomes as~i~ + b, with a > 0 changing the contrast and b the brightness. The mean becomes a s̄ + b and the standard deviation becomes a σ~s~, and so
+
+$$
+\frac{(a s_i + b) - (a\bar{s} + b)}{a\,\sigma_s} = \frac{s_i - \bar{s}}{\sigma_s} = \hat{s}_i .
+$$
+
+Both a and b have vanished. The normalized correlation is completely blind to brightness and contrast changes, which is exactly the property SSD lacked. In our shadow test it found the right location with r = 1.000.
+
+Two more facts make r pleasant to use. First, it always lies between −1 and 1. Since Σ ŝ~i~² = n and Σ m̂~i~² = n, the Cauchy-Schwarz inequality gives |Σ ŝ~i~ m̂~i~| ≤ n, which is |r| ≤ 1. It reaches 1 only when the standardized patches are identical, and −1 for a photographic negative. So unlike SSD, whose size depends on the template, r comes with a scale. A value of 0.9 means a good match in any picture, and we can set a threshold below which we say there is no face at all.
+
+Second, r is secretly an SSD after all. Expand the squared difference of the standardized patches,
+
+$$
+\sum_i (\hat{s}_i - \hat{m}_i)^2 = \sum_i \hat{s}_i^2 + \sum_i \hat{m}_i^2 - 2\sum_i \hat{s}_i\hat{m}_i = n + n - 2nr = 2n(1 - r).
+$$
+
+So maximizing r is the same as minimizing the SSD between *standardized* patches. Nothing has been thrown away. We have only decided to compare patterns after removing brightness and contrast, which is what we wanted all along.
+
+In code, the only change from the SSD loop is the standardization, plus a guard for perfectly flat windows, whose standard deviation is zero.
+
+```{python}
+def ncc_map(image, template):
+    image = image.astype(float)
+    template = template.astype(float)
+    H, W = image.shape
+    h, w = template.shape
+    t = (template - template.mean()) / template.std()      # standardize once
+    out = np.zeros((H - h + 1, W - w + 1))
+    for y in range(H - h + 1):
+        for x in range(W - w + 1):
+            window = image[y:y + h, x:x + w]
+            sd = window.std()
+            if sd == 0:              # a flat patch matches nothing
+                continue
+            s = (window - window.mean()) / sd
+            out[y, x] = np.mean(s * t)
+    return out
+```
+
+OpenCV's version is the method `cv2.TM_CCOEFF_NORMED`. It computes the same quantity, and on our test the maps agreed to six decimal places. Note that here the best match is the *maximum*, not the minimum.
+
+```{python}
+R = cv2.matchTemplate(gray.astype(np.float32), template.astype(np.float32), cv2.TM_CCOEFF_NORMED)
+min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(R)
+x, y = max_loc                  # minMaxLoc returns (x, y), not (row, col)!
+if max_val < 0.6:
+    print("no convincing match")
+```
+
+That last comment is @sec-rows-columns-x-and-y striking again. `np.argmax` with `np.unravel_index` gives (row, column), while `cv2.minMaxLoc` gives (x, y).
+
+Which face should the template be? Slide 7 uses the face of a particular student, which works well for that student and less well for everyone else. Slides 9 and 12 use an *average face*, made by lining up many photographs of faces and averaging them pixel by pixel. The average blurs away individual features and keeps what all faces share, such as dark eye sockets above bright cheeks, and it makes a far better generic template. Freeman and colleagues used normalized correlation for the same reason in their small-object tracker ([Freeman et al. 1998, Sidebar 5.1](https://merl.com/publications/docs/TR99-02.pdf)).
+
+::: {#ex-1-3-3 .exercise}
+[**Exercise 1.3.3 (What normalized correlation forgives)**]{.theorem-title} Write `ssd(s, m)` and `ncc(s, m)` for two patches of the same shape, following the formulas of Sections -@sec-template-matching-with-the-sum-of-squared-differences and -@sec-the-normalized-correlation-coefficient. Use the population standard deviation, which is what `np.std` gives by default, since it matches the 1/n in the formula. The check takes a patch m and makes altered copies a·m + b for several contrasts a and brightness shifts b, including a = −1, and prints both scores. It then tests the identity Σ(ŝᵢ − m̂ᵢ)² = 2n(1 − r) on a random pair of patches. Study the printed table. Which changes does r ignore completely, and what happens to SSD?
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def ssd(s, m):
+    """Sum of squared differences between two patches of the same shape."""
+    # your code here
+    raise NotImplementedError
+
+def ncc(s, m):
+    """Normalized correlation coefficient between two patches of the same shape."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    rng = np.random.default_rng(7)
+    m = rng.uniform(0, 255, (20, 25))
+    ok = True
+    print("    a      b          SSD       r")
+    for a, b in [(1, 0), (1, 40), (0.5, 0), (0.5, 60), (2, -30), (-1, 255)]:
+        s = a * m + b
+        r = ncc(s, m)
+        print(f"{a:5.1f} {b:6.0f} {ssd(s, m):12.0f} {r:7.3f}")
+        ok = ok and abs(r - np.sign(a)) < 1e-9
+    s, t = rng.normal(size=(10, 10)), rng.normal(size=(10, 10))
+    r = ncc(s, t)
+    s_hat = (s - s.mean()) / s.std()
+    t_hat = (t - t.mean()) / t.std()
+    lhs, rhs = np.sum((s_hat - t_hat) ** 2), 2 * s.size * (1 - r)
+    print(f"identity: left side {lhs:.6f}, right side {rhs:.6f}")
+    return ok and abs(lhs - rhs) < 1e-9 and abs(r - np.corrcoef(s.ravel(), t.ravel())[0, 1]) < 1e-9 and ssd(m, m) == 0
+
+check("Exercise 1.3.3", test)
+```
+
+### Image pyramids {#sec-image-pyramids}
+
+Normalized correlation forgives lighting changes but not changes of size. A template of a face 40 pixels wide matches poorly against a face 80 pixels wide, because the person has moved closer to the camera. Slide 4 introduces what it calls a common trick in computer vision, the *image pyramid*. Instead of resizing the template, we resize the image, producing a stack of copies at decreasing resolution, and run the same fixed-size template over every level. A face that is twice too big at the bottom level is just right one or two levels up.
+
+The classic pyramid halves the width and height at each level, and it is surprisingly cheap. If the original has N pixels, the levels have N, N/4, N/16 and so on, and the total is a geometric series,
+
+$$
+N\left(1 + \frac{1}{4} + \frac{1}{16} + \cdots\right) = \frac{N}{1 - 1/4} = \frac{4}{3}N .
+$$
+
+The whole pyramid costs only a third more than the original image. Our four-level test pyramid came to 1.33 times the original size, as it should.
+
+The slides use six levels and ask why other schemes are possible. The answer is that halving is a big step. A face that falls between two levels, say 1.4 times the template size, matches neither level well. Shrinking by a smaller factor per level, such as 0.8, gives more levels and catches more sizes in between, at the price of more computation. A factor s per side gives a total of N/(1 − s²), which for s = 0.8 is about 2.8N.
+
+There is one technical point we must not skip. Shrinking an image by simply keeping every other pixel causes *aliasing*. Fine stripes, like a striped shirt, can turn into coarse false stripes that were never there. The cure is to blur the image slightly before throwing pixels away, so that detail too fine for the smaller image is averaged out rather than misrepresented. Szeliski discusses this under decimation and pyramids in Sections 3.5.2 and 3.5.3 ([Szeliski, 2nd ed., 2022](https://szeliski.org/Book/)). OpenCV's `cv2.pyrDown` blurs and halves in one step, and `cv2.resize` with `INTER_AREA` averages properly for any factor.
+
+```{python}
+def find_at_scales(image, template, scales=(1.0, 0.8, 0.64, 0.51, 0.41, 0.33)):
+    """Run normalized correlation on shrunken copies of the image; return the best."""
+    best_score, best_box = -1.0, None
+    h, w = template.shape
+    for s in scales:
+        small = cv2.resize(image, None, fx=s, fy=s, interpolation=cv2.INTER_AREA)
+        if small.shape[0] < h or small.shape[1] < w:
+            continue                                   # template no longer fits
+        R = cv2.matchTemplate(small, template, cv2.TM_CCOEFF_NORMED)
+        _, score, _, (x, y) = cv2.minMaxLoc(R)
+        if score > best_score:
+            # convert the box back to the coordinates of the original image
+            best_score = score
+            best_box = (int(x / s), int(y / s), int(w / s), int(h / s))
+    return best_score, best_box
+```
+
+To test it we enlarged an image by a factor of two and searched it with a template cut from the original. The search picked the level at scale 0.5 and returned a box exactly twice the size of the template, at exactly twice the original position.
+
+Pyramids also make the search faster, not just more complete, through what slide 15 calls coarse-to-fine search. Run the template match on a small level first, where the image is tiny and the search is cheap. The best match there tells us roughly where the face is. On the next larger level we only need to search a small window around that location, and so on down to the original size. Since each level has a quarter of the pixels of the one below and the template shrinks too, the coarse search costs a tiny fraction of a full one. Szeliski calls this hierarchical motion estimation in Section 9.1.1, and the Wikipedia article on [template matching](https://en.wikipedia.org/wiki/Template_matching) describes the same speed-up.
+
+::: {#ex-1-3-4 .exercise}
+[**Exercise 1.3.4 (Seeing aliasing)**]{.theorem-title} The starter cell makes an image of fine vertical stripes whose period is 2.5 pixels, and shrinks it by a factor of 4 in two ways, by keeping every fourth pixel and with `cv2.resize` using `INTER_AREA`, which averages. Write `stripe_contrast(img)`, which measures how strongly an image is striped as the standard deviation of its pixel values, and `stripe_period(row)`, which estimates the period of the stripes along one row from the strongest frequency in its discrete Fourier transform. Use `np.fft.rfft`, skip the zero frequency, and remember that entry k of the transform of a row of length N corresponds to a period of N/k pixels. One of the shrunken images shows bold stripes with a period of about 2.5 of its own pixels, which is 10 pixels of the original. The original has no such stripes. Explain where they come from.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+# [Exercise setup] The striped test image and its two shrunken versions (no need to change these lines).
+xs = np.arange(400)
+stripes = np.tile((127 + 120 * np.sin(2 * np.pi * xs / 2.5)).astype(np.uint8), (100, 1))
+every_fourth = stripes[::4, ::4]
+averaged = cv2.resize(stripes, None, fx=0.25, fy=0.25, interpolation=cv2.INTER_AREA)
+
+def stripe_contrast(img):
+    """How strongly striped an image is, measured as the standard deviation of its pixels."""
+    # your code here
+    raise NotImplementedError
+
+def stripe_period(row):
+    """Period in pixels of the strongest stripe pattern along a 1-D row."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    for name, im in [("original", stripes), ("every fourth pixel", every_fourth), ("INTER_AREA", averaged)]:
+        print(f"{name:20s} contrast {stripe_contrast(im):6.1f}   period {stripe_period(im[0]):5.2f} of its own pixels")
+    fig, axes = plt.subplots(1, 2, figsize=(10, 2.5))
+    axes[0].imshow(every_fourth, cmap="gray", vmin=0, vmax=255); axes[0].set_title("every fourth pixel")
+    axes[1].imshow(averaged, cmap="gray", vmin=0, vmax=255); axes[1].set_title("averaged with INTER_AREA")
+    plt.show()
+    return (abs(stripe_period(stripes[0]) - 2.5) < 0.1 and abs(stripe_period(every_fourth[0]) - 2.5) < 0.1
+            and stripe_contrast(every_fourth) > 4 * stripe_contrast(averaged))
+
+check("Exercise 1.3.4", test)
+```
+
+::: {#ex-1-3-5 .exercise}
+[**Exercise 1.3.5 (Coarse-to-fine search)**]{.theorem-title} Write `coarse_to_fine(image, template, levels=3, radius=2)`. Build pyramids of both the image and the template with `cv2.pyrDown`. Find the best normalized-correlation match at the smallest level with a full search. Then, at each larger level, search only the positions within `radius` pixels of twice the previous answer, and return the (x, y) of the best match at full resolution. The easiest way to search a small neighbourhood is to crop the part of the image it covers, plus the template's size, and run `cv2.matchTemplate` on the crop. Remember to add the crop's offset back afterwards. The check compares your answer with a full search on a larger test image.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def coarse_to_fine(image, template, levels=3, radius=2):
+    """(x, y) of the best normalized-correlation match, found coarse to fine."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    rng = np.random.default_rng(11)
+    big = cv2.GaussianBlur(rng.uniform(0, 255, (360, 480)), (0, 0), 3).astype(np.float32)
+    ok = True
+    for (x0, y0) in [(300, 120), (37, 251), (402, 5)]:
+        tmpl = big[y0:y0 + 48, x0:x0 + 64].copy()
+        R = cv2.matchTemplate(big, tmpl, cv2.TM_CCOEFF_NORMED)
+        full = cv2.minMaxLoc(R)[3]
+        mine = tuple(int(v) for v in coarse_to_fine(big, tmpl))
+        print(f"template cut at {(x0, y0)}:  full search {full},  coarse to fine {mine}")
+        ok = ok and mine == full
+    return ok
+
+check("Exercise 1.3.5", test)
+```
+
+### Putting it together {#sec-putting-it-together}
+
+Slides 16 to 18 assemble the pieces into one system, and the design is worth studying because it is typical of practical vision. Each frame of video is analysed for colour and for motion (the motion part is the subject of the next section). Together these produce a mask of pixels that might plausibly be a face. The mask is applied to every level of the pyramid, and normalized correlation with the face template is run only where the mask allows. The output is the location and the scale of the face. Each method covers for the other's weakness. Colour and motion are fast but easily fooled, while correlation is precise but expensive and needs to be told where to look.
+
+```{python}
+def masked_best_match(gray, mask, template):
+    """Normalized correlation, but ignore positions whose centre is not in the mask."""
+    R = cv2.matchTemplate(gray.astype(np.float32), template.astype(np.float32),
+                          cv2.TM_CCOEFF_NORMED)
+    h, w = template.shape
+    centre_ok = mask[h // 2 : h // 2 + R.shape[0], w // 2 : w // 2 + R.shape[1]]
+    R[centre_ok == 0] = -1.0           # forbid positions outside the mask
+    _, score, _, (x, y) = cv2.minMaxLoc(R)
+    return score, (x, y)
+```
+
+The slicing in the middle lines up the match map with the mask. Entry (y, x) of the match map belongs to the window whose top-left corner is at (x, y), so its centre is at (x + w/2, y + h/2), and that is the pixel of the mask we check. Getting this half-template offset wrong is one of the most common bugs in template matching, and it shows up as a box that is always shifted up and to the left of the face.
+
+::: {#ex-1-3-6 .exercise}
+[**Exercise 1.3.6 (Is anything there at all?)**]{.theorem-title} Because normalized correlation comes with a scale, we can let the matcher say no. Write `find_or_reject(gray, template, threshold)`, which returns the box (x, y, w, h) of the best normalized-correlation match when its score is at least `threshold`, and `None` otherwise. The check runs it on a scene that contains the template and on a scene of pure noise, and prints the best score in each. Which thresholds would separate the two?
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def find_or_reject(gray, template, threshold):
+    """Box (x, y, w, h) of the best match if its score is at least threshold, else None."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    rng = np.random.default_rng(5)
+    scene = cv2.GaussianBlur(rng.uniform(0, 255, (200, 260)), (0, 0), 2).astype(np.float32)
+    tmpl = scene[70:100, 140:180].copy()
+    noise = cv2.GaussianBlur(rng.uniform(0, 255, (200, 260)), (0, 0), 2).astype(np.float32)
+    for name, im in [("scene with the template", scene), ("pure noise", noise)]:
+        best = cv2.minMaxLoc(cv2.matchTemplate(im, tmpl, cv2.TM_CCOEFF_NORMED))[1]
+        print(f"{name:24s} best score {best:.3f}")
+    hit, miss = find_or_reject(scene, tmpl, 0.8), find_or_reject(noise, tmpl, 0.8)
+    print("with threshold 0.8:", hit, "and", miss)
+    return hit is not None and tuple(int(v) for v in hit) == (140, 70, 40, 30) and miss is None
+
+check("Exercise 1.3.6", test)
+```
+
+## Things That Move {#sec-motion}
+
+Everything so far has been about a single picture. Video adds a third coordinate. A video is a sequence of frames, and we write the brightness at pixel (x, y) in frame t as I(x, y, t). It might seem that time makes everything harder, and in general it does. But it also hands us an extraordinarily cheap source of information. In most scenes almost nothing changes from one frame to the next, so the pixels that *do* change are telling us something. Slide 5 of Lecture notes 2 introduces the idea in three lines ([Lecture notes 2, slide 5](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-cs585-template-matching-ncc-pyramids-Jan30.pdf)), and Lecture notes 3 shows how far it can be pushed, all the way to a room that watches children act out a story ([Lecture notes 3](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-kids-room.pdf)).
+
+### Reading video {#sec-reading-video}
+
+OpenCV reads video files and webcams with the same object. Each call to `read` returns a flag that says whether it worked and the next frame as an ordinary image array.
+
+```{python}
+cap = cv2.VideoCapture("clip.avi")    # or cv2.VideoCapture(0) for the first webcam
+
+while True:
+    ok, frame = cap.read()             # frame is a BGR image, exactly as in Section 1.1
+    if not ok:                         # end of the file, or the camera failed
+        break
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    # ... process gray here ...
+
+cap.release()
+```
+
+The `if not ok` check plays the same role as the `None` check after `cv2.imread`. Without it, the loop crashes at the end of every video, usually with an error that points somewhere else entirely.
+
+### Frame differencing {#sec-frame-differencing}
+
+The simplest motion detector subtracts the previous frame from the current one,
+
+$$
+\text{Diff}(x,y,t) = I(x,y,t) - I(x,y,t-1).
+$$
+
+Wherever nothing moved, the two frames agree and Diff is near zero. Wherever something moved, it is not. Slide 5 adds two refinements, both posed as questions. One is to compare frames k apart instead of neighbours, with k = 10 as the example. The other is to take the absolute value. Let us understand both.
+
+**Why the absolute value?** Picture a dark square sliding to the right across a light background. At its front edge, pixels that used to show background now show the square, so they get darker and Diff is negative. At its back edge, the square has uncovered background, so those pixels get brighter and Diff is positive. Both edges are motion, and the sign only tells us which edge is which. Taking |Diff| treats them alike. There is a programming reason too, and we met it in @sec-arithmetic-that-bites. Subtract two `uint8` frames directly and the negative values wrap around. In our test, a front-edge pixel whose true difference was −129 came out as 127, because −129 + 256 = 127. So we always widen the type first.
+
+```{python}
+#| code-fold: true
+#| code-summary: "Setup: read the frames of clip.avi"
+#| classes: lc-setup
+# [Setup] Not part of the lecture notes. Read every frame of clip.avi as a grey image, and set up
+# two consecutive frames: prev is frame 9 and gray is frame 10.
+cap = cv2.VideoCapture("clip.avi")
+frames = []
+while True:
+    ok, f = cap.read()
+    if not ok:
+        break
+    frames.append(cv2.cvtColor(f, cv2.COLOR_BGR2GRAY))
+cap.release()
+prev = frames[9].astype(np.int16)
+gray = frames[10]
+```
+
+```{python}
+cur = gray.astype(np.int16)              # int16 holds -255 ... 255 comfortably
+diff = np.abs(cur - prev)                # prev is the previous frame, also int16
+prev = cur
+```
+
+**Why a gap of k frames?** Here a little geometry helps. Suppose a uniformly coloured object of width w moves v pixels per frame, with v smaller than w. Compare two frames. The object's interior is the same colour in both, so the difference is zero there, even though the object is moving. The difference is nonzero only in two bands, one at the front and one at the back, each exactly v pixels wide. In our test the square moved 3 pixels per frame, and the pixels flagged in one row were columns 37 to 39 and 67 to 69, two bands of width 3. A slow object therefore produces only a thin sliver of motion, which noise can easily swamp. Comparing frames k apart is the same as making the object move kv pixels, so the bands become k times wider. With k = 5 our bands grew to 15 pixels each. The price is lag, since the method now reports where things were k frames ago as well as where they are now.
+
+**How big must a difference be?** The KidsRoom slides define motion as any pixel with Diff > 0 ([Lecture notes 3, slide 16](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-kids-room.pdf)). In a real camera that would mark the whole image as moving, because every pixel carries noise. We can be quantitative about this. Suppose each pixel's value fluctuates from frame to frame with standard deviation σ, independently in each frame. The variance of a difference of two independent quantities is the sum of their variances, so
+
+$$
+\operatorname{Var}\big[I(t) - I(t-1)\big] = \sigma^2 + \sigma^2 = 2\sigma^2, \qquad \text{so the noise in Diff has standard deviation } \sqrt{2}\,\sigma .
+$$
+
+Subtracting frames makes the noise *worse* by a factor of √2, about 1.41. Our test frames had σ = 3, and the measured standard deviation of the difference in a region with no motion was 4.27, against the predicted 4.24. A threshold of three or four times √2 σ keeps false alarms rare. We used τ = 15, about 3.5 standard deviations, and in a motionless block of 6,400 pixels exactly one was wrongly flagged.
+
+```{python}
+tau = 15
+moving = (diff > tau).astype(np.uint8)      # 1 where something changed
+```
+
+To estimate σ for your own camera, point it at a still scene, take two frames, and compute the standard deviation of their difference. Divide by √2 and you have it.
+
+::: {#ex-1-4-1 .exercise}
+[**Exercise 1.4.1 (Measuring the noise)**]{.theorem-title} The top 40 rows of clip.avi never see the moving square, so any change there is noise. Write `estimate_sigma(frame_a, frame_b)`, which estimates the per-pixel noise σ from two frames of a still scene with the √2 rule of @sec-frame-differencing. The video was made with σ = 3. The check applies your function to the still strip of frames 9 and 10 and prints the estimate together with the threshold τ = 3.5√2 σ it suggests. Your number will probably come out well below 3, because the clip is stored as Motion JPEG and compression smooths away a good part of the fine noise. That is a useful lesson in itself. The noise we can measure is the noise in the file we have, not the noise that came off the sensor.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def estimate_sigma(frame_a, frame_b):
+    """Per-pixel noise standard deviation, estimated from two frames of a still scene."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    a, b = frames[9][:40], frames[10][:40]
+    sigma = estimate_sigma(a, b)
+    reference = np.std(a.astype(float) - b.astype(float)) / np.sqrt(2)
+    print(f"estimated sigma {sigma:.3f}, suggested tau {3.5 * np.sqrt(2) * sigma:.1f}")
+    return abs(sigma - reference) < 1e-6
+
+check("Exercise 1.4.1", test)
+```
+
+::: {#ex-1-4-2 .exercise}
+[**Exercise 1.4.2 (Bands of motion)**]{.theorem-title} We argued that comparing frames k apart flags two bands of width kv at the front and back of a uniformly coloured object moving v pixels per frame. Write `flagged_in_row(frames, t, k, row, tau)`, which returns how many pixels in one row have an absolute difference above `tau` between frames t and t − k. The check prints the count for row 60 and t = 25, with k from 1 to 12, next to the prediction 2kv with v = 3. The prediction stops working once k is larger than 10. Why there? A hint is that the square is 30 pixels wide.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def flagged_in_row(frames, t, k, row, tau):
+    """Number of pixels in the given row where |frame t - frame (t - k)| > tau."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    ok = True
+    print(" k   flagged   prediction 2kv")
+    for k in range(1, 13):
+        n = flagged_in_row(frames, 25, k, 60, 15)
+        print(f"{k:2d}   {n:7d}   {2 * k * 3:10d}")
+        expected = min(2 * k * 3, 60)
+        ok = ok and abs(n - expected) <= 2
+    return ok
+
+check("Exercise 1.4.2", test)
+```
+
+### Subtracting the background instead {#sec-subtracting-the-background-instead}
+
+Frame differencing finds the edges of moving things. Often we want the whole thing. The KidsRoom tracked children as *background-difference blobs* ([Lecture notes 3, slide 13](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-kids-room.pdf)), comparing each frame not with the previous frame but with a picture of the empty room. Then a child shows up in full, standing still or not.
+
+```{python}
+#| code-fold: true
+#| code-summary: "Setup: a background image and the recent frames"
+#| classes: lc-setup
+# [Setup] Not part of the lecture notes. A background image and a list of recent frames for this
+# subsection. The background is the median of the clip's frames, as explained further down.
+recent_frames = frames
+background = np.median(np.array(frames), axis=0).astype(np.uint8)
+```
+
+```{python}
+foreground = (np.abs(gray.astype(np.int16) - background.astype(np.int16)) > tau).astype(np.uint8)
+```
+
+Everything rests on having a good background image, and there are several ways to get one. The simplest is to photograph the empty scene. This is what makes background subtraction fragile, since any change in lighting makes the old snapshot wrong. The KidsRoom handled this by design. Its lighting was held constant whenever the tracker was running and changed only during transitions between story worlds, when vision was switched off ([Bobick et al. 1999, Section 2.3](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/10/kidsroom.pdf)).
+
+When the scene does change slowly, we can let the background follow it with a *running average*,
+
+$$
+B_t = (1 - \alpha)\,B_{t-1} + \alpha\, I_t, \qquad 0 < \alpha < 1 .
+$$
+
+Freeman and colleagues subtracted exactly such a running temporal average to remove stationary objects in one of their trackers ([Freeman et al. 1998, Section 5](https://merl.com/publications/docs/TR99-02.pdf)). It is worth unrolling the recursion to see what it really computes. Substituting the formula into itself again and again gives
+
+$$
+B_t = \alpha I_t + \alpha(1-\alpha) I_{t-1} + \alpha(1-\alpha)^2 I_{t-2} + \cdots = \alpha\sum_{j=0}^{\infty} (1-\alpha)^j I_{t-j}.
+$$
+
+This is a weighted average of all past frames in which the weights fall off geometrically, and they sum to α/(1 − (1 − α)) = 1 as an average should. The average age of a frame in this memory is Σ j α(1 − α)^j = (1 − α)/α, so with α = 0.05 the background remembers roughly the last 20 frames. A larger α adapts faster to lighting changes but also absorbs people who stand still for a while, who then fade into the background and vanish.
+
+The running average has a subtler failure, which our test exposed nicely. We started the average from the first frame, which already contained the moving square, and kept updating it as the square moved. At the end the background held a faint *ghost* of the square at its starting position and a smeared trail along its path. Thresholding against this background flagged 2,632 pixels as foreground when the square has only 900. A sturdier choice is the *median* of a stack of frames. As long as each pixel shows background in more than half of the frames, the median ignores the passing object completely. On the same test, the median of our 30 frames gave exactly 900 foreground pixels.
+
+```{python}
+stack = np.array(recent_frames)              # shape (number_of_frames, height, width)
+background = np.median(stack, axis=0)        # pixel-by-pixel median over time
+```
+
+::: {#ex-1-4-3 .exercise}
+[**Exercise 1.4.3 (The running average, unrolled)**]{.theorem-title} Write `running_average(frames, alpha)`, which applies B~t~ = (1 − α)B~t−1~ + αI~t~ to a list of frames, starting from B₀ = I₀ and returning the final background as a float array. For a finite list, the unrolled formula of @sec-subtracting-the-background-instead picks up one extra term from the starting frame,
+
+$$
+B_t = \sum_{j=0}^{t-1} \alpha(1-\alpha)^j I_{t-j} + (1-\alpha)^t I_0 .
+$$
+
+Prove this by induction on t. Then write `unrolled_average(frames, alpha)`, which evaluates the sum directly, with no recursion. The check confirms that the two agree, and then counts the foreground pixels in the last frame against the running average and against the median background, as in our test of @sec-subtracting-the-background-instead.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def running_average(frames, alpha):
+    """Background after B_t = (1 - alpha) B_{t-1} + alpha I_t over all frames, with B_0 = I_0."""
+    # your code here
+    raise NotImplementedError
+
+def unrolled_average(frames, alpha):
+    """The same background, computed from the unrolled sum."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    alpha = 0.05
+    B_rec, B_sum = running_average(frames, alpha), unrolled_average(frames, alpha)
+    agree = np.allclose(B_rec, B_sum)
+    print("recursion and unrolled sum agree:", agree)
+    last = frames[-1].astype(float)
+    median_bg = np.median(np.array(frames), axis=0)
+    print("foreground pixels against the running average:", int(np.sum(np.abs(last - B_rec) > 30)))
+    print("foreground pixels against the median:         ", int(np.sum(np.abs(last - median_bg) > 30)))
+    print("the square itself has 900 pixels")
+    return agree
+
+check("Exercise 1.4.3", test)
+```
+
+### From pixels to blobs {#sec-from-pixels-to-blobs}
+
+A foreground mask is a binary image, and @sec-binary told us how to measure the shape in a binary image. But that only works when there is one object. With four children in the room, we must first decide which foreground pixels belong together. This is the job of *connected component labelling*, covered in the January 25 lecture ([Betke, Jan 25 2024, slides 17 to 29](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-cs585-projections-localization-floodfill-Jan25.pdf)).
+
+First we need to say what "together" means. Two pixels are *4-neighbours* if they share an edge, so each pixel has four of them, above, below, left and right. They are *8-neighbours* if they share an edge or a corner, which adds the four diagonals. A set of foreground pixels is *connected* if we can walk from any of them to any other by steps between neighbours. Neither choice is perfect. If we use 4-neighbours for the objects, a diagonal line of pixels falls apart into single dots. If we use 8-neighbours for both objects and background, a closed ring of diagonal pixels both encloses its inside and lets the inside leak out between the corners. The usual compromise is to use one kind for the objects and the other for the background. Horn devotes much of his Chapter 4 to this surprisingly delicate point.
+
+The slides' first algorithm is *flood fill*. Scan the image row by row until we find a foreground pixel that has no label yet. Give it a new label, then give the same label to all its unlabelled foreground neighbours, and to theirs, and so on until the region is exhausted. Then continue the scan. The slides describe the spreading step recursively, and their critique on slide 25 is that the recursion can build enormous stacks. This is not a theoretical worry. Python refuses to recurse more than about a thousand levels deep, and when we ran the recursive version on a filled 200 × 200 square it crashed with a `RecursionError`. The fix is to keep our own list of pixels still to visit, which can grow as large as memory allows.
+
+```{python}
+NEIGHBOURS_4 = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
+def flood_fill(B, labels, r0, c0, label):
+    """Give `label` to every foreground pixel connected to (r0, c0)."""
+    h, w = B.shape
+    to_visit = [(r0, c0)]               # our own stack, instead of recursion
+    labels[r0, c0] = label
+    while to_visit:
+        r, c = to_visit.pop()
+        for dr, dc in NEIGHBOURS_4:
+            rr, cc = r + dr, c + dc
+            if 0 <= rr < h and 0 <= cc < w and B[rr, cc] == 1 and labels[rr, cc] == 0:
+                labels[rr, cc] = label
+                to_visit.append((rr, cc))
+
+def label_blobs(B):
+    labels = np.zeros(B.shape, dtype=int)
+    next_label = 1
+    for r in range(B.shape[0]):
+        for c in range(B.shape[1]):
+            if B[r, c] == 1 and labels[r, c] == 0:
+                flood_fill(B, labels, r, c, next_label)
+                next_label += 1
+    return labels, next_label - 1
+```
+
+Notice that each pixel is labelled the moment it is pushed onto the list, not when it is popped. Labelling on the pop instead lets the same pixel be pushed many times, which gives the right answer far more slowly.
+
+The slides' alternative is the *sequential labelling algorithm*, which visits every pixel exactly twice. In the first pass we scan row by row and decide each pixel's label by looking only at neighbours we have already visited. Following Horn's naming, which the slides use, call the current pixel A, the pixel to its left B, the pixel above it C and the pixel diagonally above-left D. If none of B, C, D is labelled, A starts a new label. If only D is labelled, A copies it. If one of B or C is labelled, A copies that one. The interesting case is when B and C are both labelled with *different* labels. That happens at the bottom of a U shape, where two arms that looked like separate objects turn out to be joined. We give A either label and write down that the two labels are equivalent. In the second pass, every label is replaced by a single representative of its equivalence class ([Betke, Jan 25 2024, slides 26 to 29](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-cs585-projections-localization-floodfill-Jan25.pdf)).
+
+```{python}
+def find(parent, x):
+    """Follow the chain of equivalences to the representative label."""
+    while parent[x] != x:
+        x = parent[x]
+    return x
+
+def sequential_label(B):
+    h, w = B.shape
+    L = np.zeros((h, w), dtype=int)
+    parent = {}                                    # label -> an equivalent smaller label
+    next_label = 1
+    for r in range(h):                             # ---- first pass ----
+        for c in range(w):
+            if B[r, c] == 0:
+                continue
+            left = L[r, c - 1] if c > 0 else 0                  # B in Horn's naming
+            up = L[r - 1, c] if r > 0 else 0                    # C
+            diag = L[r - 1, c - 1] if r > 0 and c > 0 else 0    # D
+            if left == 0 and up == 0 and diag == 0:
+                L[r, c] = next_label
+                parent[next_label] = next_label
+                next_label += 1
+            elif left == 0 and up == 0:
+                L[r, c] = diag
+            elif left != 0 and up != 0:
+                L[r, c] = left
+                a, b = find(parent, left), find(parent, up)
+                if a != b:
+                    parent[max(a, b)] = min(a, b)      # record the equivalence
+            else:
+                L[r, c] = left if left != 0 else up
+    final = {}                                     # ---- second pass ----
+    for lab in parent:
+        root = find(parent, lab)
+        final.setdefault(root, len(final) + 1)
+    for r in range(h):
+        for c in range(w):
+            if L[r, c] != 0:
+                L[r, c] = final[find(parent, L[r, c])]
+    return L, len(final)
+```
+
+Because it looks at the left, upper and upper-left neighbours, this version joins pixels across one diagonal but not the other. That is called 6-connectivity, and it is Horn's way around the paradox above. We checked the function against SciPy's labelling with the matching six-neighbour pattern on 300 random images and it agreed every time. In practice we use OpenCV's `cv2.connectedComponentsWithStats`, which also measures each blob for us. Real foreground masks are speckled with noise, so we throw away blobs that are too small to be a person.
+
+```{python}
+n, labels, stats, centroids = cv2.connectedComponentsWithStats(foreground, connectivity=8)
+for i in range(1, n):                         # label 0 is the background
+    if stats[i, cv2.CC_STAT_AREA] < 200:      # too small to be a child
+        continue
+    blob = (labels == i).astype(np.uint8)
+    # ... measure area, centroid, orientation and roundness exactly as in Section 1.2 ...
+```
+
+::: {#ex-1-4-4 .exercise}
+[**Exercise 1.4.4 (A table of blobs)**]{.theorem-title} Now we can combine Sections -@sec-binary and -@sec-motion. Write `blob_table(B, min_area)`, which labels the blobs of a binary image with `label_blobs`, ignores blobs smaller than `min_area`, and returns a list with one dictionary per remaining blob, holding its `"label"`, `"area"`, `"centroid"` and `"roundness"`. If you finished [Exercise 1.2.3](#ex-1-2-3) you may call `shape_stats` on each blob. The check uses an image with a disc, a long thin bar and a few specks of noise. It also labels a diagonal line of pixels with both kinds of connectivity, so you can see the difference described in @sec-from-pixels-to-blobs for yourself.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def blob_table(B, min_area):
+    """One dictionary (label, area, centroid, roundness) per blob of at least min_area pixels."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    pic = np.zeros((120, 160), np.uint8)
+    cv2.circle(pic, (50, 40), 20, 1, -1)
+    pic[95:101, 20:120] = 1
+    for r, c in [(10, 150), (60, 100), (110, 5), (70, 140)]:
+        pic[r, c] = 1
+    table = blob_table(pic, 10)
+    for blob in table:
+        cx, cy = blob["centroid"]
+        print(f"label {blob['label']}: area {blob['area']}, centroid ({cx:.1f}, {cy:.1f}), roundness {blob['roundness']:.3f}")
+    diagonal = np.eye(6, dtype=np.uint8)
+    print("a diagonal line of 6 pixels has", cv2.connectedComponents(diagonal, connectivity=4)[0] - 1,
+          "components with 4-neighbours and", cv2.connectedComponents(diagonal, connectivity=8)[0] - 1, "with 8-neighbours")
+    if len(table) != 2:
+        return False
+    disc, bar = sorted(table, key=lambda blob: -blob["roundness"])
+    return (disc["roundness"] > 0.95 and bar["roundness"] < 0.01 and bar["area"] == 600
+            and abs(disc["centroid"][0] - 50) < 0.5 and abs(disc["centroid"][1] - 40) < 0.5)
+
+check("Exercise 1.4.4", test)
+```
+
+### Motion energy {#sec-motion-energy}
+
+A single difference image is a snapshot of where things changed between two moments. Many movements, like a flap of the arms or a spin, are only recognizable over a longer stretch of time. The KidsRoom slides aggregate T difference images into one binary *motion energy image* by taking their union ([Lecture notes 3, slides 15 and 16](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-kids-room.pdf)),
+
+$$
+B_{\text{energy}}(x,y,t) = \bigcup_{i=0}^{T} D(x,y,t-i),
+$$
+
+where D(x, y, t) is 1 if pixel (x, y) changed at time t and 0 otherwise. The union is 1 wherever *any* of the recent frames showed a change. The result is a silhouette of the whole region swept out by the movement, and the slides recommend T > 20 frames so that the shape is clearly visible. The idea comes from the work of Davis and Bobick on recognizing human movement, where the same union is taken over the last τ frames and called the motion-energy image ([Bobick and Davis 2001, Section 3.1](https://www.cs.bu.edu/faculty/betke/cs591/papers/bobick-davis.pdf)).
+
+In code we keep the last T masks and combine them with a logical OR.
+
+```{python}
+#| code-fold: true
+#| code-summary: "Setup: two consecutive frames"
+#| classes: lc-setup
+# [Setup] Not part of the lecture notes. Two consecutive frames again (the cell in 1.4.2 set prev = cur).
+cur = frames[10].astype(np.int16)
+prev = frames[9].astype(np.int16)
+```
+
+```{python}
+from collections import deque
+
+T = 20
+recent = deque(maxlen=T)          # a list that forgets its oldest entry automatically
+
+# inside the video loop:
+moving = np.abs(cur - prev) > tau
+recent.append(moving)
+motion_energy = np.any(np.array(recent), axis=0).astype(np.uint8)
+```
+
+There is a statistical catch, and it is easy to quantify. Suppose noise alone flags a still pixel with some small probability p in each frame. The union flags it if *any* of T frames does, so the probability becomes
+
+$$
+P(\text{false alarm in } B_{\text{energy}}) = 1 - (1-p)^T \approx Tp \quad \text{when } Tp \ll 1 .
+$$
+
+The union multiplies the false alarm rate by about T. Our threshold of τ = 15 gives p of a few times 10⁻⁴, which looked negligible frame by frame. Over 20 frames it scattered 66 stray pixels across the still parts of our test video, where a single difference image had shown almost none. So when we take unions over long windows we should raise τ, or remove small blobs afterwards, or both.
+
+Davis and Bobick also defined a richer cousin, the *motion-history image*. Instead of a plain 1, each moving pixel is set to T, and every frame in which it does not move it loses 1, down to zero. Recent motion is bright and older motion fades, so the image records not just where the movement went but in which order. It has a lovely property. It can be updated from the previous history image and the current difference alone, with no stored frames at all. The motion-energy image is recovered by asking where the history is above zero.
+
+```{python}
+#| code-fold: true
+#| code-summary: "Setup: start the motion-history image"
+#| classes: lc-setup
+# [Setup] Not part of the lecture notes. Start the motion-history image at zero.
+mhi = np.zeros(gray.shape)
+```
+
+```{python}
+# inside the video loop, with mhi = np.zeros(gray.shape) before it starts:
+mhi = np.where(moving, T, np.maximum(mhi - 1, 0))
+motion_energy = (mhi > 0).astype(np.uint8)
+```
+
+Sometimes we do not need a picture of the motion at all, just a number saying how much is going on. Summing the absolute difference over a region gives such a number, and the KidsRoom calls it *energy*.
+
+```{python}
+energy = np.sum(np.abs(cur - prev))          # large when there is lots of movement
+```
+
+Freeman and colleagues used both versions in their games. A player's arm movements steered a flying character, and the input to the steering was the motion energy image, the absolute difference between successive frames. They computed its moments exactly as in @sec-binary, so that the centre of mass of the motion told the character where to go ([Freeman et al. 1998, Section 2](https://merl.com/publications/docs/TR99-02.pdf)).
+
+::: {#ex-1-4-5 .exercise}
+[**Exercise 1.4.5 (Motion images for a whole clip)**]{.theorem-title} Write `motion_images(frames, T, tau)`, which runs through a list of grey frames and returns the final motion-energy image, kept with a `deque` of the last T masks as in @sec-motion-energy, and the final motion-history image. The check confirms the claim that the motion-energy image is exactly the set of pixels where the history is above zero. It then shows both images and prints the centre of mass of the motion-energy image, which is the quantity Freeman's game used for steering.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def motion_images(frames, T, tau):
+    """Final motion-energy image (uint8, 0 or 1) and motion-history image (float) for a clip."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    mei, mhi_final = motion_images(frames, 20, 15)
+    same = np.array_equal(mei.astype(bool), mhi_final > 0)
+    print("motion-energy image equals (motion history > 0):", same)
+    rows, cols = np.nonzero(mei)
+    print(f"centre of mass of the motion energy: x = {cols.mean():.1f}, y = {rows.mean():.1f}")
+    fig, axes = plt.subplots(1, 2, figsize=(10, 3.5))
+    axes[0].imshow(mei, cmap="gray"); axes[0].set_title("motion-energy image")
+    axes[1].imshow(mhi_final, cmap="gray"); axes[1].set_title("motion-history image")
+    plt.show()
+    return same and 55 < rows.mean() < 75 and mei.sum() > 1500
+
+check("Exercise 1.4.5", test)
+```
+
+### The KidsRoom {#sec-the-kidsroom}
+
+We can now read Lecture notes 3 as what it really is, a tour of a working system built almost entirely from the tools in these notes. The KidsRoom, built at the MIT Media Lab and described by Bobick and colleagues in *Presence* in 1999 ([Bobick et al. 1999](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/10/kidsroom.pdf)), was a mock children's bedroom about 24 by 18 feet, with real furniture, two walls of projected video, and cameras hung from a grid in the ceiling ([Lecture notes 3, slides 5 and 6](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-kids-room.pdf)). Up to four children walked through a story in four worlds. The bedroom came alive, the room became a forest, the bed became a boat on a river, and finally the children danced with monsters.
+
+**Tracking.** An overhead camera, chosen because people rarely hide one another when seen from above, tracked up to four children and the bed as background-difference blobs (slide 13). The paper adds some practical detail. Children entered and left through a known "door" region, so the system could keep count. When two children's blobs merged, the tracker relied on clues like each child's colour and speed to tell them apart again afterwards.
+
+**Rowing.** In the river world the children sit on the bed and row. The slides draw an ellipse that gives the bed's position and orientation (slide 20), and this is exactly the equivalent ellipse of @sec-round-or-elongated, computed from the moments of the bed's blob. The paper explains that the system summed the frame differences separately over each side of the bed to get a rowing energy per side, scaled by the number of people in the boat. Deciding which side a moving pixel is on is a lovely reuse of @sec-orientation. The quantity r = x′ sin θ − y′ cos θ is the signed distance from the bed's long axis, so its sign tells us the side.
+
+```{python}
+#| code-fold: true
+#| code-summary: "Setup: a synthetic bed with movement on one side"
+#| classes: lc-setup
+# [Setup] Not part of the lecture notes. A synthetic bed tilted by 20 degrees, its centroid and
+# orientation computed as in Section 1.2, and a patch of movement on one side of it.
+bed = np.zeros((200, 200), np.uint8)
+cv2.ellipse(bed, (100, 100), (70, 30), 20, 0, 360, 1, -1)
+rows, cols = np.nonzero(bed)
+x, y = cols.astype(float), rows.astype(float)
+x_bar, y_bar = x.mean(), y.mean()
+xp, yp = x - x_bar, y - y_bar
+a, b, c = np.sum(xp * xp), 2 * np.sum(xp * yp), np.sum(yp * yp)
+theta = 0.5 * np.arctan2(b, a - c)
+diff = np.zeros((200, 200))
+_ = cv2.circle(diff, (90, 75), 8, 50, -1)       # draws in place
+```
+
+```{python}
+# x_bar, y_bar, theta: the bed's centroid and orientation, from Section 1.2
+# diff: absolute frame difference, bed: binary mask of the bed region
+ys, xs = np.mgrid[0:diff.shape[0], 0:diff.shape[1]]
+r = (xs - x_bar) * np.sin(theta) - (ys - y_bar) * np.cos(theta)   # signed distance to the axis
+
+energy_one_side = np.sum(diff[(r > 0) & (bed == 1)])
+energy_other_side = np.sum(diff[(r < 0) & (bed == 1)])
+```
+
+We tested this on a synthetic bed tilted at 20° with movement on one side only. The code recovered θ = 20.06° and put all of the energy on the correct side.
+
+**Dancing.** In the monster world, one child stands on each of two rugs and the monsters ask for four dance moves, and each move is recognized in a different way (slides 17 to 19). For the crouch, the slides measure the size of the background-difference blob. The paper adds that an ellipse is fitted to the child's blob and a crouch shows up as a clear drop in its elongation, which is the roundness measure of @sec-round-or-elongated in action. For the Y pose, with arms raised in a Y, the system computed moment-based shape features of the silhouette and compared them with stored examples. The flap and spin moves were recognized by matching temporal templates, which is to say the motion-energy and motion-history images of @sec-motion-energy, again described by their moments.
+
+**What the room teaches.** The last slide draws lessons that apply far beyond children's games (slide 21). The first is that context matters. Recognizing a group of people rowing a boat in an arbitrary video is very hard. Recognizing that the children on the bed are rowing, when the story has just told them to row, is easy, because the story has already ruled out almost everything else. The designers controlled context as well as using it. The monsters tell the children to stay on their own rugs so that the cameras get a clear view. The second lesson is that a story makes people cooperate, which made the vision problem easier still. The third is that algorithms should fail gracefully. When a dance move was recognized with low confidence, the monster on the screen simply did the move without praising the child, so a mistake never broke the spell ([Bobick et al. 1999, Section 3.1](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/10/kidsroom.pdf)).
+
+It is a fitting place to end. The KidsRoom ran in the late 1990s on six computers far weaker than a phone, with no machine learning to speak of. What it had was frame differences, background subtraction, connected blobs, a few moments and a story clever enough to ask only questions those tools could answer.
+
+::: {#ex-1-4-6 .exercise}
+[**Exercise 1.4.6 (Who is rowing harder?)**]{.theorem-title} The starter cell makes a short synthetic river scene, a bed tilted by 20° with two children paddling on it, one on each side of its long axis. Write `rowing_energy(frames, bed)`. It should find the bed's centroid and orientation from the mask `bed`, as in @sec-binary, and return two lists holding the rowing energy on each side of the bed for every pair of consecutive frames, with the side where r > 0 first. The check plots both lists and says which side rowed harder. Is that the child drawn above the bed's axis or the one below it, and does the sign of r agree with what you expected?
+
+:::
+
+```{python}
+#| classes: lc-exercise
+# [Exercise setup] A synthetic river scene (no need to change these lines).
+river_bed = np.zeros((200, 200), np.uint8)
+cv2.ellipse(river_bed, (100, 100), (70, 30), 20, 0, 360, 1, -1)
+_t20 = np.radians(20)
+_along, _normal = np.array([np.cos(_t20), np.sin(_t20)]), np.array([np.sin(_t20), -np.cos(_t20)])
+river_frames = []
+for t in range(40):
+    f = np.where(river_bed == 1, 170, 90).astype(float)
+    for side, amplitude in [(+1, 12), (-1, 3)]:          # two children, one paddling much harder
+        centre = np.array([100.0, 100.0]) + side * 15 * _normal + amplitude * np.sin(t / 2) * _along
+        cv2.circle(f, (int(round(centre[0])), int(round(centre[1]))), 6, 40, -1)
+    river_frames.append(f.astype(np.uint8))
+
+def rowing_energy(frames, bed):
+    """Two lists of per-frame rowing energy, (side where r > 0, side where r < 0)."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    positive, negative = rowing_energy(river_frames, river_bed)
+    plt.plot(positive, label="side where r > 0")
+    plt.plot(negative, label="side where r < 0")
+    plt.xlabel("frame"); plt.ylabel("rowing energy"); plt.legend(); plt.show()
+    harder = "r > 0" if sum(positive) > sum(negative) else "r < 0"
+    print(f"total energy {sum(positive):.0f} versus {sum(negative):.0f}, so the side where {harder} rowed harder")
+    return len(positive) == len(negative) == len(river_frames) - 1 and sum(positive) > 2 * sum(negative)
+
+check("Exercise 1.4.6", test)
+```

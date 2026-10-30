@@ -437,7 +437,7 @@ test('notes: each description sits under its title, and each title opens its own
     const h = el.querySelector('h2').getBoundingClientRect(), d = el.querySelector('p:not(.meta)').getBoundingClientRect();
     return { title: el.querySelector('h2').textContent.trim(), href: el.querySelector('h2 a').getAttribute('href'), below: d.top >= h.bottom - 1, left: Math.abs(d.left - h.left) < 2 };
   }));
-  assert.equal(entries.length, 7);
+  assert.equal(entries.length, 8);
   for (const e of entries) {
     assert.ok(e.below && e.left, `${e.title}: the description should start under the title`);
     const res = await page.goto(BASE + e.href);
@@ -497,6 +497,36 @@ test('every link on the site leads somewhere that exists', async () => {
     }
   }
   assert.deepEqual(broken, [], 'broken links (for a page on the home page, use "#research", "#notes" and so on)');
+  await ctx.close();
+});
+
+test('computer vision book: pages load, every code cell can run, nothing comes from other sites until one does', async () => {
+  const ctx = await browser.newContext();
+  const page = await ctx.newPage();
+  const errors = [], foreign = [];
+  page.on('pageerror', e => errors.push(e.message));
+  page.on('request', r => { if (/^https?:/.test(r.url()) && new URL(r.url()).origin !== new URL(BASE).origin) foreign.push(r.url()); });
+  const broken = [];
+  for (const path of ['notes/computer-vision/book/', 'notes/computer-vision/book/references.html', 'notes/computer-vision/book/01-programming-with-images.html']) {
+    const res = await page.goto(BASE + path);
+    assert.equal(res.status(), 200, path);
+    // Every link from the book back into the site, and between its pages, leads somewhere.
+    const targets = new Set(await page.$$eval('a[href]', as => as.map(a => a.href).filter(h => h.startsWith(location.origin)).map(h => h.split('#')[0])));
+    for (const t of targets) if ((await page.request.get(t)).status() !== 200) broken.push(`${path}: ${t}`);
+  }
+  assert.deepEqual(broken, [], 'broken links in the book');
+  // On the chapter, each Python cell gets a toolbar, and the panel offers Python in the browser.
+  const cells = await page.$$eval('div.cell .lc-toolbar', els => els.length);
+  assert.ok(cells > 90, `only ${cells} runnable cells`);
+  assert.ok(await page.isVisible('.lc-panel button:text("Start")'), 'the panel offers to start Python in the browser');
+  const config = await page.evaluate(() => window.LIVECELLS_CONFIG);
+  assert.match(config.pyodide, /^https:\/\/cdn\.jsdelivr\.net\/pyodide\/v[\d.]+\/full\/$/);
+  assert.deepEqual(config.packages, ['numpy', 'opencv-python', 'matplotlib']);
+  // The back link and the files the course page offers for download.
+  assert.equal(await page.$eval('.sidebar a:text("Course page")', a => a.href), BASE + 'notes/computer-vision/');
+  for (const f of ['start_kernel.py', 'requirements.txt']) assert.equal((await page.request.get(BASE + 'notes/computer-vision/' + f)).status(), 200, f);
+  assert.deepEqual(foreign, [], 'requests to other sites before any code runs');
+  assert.deepEqual(errors, []);
   await ctx.close();
 });
 

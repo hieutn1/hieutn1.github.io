@@ -1,0 +1,10 @@
+# What a reader needs to run the code in the book (python start_kernel.py)
+numpy
+opencv-python
+matplotlib
+ipykernel
+jupyter_server>=2
+
+# Later chapters can add their own, for example:
+# torch
+# torchvision

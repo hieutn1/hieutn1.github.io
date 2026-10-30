@@ -1,0 +1,29 @@
+# References {.unnumbered}
+
+Slide numbers in the text count from the title slide of each deck.
+
+**Course materials (CS 585, Spring 2024)**
+
+- M. Betke, [CS 585 Image and Video Computing course page and schedule](https://www.cs.bu.edu/faculty/betke/cs585/).
+- D. Theriault and M. Betke, [Program with Images: Pitfalls](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-Program-with-Images-Pitfalls.pdf) (Lecture notes 1).
+- M. Betke, [Face detection, image differencing, template matching, SSD, NCC and pyramids, January 30, 2024](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-cs585-template-matching-ncc-pyramids-Jan30.pdf) (Lecture notes 2).
+- [The KidsRoom: A Perceptually-Based Interactive and Immersive Story Environment](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-kids-room.pdf), slides on the work of A. Bobick et al. (Lecture notes 3).
+- M. Betke, [Projections, multi-object labeling and face detection, January 25, 2024](https://www.cs.bu.edu/faculty/betke/cs585/open/2024-cs585-projections-localization-floodfill-Jan25.pdf).
+- M. Betke, [Segmentation, boundary following, Hausdorff distance and curvature, January 30 and February 1, 2024](https://www.cs.bu.edu/fac/betke/cs585/open/2024-SegmentationBoundaryHausdorffCurvature.pdf) (Lecture notes 4, used here only for the thresholding methods and the greyscale formula).
+
+**Books and papers**
+
+- B. K. P. Horn, *Robot Vision*, MIT Press, 1986. Chapter 3 for area, centroid, orientation and the second moments. Chapter 4 for connectivity and sequential labelling.
+- R. Szeliski, [*Computer Vision: Algorithms and Applications*, 2nd edition](https://szeliski.org/Book/), Springer, 2022. Sections 2.3.1 and 2.3.2 for sampling and colour, Section 3.5 for pyramids, Section 9.1 for translational alignment and hierarchical search.
+- W. T. Freeman et al., [Computer Vision for Interactive Computer Graphics](https://merl.com/publications/docs/TR99-02.pdf), *IEEE Computer Graphics and Applications*, May–June 1998, pp. 42–53. Sidebar 2.1 for moments and projections, Section 2 for motion energy, Section 5 and Sidebar 5.1 for running-average backgrounds and normalized correlation.
+- A. F. Bobick, S. S. Intille, J. W. Davis, F. Baird, C. S. Pinhanez, L. W. Campbell, Y. A. Ivanov, A. Schütte and A. Wilson, [The KidsRoom: A Perceptually-Based Interactive and Immersive Story Environment](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/10/kidsroom.pdf), *Presence: Teleoperators and Virtual Environments* 8(4), 369–393, 1999.
+- A. F. Bobick and J. W. Davis, [The Recognition of Human Movement Using Temporal Templates](https://www.cs.bu.edu/faculty/betke/cs591/papers/bobick-davis.pdf), *IEEE Transactions on Pattern Analysis and Machine Intelligence* 23(3), 257–267, 2001. Section 3 for motion-energy and motion-history images.
+- T. W. Ridler and S. Calvard, Picture thresholding using an iterative selection method, *IEEE Transactions on Systems, Man, and Cybernetics* 8(8), 630–632, 1978.
+- L. Shapiro and G. Stockman, *Computer Vision*, Prentice Hall, 2001. Source of the normalized red and green skin-colour plot, as credited on slide 16 of the January 25 deck.
+
+**Documentation and reference pages**
+
+- OpenCV, [Image file reading and writing](https://docs.opencv.org/4.x/d4/da8/group__imgcodecs.html) (the BGR default and what `imread` returns on failure).
+- OpenCV, [Color conversions](https://docs.opencv.org/4.x/de/d25/imgproc_color_conversions.html) (the greyscale weights).
+- NumPy, [Data types](https://numpy.org/doc/1.22/user/basics.types.html) (overflow in fixed-size integer types).
+- Wikipedia, [Image moment](https://en.wikipedia.org/wiki/Image_moment) and [Template matching](https://en.wikipedia.org/wiki/Template_matching), both listed as readings for this block.

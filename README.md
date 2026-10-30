@@ -13,6 +13,7 @@ assets/fonts/           Instrument Serif, Manrope, IBM Plex Mono (SIL Open Font 
 assets/img/             favicon, home-screen icon, social preview image
 tests/                  physics tests and browser tests
 scripts/                local server and the build step that copies the site into _site/
+books/                  sources of the books under notes/ (not deployed; see "The Computer Vision book")
 .github/                the test-and-deploy workflow and monthly dependency updates
 ```
 
@@ -66,6 +67,19 @@ A push to `main` runs the tests; if they pass, the site is live a minute or two 
 
 Links between pages on the home page use `#research`, `#notes`, `#about` (not `research`).
 
+## The Computer Vision book
+
+The Computer Vision notes are a [Quarto](https://quarto.org) book whose code cells readers can run, either in
+the browser (Pyodide, nothing to install) or with Python on their own computer (`start_kernel.py`).
+
+- **Source:** `books/computer-vision/`, one `.qmd` file per chapter. Its `README.md` explains writing,
+  previewing, changing the look and how the live cells work.
+- **Published copy:** `notes/computer-vision/book/`. Rendering the book writes it there, so after editing a
+  chapter run `quarto render` inside `books/computer-vision/` and commit both folders.
+- **Course page:** `notes/computer-vision/index.html`, an ordinary note page. Add a line for each new chapter.
+
+The site's build copies only `notes/` (with the rendered book), never `books/`.
+
 ## What the tests check
 
 `tests/physics.test.mjs` runs the same code the page runs. For the hero: the shadow's edge is the critical
@@ -86,8 +100,9 @@ monitor and checks: the intro and its skip button; nothing wider than the screen
 sliders); keyboard use (skip link, tab order, visible focus, focus moving to each new page);
 reduced-motion settings; the pause control; animation stopping when off screen; the binary's readouts against
 Kepler's law and the Peters formula worked out in SI units; the binary spiralling in, merging and going still; the sliders acting on the running pair;
-accessibility (axe-core, both themes); page weight and no third-party requests; the page without JavaScript; the 404 page; and
-automatic quality reduction on slow devices.
+accessibility (axe-core, both themes); page weight and no third-party requests; the page without JavaScript; the 404 page;
+the Computer Vision book (its pages load, every code cell gets a Run button, its links work, and nothing loads from
+other sites until a cell runs); and automatic quality reduction on slow devices.
 
 ## Publishing
 

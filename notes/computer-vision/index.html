@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Computer Vision · Notes · Hieu Nguyen</title>
+<meta name="description" content="Notes on image and video computing, based on BU's CS 585. The code runs right in your browser, with NumPy, OpenCV and Matplotlib ready to use.">
+<meta name="theme-color" content="#0b0e15">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://hieutnn.github.io/notes/computer-vision/">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
+<link rel="preload" href="/assets/fonts/instrument-serif-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/manrope-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<script>
+(function (d) {
+  var h = d.documentElement; h.className += ' js';
+  try { var t = localStorage.getItem('hn-theme'); if (t === 'light' || t === 'dark') h.setAttribute('data-theme', t); } catch (e) {}
+})(document);
+</script>
+<script src="/assets/js/page.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="shell">
+  <header class="top">
+    <a class="brand" href="/">Hieu Nguyen</a>
+    <nav aria-label="Primary">
+      <ul class="nav">
+        <li><a href="/#home">Home</a></li>
+        <li><a href="/#research">Research</a></li>
+        <li><a href="/#notes" aria-current="page">Notes</a></li>
+        <li><a href="/#about">About</a></li>
+        <li><button id="theme" class="linkish" type="button">Paper</button></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <header class="course-head">
+      <a class="crumb" href="/#notes">← All notes</a>
+      <h1>Computer Vision</h1>
+      <p class="course-meta"><span>Machine Learning</span><span>Chapter 1 online</span></p>
+      <div class="course-intro">
+        <p>Notes on image and video computing, based on BU's CS 585. The code runs right in your browser, with NumPy, OpenCV and Matplotlib ready to use.</p>
+      </div>
+    </header>
+
+    <section class="course-section" aria-labelledby="h-notes-pdf">
+      <h2 id="h-notes-pdf" class="label">Lecture notes</h2>
+      <div>
+        <ol class="docs">
+          <li class="doc">
+            <span class="doc-num" aria-hidden="true">·</span>
+            <div class="doc-body">
+              <h3>Full notes</h3>
+              <p>Every chapter in one book that runs its own code. Read it as it is, or press Run on any cell to run it, change it and run it again.</p>
+            </div>
+            <a class="doc-link" href="book/">Read</a>
+          </li>
+          <li class="doc">
+            <span class="doc-num">1</span>
+            <div class="doc-body">
+              <h3>Programming with images</h3>
+              <p>What an image is to a computer, binary images and the shapes in them, finding a face, and things that move. With 21 programming exercises.</p>
+            </div>
+            <a class="doc-link" href="book/01-programming-with-images.html">Read</a>
+          </li>
+          <li class="doc doc-empty">
+            <div class="doc-body"><p>Later chapters will be listed here as they are written.</p></div>
+            <!-- To add a chapter: add its .qmd file to books/computer-vision/_quarto.yml, render the book
+                 (see books/computer-vision/README.md), then add an item like:
+          <li class="doc">
+            <span class="doc-num">2</span>
+            <div class="doc-body">
+              <h3>Chapter title</h3>
+              <p>Topics, in a sentence.</p>
+            </div>
+            <a class="doc-link" href="book/02-chapter-file.html">Read</a>
+          </li>  -->
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="course-section" aria-labelledby="h-running">
+      <h2 id="h-running" class="label">Running the code</h2>
+      <div>
+        <ol class="docs">
+          <li class="doc">
+            <span class="doc-num" aria-hidden="true">·</span>
+            <div class="doc-body">
+              <h3>In your browser</h3>
+              <p>Nothing to install. The first time you press Run, the page downloads Python with NumPy, OpenCV and Matplotlib (about 35&nbsp;MB, kept by your browser afterwards) and runs the code inside the page.</p>
+            </div>
+          </li>
+          <li class="doc">
+            <span class="doc-num" aria-hidden="true">·</span>
+            <div class="doc-body">
+              <h3>On your computer</h3>
+              <p>Faster, and it can use packages the browser cannot load, such as PyTorch. Install the packages with <code>pip install -r requirements.txt</code>, then run <code>python start_kernel.py</code>. It opens the notes connected to your own Python.</p>
+            </div>
+            <a class="doc-link" href="start_kernel.py" download>Download</a>
+          </li>
+          <li class="doc">
+            <span class="doc-num" aria-hidden="true">·</span>
+            <div class="doc-body">
+              <h3>The packages</h3>
+              <p>The Python packages the notes use, for <code>pip install -r requirements.txt</code>.</p>
+            </div>
+            <a class="doc-link" href="requirements.txt" download>Download</a>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="course-section" aria-labelledby="h-problems">
+      <h2 id="h-problems" class="label">Problem sets</h2>
+      <div>
+        <ol class="docs">
+          <li class="doc doc-empty">
+            <div class="doc-body"><p>The exercises live in the notes, at the end of the subsections they practise. Problem sets will be posted here.</p></div>
+            <!-- To add a problem set, replace this item with one like:
+          <li class="doc">
+            <span class="doc-num">1</span>
+            <div class="doc-body">
+              <h3>Problem set 1: topic</h3>
+            </div>
+            <a class="doc-link" href="problem-set-1.pdf">PDF</a>
+          </li>  -->
+          </li>
+        </ol>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>© 2026 Hieu Nguyen</p>
+    <a class="linkish" href="/#notes">All notes</a>
+  </footer>
+</div>
+</body>
+</html>
