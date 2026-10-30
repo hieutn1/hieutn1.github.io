@@ -108,7 +108,7 @@ test('touch: tap to navigate and drag the sliders', async () => {
   assert.equal(await page.title(), 'Research · Hieu Nguyen');
   await page.tap('a[data-nav="notes"]');
   await page.tap('.chip[data-filter="Physics"]');
-  assert.equal(await page.$$eval('#catalog .entry:not([hidden])', els => els.length), 2, 'the Physics filter should leave two entries');
+  assert.equal(await page.$$eval('#catalog .entry:not([hidden])', els => els.length), 3, 'the Physics filter should leave three entries');
   await page.tap('a[data-nav="home"]');
   await page.waitForFunction(() => document.documentElement.dataset.page === 'home');
 
@@ -437,7 +437,7 @@ test('notes: each description sits under its title, and each title opens its own
     const h = el.querySelector('h2').getBoundingClientRect(), d = el.querySelector('p:not(.meta)').getBoundingClientRect();
     return { title: el.querySelector('h2').textContent.trim(), href: el.querySelector('h2 a').getAttribute('href'), below: d.top >= h.bottom - 1, left: Math.abs(d.left - h.left) < 2 };
   }));
-  assert.equal(entries.length, 8);
+  assert.equal(entries.length, 9);
   for (const e of entries) {
     assert.ok(e.below && e.left, `${e.title}: the description should start under the title`);
     const res = await page.goto(BASE + e.href);
