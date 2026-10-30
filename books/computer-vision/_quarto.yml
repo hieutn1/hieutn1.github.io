@@ -5,6 +5,10 @@ project:
   render:
     - index.qmd
     - 01-programming-with-images.qmd
+    - 02-image-formation.qmd
+    - 03-tracking-and-flow.qmd
+    - 04-deep-vision.qmd
+    - 05-generation-geometry-ethics.qmd
     - references.qmd
   resources:
     - mathjax/          # a local copy of MathJax, so the maths also works offline
@@ -13,10 +17,14 @@ book:
   title: "Computer Vision"
   subtitle: "Lecture notes on image and video computing"
   author: "Hieu Nguyen"
-  date: "2026-10-29"
+  date: "2026-10-30"
   chapters:
     - index.qmd
     - 01-programming-with-images.qmd
+    - 02-image-formation.qmd
+    - 03-tracking-and-flow.qmd
+    - 04-deep-vision.qmd
+    - 05-generation-geometry-ethics.qmd
     - references.qmd
   search: true
   page-navigation: true

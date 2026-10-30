@@ -41,7 +41,7 @@
     <header class="course-head">
       <a class="crumb" href="/#notes">← All notes</a>
       <h1>Computer Vision</h1>
-      <p class="course-meta"><span>Machine Learning</span><span>Chapter 1 online</span></p>
+      <p class="course-meta"><span>Machine Learning</span><span>Full notes online</span></p>
       <div class="course-intro">
         <p>Notes on image and video computing, based on BU's CS 585. The code runs right in your browser, with NumPy, OpenCV and Matplotlib ready to use.</p>
       </div>
@@ -67,18 +67,37 @@
             </div>
             <a class="doc-link" href="book/01-programming-with-images.html">Read</a>
           </li>
-          <li class="doc doc-empty">
-            <div class="doc-body"><p>Later chapters will be listed here as they are written.</p></div>
-            <!-- To add a chapter: add its .qmd file to books/computer-vision/_quarto.yml, render the book
-                 (see books/computer-vision/README.md), then add an item like:
           <li class="doc">
             <span class="doc-num">2</span>
             <div class="doc-body">
-              <h3>Chapter title</h3>
-              <p>Topics, in a sentence.</p>
+              <h3>Image formation</h3>
+              <p>Pinhole cameras and the camera matrix, vanishing points, lenses and blur, and depth from two views. With 7 programming exercises.</p>
             </div>
-            <a class="doc-link" href="book/02-chapter-file.html">Read</a>
-          </li>  -->
+            <a class="doc-link" href="book/02-image-formation.html">Read</a>
+          </li>
+          <li class="doc">
+            <span class="doc-num">3</span>
+            <div class="doc-body">
+              <h3>Tracking, edges and optical flow</h3>
+              <p>Alpha-beta and Kalman filters, data association for many objects, edge detection and Canny, active contours, and the Horn-Schunck and Lucas-Kanade methods. With 9 programming exercises.</p>
+            </div>
+            <a class="doc-link" href="book/03-tracking-and-flow.html">Read</a>
+          </li>
+          <li class="doc">
+            <span class="doc-num">4</span>
+            <div class="doc-body">
+              <h3>Deep learning, faces and multiple views</h3>
+              <p>Convolutional networks and training, face recognition and verification, facial expressions, epipolar geometry, structured light, structure from motion and segmentation. With 9 programming exercises.</p>
+            </div>
+            <a class="doc-link" href="book/04-deep-vision.html">Read</a>
+          </li>
+          <li class="doc">
+            <span class="doc-num">5</span>
+            <div class="doc-body">
+              <h3>Generative models, surfaces and the rest</h3>
+              <p>GANs and diffusion, photometric stereo, PCA, registration and ICP, transformers, vision and language, multiview tracking and ethics. With 8 programming exercises.</p>
+            </div>
+            <a class="doc-link" href="book/05-generation-geometry-ethics.html">Read</a>
           </li>
         </ol>
       </div>
@@ -120,15 +139,55 @@
       <div>
         <ol class="docs">
           <li class="doc doc-empty">
-            <div class="doc-body"><p>The exercises live in the notes, at the end of the subsections they practise. Problem sets will be posted here.</p></div>
-            <!-- To add a problem set, replace this item with one like:
+            <div class="doc-body"><p>Adapted from the assignments of CS 585 in Spring 2024. The short exercises live in the notes, at the end of the subsections they practise.</p></div>
+          </li>
+          <li class="doc">
+            <span class="doc-num">0</span>
+            <div class="doc-body">
+              <h3>Homework 0: Reading, writing and changing images</h3>
+              <p>Image input and output, two kinds of grey and a transformation of your own. Programming.</p>
+            </div>
+            <a class="doc-link" href="homework-0.pdf">PDF</a>
+          </li>
           <li class="doc">
             <span class="doc-num">1</span>
             <div class="doc-body">
-              <h3>Problem set 1: topic</h3>
+              <h3>Homework 1: Binary images on paper</h3>
+              <p>Proofs about centroids, moments, orientation, roundness and thresholding. No programming.</p>
             </div>
-            <a class="doc-link" href="problem-set-1.pdf">PDF</a>
-          </li>  -->
+            <a class="doc-link" href="homework-1.pdf">PDF</a>
+          </li>
+          <li class="doc">
+            <span class="doc-num">2</span>
+            <div class="doc-body">
+              <h3>Homework 2: Hand shapes and gestures</h3>
+              <p>Recognize four hand shapes from a webcam and drive an interactive display. Programming.</p>
+            </div>
+            <a class="doc-link" href="homework-2.pdf">PDF</a>
+          </li>
+          <li class="doc">
+            <span class="doc-num">3</span>
+            <div class="doc-body">
+              <h3>Homework 3: Tracking</h3>
+              <p>An alpha-beta or Kalman filter for one object, and data association with persistent IDs for many. Programming.</p>
+            </div>
+            <a class="doc-link" href="homework-3.pdf">PDF</a>
+          </li>
+          <li class="doc">
+            <span class="doc-num">4</span>
+            <div class="doc-body">
+              <h3>Homework 4: Computer vision and deep learning</h3>
+              <p>A convolution layer by hand, transfer learning and face-style verification with ROC curves. Programming.</p>
+            </div>
+            <a class="doc-link" href="homework-4.pdf">PDF</a>
+          </li>
+          <li class="doc">
+            <span class="doc-num">5</span>
+            <div class="doc-body">
+              <h3>Homework 5: Geometry, light and learning on paper</h3>
+              <p>Lenses, vanishing points, stereo, optical flow, Kalman filters, epipolar geometry, photometric stereo, GANs and attention. No programming.</p>
+            </div>
+            <a class="doc-link" href="homework-5.pdf">PDF</a>
           </li>
         </ol>
       </div>

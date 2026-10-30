@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Hieu Nguyen">
-<meta name="dcterms.date" content="2026-10-29">
+<meta name="dcterms.date" content="2026-10-30">
 
 <title>Computer Vision</title>
 <style>
@@ -167,6 +167,30 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./02-image-formation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Image Formation</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03-tracking-and-flow.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Tracking, Edges and Optical Flow</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04-deep-vision.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Deep Learning, Faces and Multiple Views</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05-generation-geometry-ethics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Generative Models, Surfaces and the Rest</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./references.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">References</span></a>
   </div>
@@ -208,7 +232,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">October 29, 2026</p>
+      <p class="date">October 30, 2026</p>
     </div>
   </div>
   
@@ -222,11 +246,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="preface" class="level1 unnumbered">
 <h1 class="unnumbered">Preface</h1>
-<p>These notes cover the part of CS 585, Image and Video Computing, that deals with programming with images, as taught by Margrit Betke at Boston University in Spring 2024. On the course’s <a href="https://www.cs.bu.edu/faculty/betke/cs585/">schedule page</a> this block lists five sets of lecture notes, and we follow the first three. Lecture notes 1 is a short deck on the pitfalls of programming with images, by Diane Theriault and Margrit Betke (<a href="https://www.cs.bu.edu/faculty/betke/cs585/open/2024-Program-with-Images-Pitfalls.pdf">Lecture notes 1</a>). Lecture notes 2 is the January 30 lecture on skin colour, image differencing, template matching and image pyramids (<a href="https://www.cs.bu.edu/faculty/betke/cs585/open/2024-cs585-template-matching-ncc-pyramids-Jan30.pdf">Lecture notes 2</a>). Lecture notes 3 is a case study of the KidsRoom, an interactive story space built at the MIT Media Lab by Aaron Bobick and colleagues, which watched children play using little more than subtracted video frames (<a href="https://www.cs.bu.edu/faculty/betke/cs585/open/2024-kids-room.pdf">Lecture notes 3</a>). The same block lists readings on image moments, binary image analysis and thresholding, with Chapter 3 of Horn’s <em>Robot Vision</em> (MIT Press, 1986) as the textbook reference, and we lean on those throughout.</p>
+<p>These notes follow CS 585, Image and Video Computing, as taught by Margrit Betke at Boston University in Spring 2024, using the lecture schedule and readings on the course’s <a href="https://www.cs.bu.edu/faculty/betke/cs585/">schedule page</a>. The first chapter covers the block on programming with images, where we follow three sets of lecture notes closely. Lecture notes 1 is a short deck on the pitfalls of programming with images, by Diane Theriault and Margrit Betke (<a href="https://www.cs.bu.edu/faculty/betke/cs585/open/2024-Program-with-Images-Pitfalls.pdf">Lecture notes 1</a>), Lecture notes 2 is the January 30 lecture on skin colour, image differencing, template matching and image pyramids (<a href="https://www.cs.bu.edu/faculty/betke/cs585/open/2024-cs585-template-matching-ncc-pyramids-Jan30.pdf">Lecture notes 2</a>), and Lecture notes 3 is a case study of the KidsRoom, an interactive story space built at the MIT Media Lab by Aaron Bobick and colleagues, which watched children play using little more than subtracted video frames (<a href="https://www.cs.bu.edu/faculty/betke/cs585/open/2024-kids-room.pdf">Lecture notes 3</a>). The later chapters follow the rest of the schedule, image formation, tracking, edges and optical flow, deep learning and faces, stereo and multiple views, and finally generative models, reflectance, registration, transformers and ethics, built around the topics and readings listed for each lecture together with the standard papers and textbooks, mainly Horn’s <em>Robot Vision</em> (MIT Press, 1986) and Szeliski’s <em>Computer Vision: Algorithms and Applications</em>.</p>
 <p>The slides are pretty terse (as slides should be), and a lot of the real content was said out loud or written on the board, so a student reading the PDFs a week later is basically left to reconstruct it on their own. So what I’m trying to do here is fill in that missing layer, which means that wherever a slide states a formula we derive it, and wherever a slide names an algorithm we write it out in Python and run it on a small example you can check by hand.</p>
 <p>I’m assuming you can program, and that you remember a little bit of calculus and linear algebra, but not that you’ve ever opened an image file in code before. Everything is done with three libraries, NumPy for arrays, OpenCV for reading files (and a few other conveniences), and Matplotlib for looking at the results, so if you’re starting from scratch, this is all you need.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install numpy opencv-python matplotlib</span></code></pre></div>
-<p>A quick word on how to read these notes. <a href="01-programming-with-images.html#sec-images">Section 1.1</a> is about what an image actually is inside a computer, and it follows Lecture notes 1. It has most of the traps people fall into in their first week, so if you only read one section carefully, make it that one. <a href="01-programming-with-images.html#sec-binary">Section 1.2</a> covers the background from the readings, where we turn grey images into black and white ones and then measure the shapes that show up (both lectures rely on this constantly, since a skin-coloured face and a moving child each end up as a blob). <a href="01-programming-with-images.html#sec-faces">Section 1.3</a> follows Lecture notes 2 and hunts for a face, first by its colour and then by comparing the picture against a template, and <a href="01-programming-with-images.html#sec-motion">Section 1.4</a> brings in time, starting from the image differencing in Lecture notes 2 and ending up in the KidsRoom of Lecture notes 3.</p>
+<p>A quick word on how to read these notes. <a href="01-programming-with-images.html">Chapter 1</a> is about what an image actually is inside a computer, binary images and the shapes in them, finding faces and finding motion, and it has most of the traps people fall into in their first week, so if you only read one chapter carefully, make it that one. <a href="02-image-formation.html">Chapter 2</a> asks where the numbers in an image come from, with pinhole cameras, vanishing points, lenses and a first look at stereo. <a href="03-tracking-and-flow.html">Chapter 3</a> is about change, following objects with the alpha-beta and Kalman filters, associating detections with tracks, finding edges and active contours, and measuring optical flow. <a href="04-deep-vision.html">Chapter 4</a> brings in deep learning and faces and then the geometry of two and more views, and <a href="05-generation-geometry-ethics.html">Chapter 5</a> covers the rest of the course, from GANs and diffusion models to photometric stereo, registration, transformers and the ethics of all of this.</p>
 <p>One last remark. A lot of the methods here are old (some of them are from the 1970s), and most modern systems would just hand these jobs to a neural network, which is fine, but these are the ideas that the networks are quietly rediscovering anyway, and they’re also the tools you end up reaching for at two in the morning when you need something that works on a webcam and you don’t have any training data at all.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -238,7 +262,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Every Python cell in this book was run when the page was built, so the output is already there to read. Each cell also has a <em>Run</em> button. The first time you press one, the page downloads Python together with NumPy, OpenCV and Matplotlib (about 35 MB, which your browser then keeps) and runs the code right in the page. Nothing needs installing. You can edit any cell and run it again, and your output replaces the printed one.</p>
+<p>Every Python cell in this book was run when the page was built, so the output is already there to read. Each cell also has a <em>Run</em> button. The first time you press one, the page downloads Python together with NumPy, OpenCV and Matplotlib (about 35 MB, which your browser then keeps) and runs the code right in the page. Nothing needs installing. A few cells in the later chapters also use SciPy, which the page fetches the first time one of them runs. You can edit any cell and run it again, and your output replaces the printed one.</p>
 <p>Python in the browser is slower than on a laptop, and some packages, PyTorch among them, are not available there. For those, run the code on your own computer instead. Download <code>start_kernel.py</code> and <code>requirements.txt</code> from the <a href="../">course page</a>, install the packages with <code>pip install -r requirements.txt</code>, and run <code>python start_kernel.py</code>. It opens this book connected to Python on your machine.</p>
 </div>
 </div>

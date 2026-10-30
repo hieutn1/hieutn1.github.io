@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.20">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>5&nbsp; Generative Models, Surfaces and the Rest – Computer Vision</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./references.html" rel="next">
+<link href="./04-deep-vision.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-da0f4d964b336c7357bd1e6e7fe8ee30.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-42a672b7a9700d1436569573ce3dcc0e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/quarto-contrib/livecells-0.2.0/livecells.css" rel="stylesheet">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script>window.LIVECELLS_CONFIG = {"server": "http://127.0.0.1:8888", "kernelName": "python3", "pyodide": "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/", "packages": ["numpy", "opencv-python", "matplotlib"]};</script>
+  <script defer="" src="mathjax/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./05-generation-geometry-ethics.html"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Generative Models, Surfaces and the Rest</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto"><div class="quarto-sidebar-header"><div class="sidebar-header-item">
+<p><a href="../">← Course page</a></p>
+</div></div>
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Computer Vision</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01-programming-with-images.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Programming with Images</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02-image-formation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Image Formation</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03-tracking-and-flow.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Tracking, Edges and Optical Flow</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04-deep-vision.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Deep Learning, Faces and Multiple Views</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05-generation-geometry-ethics.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Generative Models, Surfaces and the Rest</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active" data-toc-expanded="1">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#sec-generative" id="toc-sec-generative" class="nav-link active" data-scroll-target="#sec-generative"><span class="header-section-number">5.1</span> Generative Models</a>
+  <ul class="collapse">
+  <li><a href="#sec-gans" id="toc-sec-gans" class="nav-link" data-scroll-target="#sec-gans"><span class="header-section-number">5.1.1</span> Generative adversarial networks</a></li>
+  <li><a href="#sec-diffusion" id="toc-sec-diffusion" class="nav-link" data-scroll-target="#sec-diffusion"><span class="header-section-number">5.1.2</span> Diffusion models</a></li>
+  </ul></li>
+  <li><a href="#sec-reflectance" id="toc-sec-reflectance" class="nav-link" data-scroll-target="#sec-reflectance"><span class="header-section-number">5.2</span> Light And Surfaces</a>
+  <ul class="collapse">
+  <li><a href="#sec-brdf" id="toc-sec-brdf" class="nav-link" data-scroll-target="#sec-brdf"><span class="header-section-number">5.2.1</span> Reflectance and the Lambertian model</a></li>
+  <li><a href="#sec-photometric-stereo" id="toc-sec-photometric-stereo" class="nav-link" data-scroll-target="#sec-photometric-stereo"><span class="header-section-number">5.2.2</span> Photometric stereo</a></li>
+  <li><a href="#sec-shape-from-shading" id="toc-sec-shape-from-shading" class="nav-link" data-scroll-target="#sec-shape-from-shading"><span class="header-section-number">5.2.3</span> Shape from shading</a></li>
+  </ul></li>
+  <li><a href="#sec-learning-paradigms" id="toc-sec-learning-paradigms" class="nav-link" data-scroll-target="#sec-learning-paradigms"><span class="header-section-number">5.3</span> Learning With And Without Labels</a>
+  <ul class="collapse">
+  <li><a href="#sec-pca" id="toc-sec-pca" class="nav-link" data-scroll-target="#sec-pca"><span class="header-section-number">5.3.1</span> Principal component analysis and eigenfaces</a></li>
+  </ul></li>
+  <li><a href="#sec-registration" id="toc-sec-registration" class="nav-link" data-scroll-target="#sec-registration"><span class="header-section-number">5.4</span> Registration</a>
+  <ul class="collapse">
+  <li><a href="#sec-image-registration" id="toc-sec-image-registration" class="nav-link" data-scroll-target="#sec-image-registration"><span class="header-section-number">5.4.1</span> Aligning images</a></li>
+  <li><a href="#sec-absolute-orientation" id="toc-sec-absolute-orientation" class="nav-link" data-scroll-target="#sec-absolute-orientation"><span class="header-section-number">5.4.2</span> Absolute orientation</a></li>
+  <li><a href="#sec-icp" id="toc-sec-icp" class="nav-link" data-scroll-target="#sec-icp"><span class="header-section-number">5.4.3</span> The iterative closest point algorithm</a></li>
+  </ul></li>
+  <li><a href="#sec-transformers" id="toc-sec-transformers" class="nav-link" data-scroll-target="#sec-transformers"><span class="header-section-number">5.5</span> Transformers</a>
+  <ul class="collapse">
+  <li><a href="#sec-attention" id="toc-sec-attention" class="nav-link" data-scroll-target="#sec-attention"><span class="header-section-number">5.5.1</span> Attention</a></li>
+  <li><a href="#sec-vit" id="toc-sec-vit" class="nav-link" data-scroll-target="#sec-vit"><span class="header-section-number">5.5.2</span> Vision transformers</a></li>
+  </ul></li>
+  <li><a href="#sec-vision-language" id="toc-sec-vision-language" class="nav-link" data-scroll-target="#sec-vision-language"><span class="header-section-number">5.6</span> Vision And Language</a></li>
+  <li><a href="#sec-multiview-tracking" id="toc-sec-multiview-tracking" class="nav-link" data-scroll-target="#sec-multiview-tracking"><span class="header-section-number">5.7</span> Many Cameras, Many Objects</a></li>
+  <li><a href="#sec-ethics" id="toc-sec-ethics" class="nav-link" data-scroll-target="#sec-ethics"><span class="header-section-number">5.8</span> Computer Vision And Ethics</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span id="sec-rest-of-course" class="quarto-section-identifier"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Generative Models, Surfaces and the Rest</span></span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>The last part of the course covers a lot of ground, one or two lectures per topic (<a href="https://www.cs.bu.edu/faculty/betke/cs585/">CS 585 schedule</a>). There’s a lecture on generative models, GANs and diffusion, then one on how light reflects off surfaces and how to get shape back from shading, one on supervised, semi-supervised and unsupervised learning, one on image registration with absolute orientation, quaternions and the iterative closest point algorithm, one on transformers, one on vision-and-language navigation, and a final one on tracking many objects with many cameras and on computer vision and ethics. The chapter follows the same order. Some of these topics could fill a course on their own, so the aim here is to get the core idea of each one straight, with a derivation where there’s a clean one and a small computation to make it concrete.</p>
+<div id="e100db9f" class="cell lc-autorun" data-execution_count="1">
+<details class="code-fold">
+<summary>Setup: imports and the helper used by the exercise checks</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># [Exercise setup] Run once. Imports what this chapter uses and defines the helper used by every check cell.</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cv2</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> check(name, test):</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Run test(), which returns True or False, and report the result without ever raising."""</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>        ok <span class="op">=</span> test()</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> <span class="pp">NotImplementedError</span>:</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: not attempted yet"</span>)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> <span class="pp">Exception</span> <span class="im">as</span> err:</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: your code raised </span><span class="sc">{</span><span class="bu">type</span>(err)<span class="sc">.</span><span class="va">__name__</span><span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>err<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: "</span> <span class="op">+</span> (<span class="st">"passed"</span> <span class="cf">if</span> ok <span class="cf">else</span> <span class="st">"not yet. Something is off, see the output above."</span>))</span></code></pre></div>
+</details>
+</div>
+<section id="sec-generative" class="level2" data-number="5.1">
+<h2 data-number="5.1" class="anchored" data-anchor-id="sec-generative"><span class="header-section-number">5.1</span> Generative Models</h2>
+<p>Everything in the previous chapters went from images to some description, a label, a box, a depth, a flow field. Generative models go the other way and produce images, and the goal is usually stated in terms of probability. There’s some unknown distribution p<sub>data</sub> over images (photos of faces, say), we have samples from it, and we want a model we can draw <em>new</em> samples from that look like they came from the same distribution. The two families the lecture covers attack this in very different ways.</p>
+<section id="sec-gans" class="level3" data-number="5.1.1">
+<h3 data-number="5.1.1" class="anchored" data-anchor-id="sec-gans"><span class="header-section-number">5.1.1</span> Generative adversarial networks</h3>
+<p>The GAN idea (Goodfellow and colleagues, 2014) is to train two networks against each other. A <em>generator</em> G takes random noise z, usually a vector of Gaussian numbers, and turns it into an image G(z), and a <em>discriminator</em> D takes an image and outputs the probability that it’s real rather than generated. The discriminator is trained to tell real from fake, and the generator is trained to fool it, which written as one objective is the game</p>
+<p><span class="math display">\[
+\min_G \max_D \; V(D, G) = \mathbb{E}_{x \sim p_{\text{data}}}\big[\log D(x)\big] + \mathbb{E}_{z}\big[\log\big(1 - D(G(z))\big)\big].
+\]</span></p>
+<p>It’s worth seeing what this game actually optimizes, because the answer is pretty elegant. Let p<sub>g</sub> be the distribution of the generated images. For a fixed generator, the value is ∫ [p<sub>data</sub>(x) log D(x) + p<sub>g</sub>(x) log(1 − D(x))] dx, and we can maximize the integrand separately at each x. The function a log D + b log(1 − D) has its maximum at D = a/(a + b), so the best discriminator is</p>
+<p><span class="math display">\[
+D^*(x) = \frac{p_{\text{data}}(x)}{p_{\text{data}}(x) + p_g(x)} ,
+\]</span></p>
+<p>which makes sense, since it says “real” in proportion to how much more likely x is under the data. Plugging it back in and writing m = (p<sub>data</sub> + p<sub>g</sub>)/2 for the mixture,</p>
+<p><span class="math display">\[
+V(D^*, G) = \int p_{\text{data}}\log\frac{p_{\text{data}}}{2m} + \int p_g \log\frac{p_g}{2m} = -\log 4 + 2\,\mathrm{JS}(p_{\text{data}}\,\|\,p_g),
+\]</span></p>
+<p>where JS is the Jensen-Shannon divergence, the average of the Kullback-Leibler divergences of the two distributions from their mixture. The JS divergence is never negative and is zero only when the distributions are equal, so with a perfect discriminator the generator’s job is exactly to make p<sub>g</sub> equal p<sub>data</sub>, and at that point D* = 1/2 everywhere, since the discriminator can’t do better than guessing.</p>
+<p>In practice the two networks are trained by alternating gradient steps, and that’s where the trouble is. The game can oscillate instead of converging, and the generator can find a few images that fool the discriminator and produce only those, which is called <em>mode collapse</em>. A lot of work went into stabilizing GANs, and by around 2019 networks like StyleGAN were producing faces that people couldn’t tell from photos, which is also when “deepfakes” became a public concern (more on that in <a href="#sec-ethics" class="quarto-xref"><span>Section 5.8</span></a>).</p>
+<div id="ex-5-1-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 5.1.1 (The optimal discriminator)</strong></span> For two discrete distributions p (data) and q (generator) on the same finite set, write <code>optimal_discriminator(p, q)</code>, which returns D* at every point, and <code>gan_value(p, q, D)</code>, which returns V = Σ p log D + Σ q log(1 − D). The check confirms that V(D*) = −log 4 + 2 JS(p‖q) for random distributions and that no other discriminator does better.</p>
+</div>
+<div id="d6e9ae26" class="cell lc-exercise" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> optimal_discriminator(p, q):</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""D*(x) = p(x) / (p(x) + q(x)) for discrete distributions."""</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> gan_value(p, q, D):</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""The GAN objective sum p log D + sum q log(1 - D)."""</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="eb956383" class="cell lc-check" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(<span class="dv">0</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> rng.random(<span class="dv">10</span>)<span class="op">;</span> p <span class="op">/=</span> p.<span class="bu">sum</span>()<span class="op">;</span> q <span class="op">=</span> rng.random(<span class="dv">10</span>)<span class="op">;</span> q <span class="op">/=</span> q.<span class="bu">sum</span>()</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    m <span class="op">=</span> (p <span class="op">+</span> q) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    js <span class="op">=</span> <span class="fl">0.5</span> <span class="op">*</span> np.<span class="bu">sum</span>(p <span class="op">*</span> np.log(p <span class="op">/</span> m)) <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> np.<span class="bu">sum</span>(q <span class="op">*</span> np.log(q <span class="op">/</span> m))</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    Ds <span class="op">=</span> np.asarray(optimal_discriminator(p, q), <span class="bu">float</span>)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    v <span class="op">=</span> gan_value(p, q, Ds)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    others <span class="op">=</span> [gan_value(p, q, np.clip(Ds <span class="op">+</span> rng.normal(<span class="dv">0</span>, <span class="fl">0.05</span>, <span class="dv">10</span>), <span class="fl">0.01</span>, <span class="fl">0.99</span>)) <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">50</span>)]</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"V(D*) = </span><span class="sc">{</span>v<span class="sc">:.6f}</span><span class="ss">,  -log 4 + 2 JS = </span><span class="sc">{</span><span class="op">-</span>np<span class="sc">.</span>log(<span class="dv">4</span>) <span class="op">+</span> <span class="dv">2</span> <span class="op">*</span> js<span class="sc">:.6f}</span><span class="ss">,  best perturbed D gives </span><span class="sc">{</span><span class="bu">max</span>(others)<span class="sc">:.6f}</span><span class="ss">"</span>)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    same <span class="op">=</span> gan_value(p, p, np.asarray(optimal_discriminator(p, p), <span class="bu">float</span>))</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">abs</span>(v <span class="op">-</span> (<span class="op">-</span>np.log(<span class="dv">4</span>) <span class="op">+</span> <span class="dv">2</span> <span class="op">*</span> js)) <span class="op">&lt;</span> <span class="fl">1e-12</span> <span class="kw">and</span> <span class="bu">max</span>(others) <span class="op">&lt;=</span> v <span class="kw">and</span> <span class="bu">abs</span>(same <span class="op">+</span> np.log(<span class="dv">4</span>)) <span class="op">&lt;</span> <span class="fl">1e-12</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 5.1.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 5.1.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-diffusion" class="level3" data-number="5.1.2">
+<h3 data-number="5.1.2" class="anchored" data-anchor-id="sec-diffusion"><span class="header-section-number">5.1.2</span> Diffusion models</h3>
+<p>Diffusion models, which took over image generation around 2021 and are behind systems like Stable Diffusion and DALL·E 2, work in a completely different way, and their training is much more stable. The idea (Sohl-Dickstein and colleagues in 2015, made practical by Ho, Jain and Abbeel’s DDPM paper in 2020) is to take an image and destroy it slowly by adding a little Gaussian noise at each of T steps, until after maybe a thousand steps it’s pure noise, and then to train a network to undo one step at a time. Generating a new image then means starting from pure noise and running the learned undoing T times.</p>
+<p>The forward, noising process is fixed, with no learning in it at all. With a schedule of small variances β<sub>1</sub>, …, β<sub>T</sub>,</p>
+<p><span class="math display">\[
+x_t = \sqrt{1 - \beta_t}\; x_{t-1} + \sqrt{\beta_t}\;\varepsilon_t, \qquad \varepsilon_t \sim \mathcal{N}(0, I).
+\]</span></p>
+<p>The √(1 − β<sub>t</sub>) factor shrinks the image a bit at each step so that the total variance stays bounded. The really useful fact is that we can jump straight to any step t without simulating the ones in between. Write α<sub>t</sub> = 1 − β<sub>t</sub> and ᾱ<sub>t</sub> = α<sub>1</sub>α<sub>2</sub>⋯α<sub>t</sub>. If x<sub>t−1</sub> = √ᾱ<sub>t−1</sub> x<sub>0</sub> + (Gaussian noise with variance 1 − ᾱ<sub>t−1</sub>), then x<sub>t</sub> = √α<sub>t</sub> x<sub>t−1</sub> + √β<sub>t</sub> ε<sub>t</sub> has the mean √(α<sub>t</sub>ᾱ<sub>t−1</sub>) x<sub>0</sub> = √ᾱ<sub>t</sub> x<sub>0</sub> and, since independent Gaussian variances add, noise variance α<sub>t</sub>(1 − ᾱ<sub>t−1</sub>) + β<sub>t</sub> = 1 − α<sub>t</sub>ᾱ<sub>t−1</sub> = 1 − ᾱ<sub>t</sub>. So by induction</p>
+<p><span class="math display">\[
+x_t = \sqrt{\bar{\alpha}_t}\; x_0 + \sqrt{1 - \bar{\alpha}_t}\;\varepsilon, \qquad \varepsilon \sim \mathcal{N}(0, I),
+\]</span></p>
+<p>which is a blend of the clean image and pure noise, with the image’s weight √ᾱ<sub>t</sub> falling from about 1 to about 0 as t goes from 0 to T.</p>
+<p>That formula makes training really simple. Take a training image x<sub>0</sub>, pick a random t and random noise ε, form x<sub>t</sub> with the formula, and train a network ε<sub>θ</sub>(x<sub>t</sub>, t) to predict the noise that was added, with the plain squared error ‖ε − ε<sub>θ</sub>(x<sub>t</sub>, t)‖² as the loss. (Ho and colleagues derived this from a variational bound on the likelihood and found that this simplified version works best.) The network is usually a U-Net, the same architecture as in <a href="04-deep-vision.html#sec-deep-segmentation" class="quarto-xref"><span>Section 4.4</span></a>, which makes sense, since predicting a noise image from a noisy image is an image-to-image task. To generate, start from x<sub>T</sub> ~ N(0, I) and step backwards, at each step using the predicted noise to estimate a slightly cleaner image and adding back a little fresh noise. Text-to-image systems also feed a text embedding into the network, so it learns to denoise towards images that match the description.</p>
+<div id="d6a748ff" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>img <span class="op">=</span> np.zeros((<span class="dv">64</span>, <span class="dv">64</span>))<span class="op">;</span> cv2.circle(img, (<span class="dv">32</span>, <span class="dv">32</span>), <span class="dv">18</span>, <span class="fl">1.0</span>, <span class="op">-</span><span class="dv">1</span>)<span class="op">;</span> cv2.rectangle(img, (<span class="dv">6</span>, <span class="dv">6</span>), (<span class="dv">22</span>, <span class="dv">22</span>), <span class="op">-</span><span class="fl">1.0</span>, <span class="op">-</span><span class="dv">1</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>betas <span class="op">=</span> np.linspace(<span class="fl">1e-4</span>, <span class="fl">0.02</span>, <span class="dv">1000</span>)<span class="op">;</span> abar <span class="op">=</span> np.cumprod(<span class="dv">1</span> <span class="op">-</span> betas)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">0</span>)<span class="op">;</span> eps <span class="op">=</span> rng.normal(size<span class="op">=</span>img.shape)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">6</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="fl">1.9</span>))</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> a, t <span class="kw">in</span> <span class="bu">zip</span>(ax, [<span class="dv">0</span>, <span class="dv">50</span>, <span class="dv">150</span>, <span class="dv">300</span>, <span class="dv">600</span>, <span class="dv">1000</span>]):</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    xt <span class="op">=</span> img <span class="cf">if</span> t <span class="op">==</span> <span class="dv">0</span> <span class="cf">else</span> np.sqrt(abar[t <span class="op">-</span> <span class="dv">1</span>]) <span class="op">*</span> img <span class="op">+</span> np.sqrt(<span class="dv">1</span> <span class="op">-</span> abar[t <span class="op">-</span> <span class="dv">1</span>]) <span class="op">*</span> eps</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    a.imshow(xt, cmap<span class="op">=</span><span class="st">"gray"</span>, vmin<span class="op">=-</span><span class="fl">2.5</span>, vmax<span class="op">=</span><span class="fl">2.5</span>)<span class="op">;</span> a.set_xticks([])<span class="op">;</span> a.set_yticks([])</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>fig.tight_layout()<span class="op">;</span> plt.show()</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"signal weight sqrt(abar_t) at those steps:"</span>, [<span class="bu">round</span>(<span class="bu">float</span>(np.sqrt(abar[t <span class="op">-</span> <span class="dv">1</span>])), <span class="dv">3</span>) <span class="cf">for</span> t <span class="kw">in</span> [<span class="dv">50</span>, <span class="dv">150</span>, <span class="dv">300</span>, <span class="dv">600</span>, <span class="dv">1000</span>]])</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="05-generation-geometry-ethics_files/figure-html/cell-5-output-1.png" width="950" height="162" class="figure-img"></p>
+<figcaption>The forward diffusion process on a simple test image, using the closed form with a linear β schedule from 0.0001 to 0.02 over 1000 steps, shown at steps 0, 50, 150, 300, 600 and 1000. By the end the image is indistinguishable from pure noise.</figcaption>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>signal weight sqrt(abar_t) at those steps: [0.985, 0.888, 0.63, 0.161, 0.006]</code></pre>
+</div>
+</div>
+<div id="ex-5-1-2" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 5.1.2 (Jumping ahead in the forward process)</strong></span> Write <code>diffuse_steps(x0, betas, rng)</code>, which applies the step-by-step forward process for all the given betas and returns the final x<sub>t</sub>, and <code>diffuse_direct(x0, betas, rng)</code>, which jumps there in one go with the closed form. Since both use random noise, they won’t give the same image, but they should give the same distribution. The check runs both on many copies of a small signal and compares the mean and variance of the results with √ᾱ<sub>t</sub> x<sub>0</sub> and 1 − ᾱ<sub>t</sub>.</p>
+</div>
+<div id="6ff59995" class="cell lc-exercise" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> diffuse_steps(x0, betas, rng):</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Apply x_t = sqrt(1 - b) x_{t-1} + sqrt(b) noise for every b in betas."""</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> diffuse_direct(x0, betas, rng):</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Jump to the last step with the closed form."""</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="5c0e7108" class="cell lc-check" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(<span class="dv">1</span>)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    x0 <span class="op">=</span> np.tile(np.array([<span class="fl">1.5</span>, <span class="op">-</span><span class="fl">0.5</span>, <span class="fl">0.0</span>]), (<span class="dv">20000</span>, <span class="dv">1</span>))</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    b <span class="op">=</span> np.linspace(<span class="fl">1e-3</span>, <span class="fl">0.05</span>, <span class="dv">60</span>)<span class="op">;</span> ab <span class="op">=</span> np.prod(<span class="dv">1</span> <span class="op">-</span> b)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    s, d <span class="op">=</span> np.asarray(diffuse_steps(x0, b, rng)), np.asarray(diffuse_direct(x0, b, rng))</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"mean  steps"</span>, np.<span class="bu">round</span>(s.mean(<span class="dv">0</span>), <span class="dv">3</span>), <span class="st">" direct"</span>, np.<span class="bu">round</span>(d.mean(<span class="dv">0</span>), <span class="dv">3</span>), <span class="st">" theory"</span>, np.<span class="bu">round</span>(np.sqrt(ab) <span class="op">*</span> x0[<span class="dv">0</span>], <span class="dv">3</span>))</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"var   steps"</span>, np.<span class="bu">round</span>(s.var(<span class="dv">0</span>), <span class="dv">3</span>), <span class="st">" direct"</span>, np.<span class="bu">round</span>(d.var(<span class="dv">0</span>), <span class="dv">3</span>), <span class="st">" theory"</span>, <span class="bu">round</span>(<span class="dv">1</span> <span class="op">-</span> ab, <span class="dv">3</span>))</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (np.allclose(s.mean(<span class="dv">0</span>), np.sqrt(ab) <span class="op">*</span> x0[<span class="dv">0</span>], atol<span class="op">=</span><span class="fl">0.03</span>) <span class="kw">and</span> np.allclose(d.mean(<span class="dv">0</span>), np.sqrt(ab) <span class="op">*</span> x0[<span class="dv">0</span>], atol<span class="op">=</span><span class="fl">0.03</span>)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>            <span class="kw">and</span> np.allclose(s.var(<span class="dv">0</span>), <span class="dv">1</span> <span class="op">-</span> ab, atol<span class="op">=</span><span class="fl">0.03</span>) <span class="kw">and</span> np.allclose(d.var(<span class="dv">0</span>), <span class="dv">1</span> <span class="op">-</span> ab, atol<span class="op">=</span><span class="fl">0.03</span>))</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 5.1.2"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 5.1.2: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-reflectance" class="level2" data-number="5.2">
+<h2 data-number="5.2" class="anchored" data-anchor-id="sec-reflectance"><span class="header-section-number">5.2</span> Light And Surfaces</h2>
+<p>Back to physics for a bit. Chapter 2 explained <em>where</em> a scene point shows up in the image, and this section is about <em>how bright</em> it is, which depends on the light, on the direction the surface is facing and on what the surface is made of. Turning that around gives some classic ways of recovering shape from brightness, which is what the April 4 lecture covers, following Horn’s <em>Robot Vision</em> (Chapters 10 and 11).</p>
+<section id="sec-brdf" class="level3" data-number="5.2.1">
+<h3 data-number="5.2.1" class="anchored" data-anchor-id="sec-brdf"><span class="header-section-number">5.2.1</span> Reflectance and the Lambertian model</h3>
+<p>How a surface reflects light is described by its <em>bidirectional reflectance distribution function</em>, or BRDF, which says, for light arriving from one direction, how much of it leaves in each other direction. A mirror sends everything into one direction, a shiny plastic has a bright highlight around the mirror direction, and a matte surface like chalk or paper scatters light evenly in all directions. That last case is the <em>Lambertian</em> surface, named after Johann Heinrich Lambert, who described it in 1760, and it looks equally bright from every viewing direction. Its brightness depends only on how squarely it faces the light. If the unit surface normal is n, the unit direction towards a distant light source is s, the light’s strength is folded into s and the surface’s <em>albedo</em> (the fraction of light it reflects) is ρ, then</p>
+<p><span class="math display">\[
+I = \rho\, \max(0,\; n \cdot s) ,
+\]</span></p>
+<p>which is Lambert’s cosine law, since n · s is the cosine of the angle between the normal and the light. The cosine comes from simple geometry: a beam of light of fixed width hitting a surface at a slant spreads over a bigger area, so each bit of surface gets less light.</p>
+<p>If the surface is the graph of a depth function z(x, y), its slope at each point is described by the gradient (p, q) = (∂z/∂x, ∂z/∂y), and the normal is proportional to (−p, −q, 1). So for a given light, the brightness is a function of p and q alone,</p>
+<p><span class="math display">\[
+R(p, q) = \rho\,\frac{-p\,s_x - q\,s_y + s_z}{\sqrt{1 + p^2 + q^2}} ,
+\]</span></p>
+<p>which Horn calls the <em>reflectance map</em>. Drawn as contours in the (p, q) plane (gradient space), it shows which slopes give which brightness, and the important thing to notice is that one brightness value corresponds to a whole curve of possible slopes, so a single pixel’s brightness doesn’t determine the surface orientation. That’s one equation for two unknowns again, just like the aperture problem in <a href="03-tracking-and-flow.html#sec-aperture" class="quarto-xref"><span>Section 3.5.2</span></a>.</p>
+</section>
+<section id="sec-photometric-stereo" class="level3" data-number="5.2.2">
+<h3 data-number="5.2.2" class="anchored" data-anchor-id="sec-photometric-stereo"><span class="header-section-number">5.2.2</span> Photometric stereo</h3>
+<p>The fix, which Woodham proposed in 1980, is to take several pictures of the same object from the same viewpoint, each lit by a different light. Each picture gives one equation per pixel, and with three or more lights we can solve for the orientation. For a Lambertian surface (and ignoring shadows) this is even linear. Let g = ρn, which packs the albedo and the normal into one vector, and stack the light directions s<sub>1</sub>, …, s<sub>k</sub> as the rows of a k × 3 matrix S. Then the k brightness values at a pixel are</p>
+<p><span class="math display">\[
+\begin{pmatrix} I_1 \\ \vdots \\ I_k \end{pmatrix} = S\, g ,
+\]</span></p>
+<p>so g is the least squares solution of a tiny linear system, the albedo is ρ = ‖g‖ and the normal is n = g/ρ. With exactly three lights in general position, S is invertible and g = S<sup>−1</sup>I. Once we have the normals, we can integrate the slopes p = −n<sub>x</sub>/n<sub>z</sub> and q = −n<sub>y</sub>/n<sub>z</sub> to get the depth, up to a constant. Photometric stereo is very accurate for the fine detail of a surface, and it’s used in industrial inspection and for capturing detailed faces for film.</p>
+<div id="ex-5-2-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 5.2.1 (Photometric stereo on a sphere)</strong></span> Write <code>photometric_stereo(I, S)</code>, where <code>I</code> has shape (k, H, W), one image per light, and <code>S</code> has shape (k, 3), returning the albedo (H, W) and the unit normals (H, W, 3), solving the least squares problem for all pixels at once (<code>np.linalg.lstsq</code> accepts many right-hand sides as the columns of one matrix). Pixels where the albedo comes out zero should get a zero normal. The check renders a Lambertian sphere with a painted stripe under four lights and compares your normals with the true ones.</p>
+</div>
+<div id="2df758ba" class="cell lc-exercise" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> photometric_stereo(I, S):</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Lambertian photometric stereo. I (k, H, W), S (k, 3). Returns (albedo (H, W), normals (H, W, 3))."""</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="bfc4c3d3" class="cell lc-check" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    H <span class="op">=</span> W <span class="op">=</span> <span class="dv">64</span><span class="op">;</span> yy, xx <span class="op">=</span> np.mgrid[:H, :W]</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    x <span class="op">=</span> (xx <span class="op">-</span> <span class="fl">31.5</span>) <span class="op">/</span> <span class="dv">26</span><span class="op">;</span> y <span class="op">=</span> (yy <span class="op">-</span> <span class="fl">31.5</span>) <span class="op">/</span> <span class="dv">26</span><span class="op">;</span> inside <span class="op">=</span> x<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> y<span class="op">**</span><span class="dv">2</span> <span class="op">&lt;</span> <span class="dv">1</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    n_true <span class="op">=</span> np.zeros((H, W, <span class="dv">3</span>))<span class="op">;</span> n_true[..., <span class="dv">0</span>] <span class="op">=</span> x<span class="op">;</span> n_true[..., <span class="dv">1</span>] <span class="op">=</span> y<span class="op">;</span> n_true[..., <span class="dv">2</span>] <span class="op">=</span> np.sqrt(np.clip(<span class="dv">1</span> <span class="op">-</span> x<span class="op">**</span><span class="dv">2</span> <span class="op">-</span> y<span class="op">**</span><span class="dv">2</span>, <span class="dv">0</span>, <span class="dv">1</span>))</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    n_true[<span class="op">~</span>inside] <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    albedo <span class="op">=</span> np.where(np.<span class="bu">abs</span>(y) <span class="op">&lt;</span> <span class="fl">0.2</span>, <span class="fl">0.4</span>, <span class="fl">0.9</span>) <span class="op">*</span> inside</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    S <span class="op">=</span> np.array([[<span class="fl">0.3</span>, <span class="fl">0.2</span>, <span class="fl">1.0</span>], [<span class="op">-</span><span class="fl">0.4</span>, <span class="fl">0.1</span>, <span class="fl">1.0</span>], [<span class="fl">0.1</span>, <span class="op">-</span><span class="fl">0.5</span>, <span class="fl">1.0</span>], [<span class="fl">0.0</span>, <span class="fl">0.4</span>, <span class="fl">0.9</span>]])</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    I <span class="op">=</span> np.clip(np.einsum(<span class="st">"kc,hwc-&gt;khw"</span>, S, n_true) <span class="op">*</span> albedo, <span class="dv">0</span>, <span class="va">None</span>)</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    rho, n <span class="op">=</span> (np.asarray(a, <span class="bu">float</span>) <span class="cf">for</span> a <span class="kw">in</span> photometric_stereo(I, S))</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    lit <span class="op">=</span> inside <span class="op">&amp;</span> np.<span class="bu">all</span>(np.einsum(<span class="st">"kc,hwc-&gt;khw"</span>, S, n_true) <span class="op">&gt;</span> <span class="fl">0.05</span>, axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    ang <span class="op">=</span> np.degrees(np.arccos(np.clip(np.<span class="bu">sum</span>(n[lit] <span class="op">*</span> n_true[lit], <span class="op">-</span><span class="dv">1</span>), <span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)))</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"largest normal error </span><span class="sc">{</span>ang<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.2e}</span><span class="ss"> degrees, largest albedo error </span><span class="sc">{</span>np<span class="sc">.</span><span class="bu">abs</span>(rho[lit] <span class="op">-</span> albedo[lit])<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.2e}</span><span class="ss">"</span>)</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ang.<span class="bu">max</span>() <span class="op">&lt;</span> <span class="fl">1e-4</span> <span class="kw">and</span> np.<span class="bu">abs</span>(rho[lit] <span class="op">-</span> albedo[lit]).<span class="bu">max</span>() <span class="op">&lt;</span> <span class="fl">1e-9</span> <span class="kw">and</span> np.<span class="bu">all</span>(n[<span class="op">~</span>inside] <span class="op">==</span> <span class="dv">0</span>)</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 5.2.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 5.2.1: not attempted yet</code></pre>
+</div>
+</div>
+<p>The check only looks at pixels lit by all four lights. Where a light doesn’t reach, the max(0, ·) in Lambert’s law kicks in, the equations stop being linear and the simple solve gives wrong answers, so real systems detect shadowed measurements and drop them, which is one reason to use more than three lights.</p>
+</section>
+<section id="sec-shape-from-shading" class="level3" data-number="5.2.3">
+<h3 data-number="5.2.3" class="anchored" data-anchor-id="sec-shape-from-shading"><span class="header-section-number">5.2.3</span> Shape from shading</h3>
+<p>With only one image, we’re back to one equation per pixel, R(p, q) = I(x, y), and two unknowns. <em>Shape from shading</em> makes up the difference with the extra assumption that the surface is smooth, a bit like Horn and Schunck did for optical flow, and Horn’s early work in the 1970s set the problem up as a partial differential equation solved outward from points where the orientation is known, like the bright spot where the surface faces the light directly, or along the object’s silhouette, where the normal is perpendicular to the viewing direction. It works on clean synthetic images, but real images break the assumptions (unknown albedo changes, unknown lights, shadows and highlights), and there’s also an ambiguity humans fall for too, since a bump lit from above looks exactly like a dent lit from below, which is why our brains assume the light comes from above. Shape from shading is mostly of historical interest now as a method, but the idea of using shading as a cue to shape is alive and well inside networks that estimate depth and normals from a single image.</p>
+</section>
+</section>
+<section id="sec-learning-paradigms" class="level2" data-number="5.3">
+<h2 data-number="5.3" class="anchored" data-anchor-id="sec-learning-paradigms"><span class="header-section-number">5.3</span> Learning With And Without Labels</h2>
+<p>The April 9 lecture steps back to look at the different kinds of machine learning used in vision. <em>Supervised</em> learning, where every training image comes with the right answer, is what <a href="04-deep-vision.html#sec-training" class="quarto-xref"><span>Section 4.1.3</span></a> did, and it works very well but labels are expensive, especially for things like segmentation masks or medical images that need an expert. <em>Unsupervised</em> learning gets structure out of unlabelled data alone, and we’ve actually seen an example already, since the iterative threshold of <a href="01-programming-with-images.html#sec-thresholding" class="quarto-xref"><span>Section 1.2.1</span></a> was k-means with k = 2. <em>Semi-supervised</em> learning sits in between, with a few labelled images and many unlabelled ones, and a simple, surprisingly effective method is <em>self-training</em>: train on the labelled images, use the model to label the unlabelled images it’s confident about (pseudo-labels), add those to the training set and repeat. Closely related is <em>self-supervised</em> learning, which makes up a training task whose labels come for free from the data, like predicting a hidden part of an image or recognizing that two augmented crops come from the same photo, and then reuses the learned features for the task we actually care about. Most large vision models today are pretrained that way.</p>
+<section id="sec-pca" class="level3" data-number="5.3.1">
+<h3 data-number="5.3.1" class="anchored" data-anchor-id="sec-pca"><span class="header-section-number">5.3.1</span> Principal component analysis and eigenfaces</h3>
+<p>The classic unsupervised method in vision is <em>principal component analysis</em>, and the classic application is the <em>eigenfaces</em> of Turk and Pentland (1991), one of the first face recognition systems that really worked. Treat each aligned face image of N pixels as a vector in ℝ<sup>N</sup>. Faces don’t fill that space at all, they lie close to a much lower-dimensional subspace, and PCA finds it. Subtract the mean face, stack the centred images as the rows of a matrix X, and take its SVD, X = UΣV<sup>⊤</sup>. The rows of V<sup>⊤</sup> are the principal components, here images in their own right, the eigenfaces, and the first k of them span the k-dimensional subspace that captures as much of the variance in the data as possible. Each face is then described by just its k coordinates in that subspace, and recognition compares those coordinates.</p>
+<p>There’s a neat exact statement of how good the approximation is. Projecting each centred image onto the first k components and reconstructing it leaves a total squared error equal to the sum of the squared singular values that were thrown away,</p>
+<p><span class="math display">\[
+\sum_i \big\|x_i - \hat{x}_i\big\|^2 = \sum_{j &gt; k} \sigma_j^2 ,
+\]</span></p>
+<p>which follows from writing X in terms of its SVD and noticing that the reconstruction keeps exactly the first k terms of X = Σ σ<sub>j</sub> u<sub>j</sub> v<sub>j</sub><sup>⊤</sup> (this is the Eckart-Young theorem, which says no rank-k approximation does better). It’s the same rank truncation as the factorization of <a href="04-deep-vision.html#sec-structure-from-motion" class="quarto-xref"><span>Section 4.3.6</span></a>, which is a nice example of one linear algebra fact doing very different jobs.</p>
+<div id="ex-5-3-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 5.3.1 (PCA by the SVD)</strong></span> Write <code>pca(X, k)</code>, where X is an n × N data matrix with one sample per row, returning the mean (N,), the first k components as a k × N array with unit-norm rows, and the coordinates of every sample (n × k). The check uses synthetic “faces” built from a few smooth patterns plus noise, and confirms the reconstruction error formula above.</p>
+</div>
+<div id="66838127" class="cell lc-exercise" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pca(X, k):</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Principal component analysis. Returns (mean (N,), components (k, N), coordinates (n, k))."""</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="f9755505" class="cell lc-check" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(<span class="dv">3</span>)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    yy, xx <span class="op">=</span> np.mgrid[:<span class="dv">16</span>, :<span class="dv">16</span>] <span class="op">/</span> <span class="dv">15</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    patterns <span class="op">=</span> np.array([np.exp(<span class="op">-</span>((xx <span class="op">-</span> <span class="fl">.5</span>)<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> (yy <span class="op">-</span> <span class="fl">.4</span>)<span class="op">**</span><span class="dv">2</span>) <span class="op">/</span> <span class="fl">.05</span>), np.sin(<span class="dv">3</span> <span class="op">*</span> xx), yy<span class="op">**</span><span class="dv">2</span>, np.cos(<span class="dv">4</span> <span class="op">*</span> yy) <span class="op">*</span> xx]).reshape(<span class="dv">4</span>, <span class="op">-</span><span class="dv">1</span>)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    X <span class="op">=</span> <span class="fl">0.5</span> <span class="op">+</span> rng.normal(size<span class="op">=</span>(<span class="dv">200</span>, <span class="dv">4</span>)) <span class="op">@</span> patterns <span class="op">+</span> rng.normal(<span class="dv">0</span>, <span class="fl">0.02</span>, (<span class="dv">200</span>, <span class="dv">256</span>))</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    mean, comps, coords <span class="op">=</span> (np.asarray(a, <span class="bu">float</span>) <span class="cf">for</span> a <span class="kw">in</span> pca(X, <span class="dv">4</span>))</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    recon <span class="op">=</span> mean <span class="op">+</span> coords <span class="op">@</span> comps</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    err <span class="op">=</span> np.<span class="bu">sum</span>((X <span class="op">-</span> recon) <span class="op">**</span> <span class="dv">2</span>)</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    s <span class="op">=</span> np.linalg.svd(X <span class="op">-</span> X.mean(<span class="dv">0</span>), compute_uv<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"reconstruction error </span><span class="sc">{</span>err<span class="sc">:.4f}</span><span class="ss">, sum of discarded squared singular values </span><span class="sc">{</span>np<span class="sc">.</span><span class="bu">sum</span>(s[<span class="dv">4</span>:] <span class="op">**</span> <span class="dv">2</span>)<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (comps.shape <span class="op">==</span> (<span class="dv">4</span>, <span class="dv">256</span>) <span class="kw">and</span> coords.shape <span class="op">==</span> (<span class="dv">200</span>, <span class="dv">4</span>) <span class="kw">and</span> np.allclose(np.linalg.norm(comps, axis<span class="op">=</span><span class="dv">1</span>), <span class="dv">1</span>)</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>            <span class="kw">and</span> <span class="bu">abs</span>(err <span class="op">-</span> np.<span class="bu">sum</span>(s[<span class="dv">4</span>:] <span class="op">**</span> <span class="dv">2</span>)) <span class="op">&lt;</span> <span class="fl">1e-6</span> <span class="op">*</span> err)</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 5.3.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 5.3.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-registration" class="level2" data-number="5.4">
+<h2 data-number="5.4" class="anchored" data-anchor-id="sec-registration"><span class="header-section-number">5.4</span> Registration</h2>
+<section id="sec-image-registration" class="level3" data-number="5.4.1">
+<h3 data-number="5.4.1" class="anchored" data-anchor-id="sec-image-registration"><span class="header-section-number">5.4.1</span> Aligning images</h3>
+<p><em>Registration</em> means bringing two images, or two sets of points, into alignment, and it’s everywhere in medical imaging, which is where the April 11 lecture spends most of its time. A radiologist comparing a lung CT scan from this year with one from last year needs them aligned voxel by voxel before any change can be measured, and scans taken with different machines (CT and PET, say) need to be aligned before they can be overlaid. Every registration method has three ingredients: a family of transformations (rigid, affine, or a deformable warp, since lungs change shape as you breathe), a measure of how well two images match (SSD and normalized correlation from Chapter 1 work when the images have the same kind of contrast, and <em>mutual information</em> is used when they don’t, since it only asks that the intensities be predictable from each other) and an optimizer that searches for the transformation with the best score. When we can identify corresponding landmarks in the two images, the rigid case has an exact closed-form answer, which is the next topic.</p>
+</section>
+<section id="sec-absolute-orientation" class="level3" data-number="5.4.2">
+<h3 data-number="5.4.2" class="anchored" data-anchor-id="sec-absolute-orientation"><span class="header-section-number">5.4.2</span> Absolute orientation</h3>
+<p>Given points a<sub>1</sub>, …, a<sub>n</sub> measured in one coordinate system and the same points b<sub>1</sub>, …, b<sub>n</sub> measured in another, find the rotation R and translation t that best map one onto the other, minimizing Σ‖b<sub>i</sub> − (R a<sub>i</sub> + t)‖². Photogrammetrists call this the <em>absolute orientation</em> problem, and Horn gave the classic closed-form solution in 1987 using quaternions, which is the “Horn” reading for this lecture.</p>
+<p>The translation is the easy part. Setting the derivative with respect to t to zero gives t = b̄ − R ā, where the bars are centroids, so the best transformation maps one centroid onto the other, and after subtracting the centroids, a<sub>i</sub>’ = a<sub>i</sub> − ā and b<sub>i</sub>’ = b<sub>i</sub> − b̄, we only need the rotation. Expanding the square, ‖b’ − Ra’‖² = ‖b’‖² + ‖a’‖² − 2 b’·Ra’, since rotations don’t change lengths, so minimizing the error means maximizing Σ b<sub>i</sub>‘·R a<sub>i</sub>’.</p>
+<p>Horn’s trick is to write the rotation as a unit quaternion q = (q<sub>0</sub>, q<sub>x</sub>, q<sub>y</sub>, q<sub>z</sub>), which represents the rotation by angle θ about the unit axis u as q = (cos(θ/2), sin(θ/2)u). The quantity we’re maximizing turns out to be a quadratic form in q, Σ b’·Ra’ = q<sup>⊤</sup>Nq, where N is a symmetric 4 × 4 matrix built from the nine sums S<sub>xy</sub> = Σ a’<sub>x</sub>b’<sub>y</sub> and so on,</p>
+<p><span class="math display">\[
+N = \begin{pmatrix}
+S_{xx}+S_{yy}+S_{zz} &amp; S_{yz}-S_{zy} &amp; S_{zx}-S_{xz} &amp; S_{xy}-S_{yx} \\
+S_{yz}-S_{zy} &amp; S_{xx}-S_{yy}-S_{zz} &amp; S_{xy}+S_{yx} &amp; S_{zx}+S_{xz} \\
+S_{zx}-S_{xz} &amp; S_{xy}+S_{yx} &amp; -S_{xx}+S_{yy}-S_{zz} &amp; S_{yz}+S_{zy} \\
+S_{xy}-S_{yx} &amp; S_{zx}+S_{xz} &amp; S_{yz}+S_{zy} &amp; -S_{xx}-S_{yy}+S_{zz}
+\end{pmatrix}.
+\]</span></p>
+<p>Maximizing q<sup>⊤</sup>Nq over unit vectors q is the eigenvalue problem yet again (the same Rayleigh quotient argument as for the axis of least second moment in <a href="01-programming-with-images.html#sec-round-or-elongated" class="quarto-xref"><span>Section 1.2.5</span></a>), so the best rotation is the eigenvector of N with the largest eigenvalue, turned back into a rotation matrix with the standard formula</p>
+<p><span class="math display">\[
+R = \begin{pmatrix}
+q_0^2+q_x^2-q_y^2-q_z^2 &amp; 2(q_xq_y - q_0q_z) &amp; 2(q_xq_z + q_0q_y)\\
+2(q_yq_x + q_0q_z) &amp; q_0^2-q_x^2+q_y^2-q_z^2 &amp; 2(q_yq_z - q_0q_x)\\
+2(q_zq_x - q_0q_y) &amp; 2(q_zq_y + q_0q_x) &amp; q_0^2-q_x^2-q_y^2+q_z^2
+\end{pmatrix}.
+\]</span></p>
+<p>There’s an equivalent solution with the SVD of the 3 × 3 matrix of sums (Arun, Huang and Blostein, 1987, also known as the Kabsch algorithm), which needs a small fix to avoid returning a reflection, and Horn’s quaternion method has the nice property that it can never return a reflection, since every unit quaternion is a proper rotation. Quaternions are also how rotations are usually stored in robotics and graphics, since they don’t suffer from the gimbal lock of Euler angles and are easy to interpolate.</p>
+<div id="ex-5-4-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 5.4.1 (Horn’s quaternion method)</strong></span> Write <code>absolute_orientation(A, B)</code>, where A and B are n × 3 arrays of corresponding points, returning R and t such that B ≈ A R<sup>⊤</sup> + t (that is, b<sub>i</sub> ≈ R a<sub>i</sub> + t), using the matrix N and its top eigenvector. The check rotates and translates a random point cloud, adds noise, and compares with the true R and t, and also confirms that your R is a proper rotation.</p>
+</div>
+<div id="1f559af9" class="cell lc-exercise" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> absolute_orientation(A, B):</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Horn's closed-form absolute orientation. Returns (R (3, 3), t (3,)) with B ≈ A @ R.T + t."""</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="7e6b5d67" class="cell lc-check" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(<span class="dv">5</span>)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    A <span class="op">=</span> rng.normal(size<span class="op">=</span>(<span class="dv">30</span>, <span class="dv">3</span>))</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    R_true, _ <span class="op">=</span> cv2.Rodrigues(np.array([<span class="fl">0.4</span>, <span class="op">-</span><span class="fl">1.1</span>, <span class="fl">2.0</span>]))<span class="op">;</span> t_true <span class="op">=</span> np.array([<span class="fl">1.0</span>, <span class="op">-</span><span class="fl">2.0</span>, <span class="fl">0.5</span>])</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    B <span class="op">=</span> A <span class="op">@</span> R_true.T <span class="op">+</span> t_true <span class="op">+</span> rng.normal(<span class="dv">0</span>, <span class="fl">0.01</span>, A.shape)</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    R, t <span class="op">=</span> (np.asarray(a, <span class="bu">float</span>) <span class="cf">for</span> a <span class="kw">in</span> absolute_orientation(A, B))</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"rotation error </span><span class="sc">{</span>np<span class="sc">.</span><span class="bu">abs</span>(R <span class="op">-</span> R_true)<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.4f}</span><span class="ss">, translation error </span><span class="sc">{</span>np<span class="sc">.</span><span class="bu">abs</span>(t <span class="op">-</span> t_true)<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.4f}</span><span class="ss">, det R = </span><span class="sc">{</span>np<span class="sc">.</span>linalg<span class="sc">.</span>det(R)<span class="sc">:.6f}</span><span class="ss">"</span>)</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.<span class="bu">abs</span>(R <span class="op">-</span> R_true).<span class="bu">max</span>() <span class="op">&lt;</span> <span class="fl">0.02</span> <span class="kw">and</span> np.<span class="bu">abs</span>(t <span class="op">-</span> t_true).<span class="bu">max</span>() <span class="op">&lt;</span> <span class="fl">0.02</span> <span class="kw">and</span> <span class="bu">abs</span>(np.linalg.det(R) <span class="op">-</span> <span class="dv">1</span>) <span class="op">&lt;</span> <span class="fl">1e-9</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 5.4.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 5.4.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-icp" class="level3" data-number="5.4.3">
+<h3 data-number="5.4.3" class="anchored" data-anchor-id="sec-icp"><span class="header-section-number">5.4.3</span> The iterative closest point algorithm</h3>
+<p>Absolute orientation needs to know which point goes with which. Often we have two scans of the same surface, from a laser scanner or two CT scans, with no correspondences at all, just two clouds of points. The <em>iterative closest point</em> algorithm (Besl and McKay, 1992) handles this with an idea that’s simple to the point of being cheeky. Guess that each point of the moving cloud corresponds to its <em>nearest</em> point in the fixed cloud, solve the absolute orientation problem for those guessed pairs, move the cloud, and repeat. Each step can only lower the mean squared distance (the matching step lowers it for the current pose, and the alignment step lowers it for the current matches), so the algorithm converges, but only to a local minimum, so it needs a starting pose that’s roughly right. It’s the same alternating idea as k-means and the iterative threshold, which is a pattern that keeps turning up in this book. Real implementations add a spatial search structure so the nearest neighbours are fast, and throw away pairs that are too far apart to be real matches.</p>
+<div id="09b717f4" class="cell lc-setup" data-execution_count="13">
+<details class="code-fold">
+<summary>Setup: a reference alignment routine for the ICP demonstration</summary>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># [Setup] An SVD-based absolute orientation (Arun, Huang and Blostein), so ICP below runs whether or not Exercise 5.4.1 is done.</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> kabsch(A, B):</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    a0, b0 <span class="op">=</span> A.mean(<span class="dv">0</span>), B.mean(<span class="dv">0</span>)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    U, _, Vt <span class="op">=</span> np.linalg.svd((A <span class="op">-</span> a0).T <span class="op">@</span> (B <span class="op">-</span> b0))</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    D <span class="op">=</span> np.diag([<span class="dv">1</span>, <span class="dv">1</span>, np.sign(np.linalg.det(Vt.T <span class="op">@</span> U.T))])</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    R <span class="op">=</span> Vt.T <span class="op">@</span> D <span class="op">@</span> U.T</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> R, b0 <span class="op">-</span> R <span class="op">@</span> a0</span></code></pre></div>
+</details>
+</div>
+<div id="ex-5-4-2" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 5.4.2 (ICP)</strong></span> Write <code>icp(src, dst, iters)</code>, which aligns the point cloud <code>src</code> (n × 3) to <code>dst</code> (m × 3). In each iteration, find for every point of the current, moved <code>src</code> the nearest point of <code>dst</code> (brute force with NumPy broadcasting is fine for a few hundred points), compute R and t with <code>kabsch</code> from the setup cell, and apply them. Return the total R, t that map the original <code>src</code> onto <code>dst</code>, and the list of mean squared distances after each iteration. The check uses a noisy, twisted space curve rotated by about 20 degrees and confirms that the error decreases at every step. (A plain helix would be a bad test, by the way, since sliding a helix along its own axis while turning it maps it onto itself, so ICP can happily converge to the wrong pose.)</p>
+</div>
+<div id="5e93eb22" class="cell lc-exercise" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> icp(src, dst, iters):</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Iterative closest point. Returns (R, t, errors) with dst ≈ src @ R.T + t."""</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="5555d1d9" class="cell lc-check" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    s <span class="op">=</span> np.linspace(<span class="dv">0</span>, <span class="dv">2</span> <span class="op">*</span> np.pi, <span class="dv">300</span>)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    dst <span class="op">=</span> np.c_[(<span class="dv">1</span> <span class="op">+</span> <span class="fl">0.3</span> <span class="op">*</span> s) <span class="op">*</span> np.cos(s), np.sin(<span class="dv">2</span> <span class="op">*</span> s), <span class="fl">0.2</span> <span class="op">*</span> s<span class="op">**</span><span class="fl">1.5</span>]</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    R0, _ <span class="op">=</span> cv2.Rodrigues(np.array([<span class="fl">0.2</span>, <span class="fl">0.15</span>, <span class="fl">0.25</span>]))<span class="op">;</span> t0 <span class="op">=</span> np.array([<span class="fl">0.1</span>, <span class="op">-</span><span class="fl">0.05</span>, <span class="fl">0.2</span>])</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    src <span class="op">=</span> (dst <span class="op">-</span> t0) <span class="op">@</span> R0 <span class="op">+</span> np.random.default_rng(<span class="dv">0</span>).normal(<span class="dv">0</span>, <span class="fl">0.005</span>, dst.shape)   <span class="co"># so that dst ≈ src R0^T + t0</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    R, t, errs <span class="op">=</span> icp(src, dst, <span class="dv">40</span>)</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>    errs <span class="op">=</span> np.asarray(errs, <span class="bu">float</span>)</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"mean squared distance: start </span><span class="sc">{</span>errs[<span class="dv">0</span>]<span class="sc">:.4f}</span><span class="ss">, end </span><span class="sc">{</span>errs[<span class="op">-</span><span class="dv">1</span>]<span class="sc">:.6f}</span><span class="ss">;  rotation error </span><span class="sc">{</span>np<span class="sc">.</span><span class="bu">abs</span>(np.asarray(R) <span class="op">-</span> R0)<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.<span class="bu">all</span>(np.diff(errs) <span class="op">&lt;=</span> <span class="fl">1e-12</span>) <span class="kw">and</span> errs[<span class="op">-</span><span class="dv">1</span>] <span class="op">&lt;</span> <span class="fl">1e-3</span> <span class="kw">and</span> np.<span class="bu">abs</span>(np.asarray(R) <span class="op">-</span> R0).<span class="bu">max</span>() <span class="op">&lt;</span> <span class="fl">0.02</span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 5.4.2"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 5.4.2: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-transformers" class="level2" data-number="5.5">
+<h2 data-number="5.5" class="anchored" data-anchor-id="sec-transformers"><span class="header-section-number">5.5</span> Transformers</h2>
+<section id="sec-attention" class="level3" data-number="5.5.1">
+<h3 data-number="5.5.1" class="anchored" data-anchor-id="sec-attention"><span class="header-section-number">5.5.1</span> Attention</h3>
+<p>Transformers came from machine translation (Vaswani and colleagues, “Attention is all you need”, 2017) and took over computer vision a few years later. Their central operation, <em>attention</em>, lets every element of a sequence look at every other element and decide how much to borrow from each. Each element, called a <em>token</em>, is a vector, and from it the network computes three vectors with learned linear maps, a query q, a key k and a value v. The output for token i is a weighted average of all the values, with weights given by how well token i’s query matches each key,</p>
+<p><span class="math display">\[
+\text{Attention}(Q, K, V) = \operatorname{softmax}\!\Big(\frac{Q K^\top}{\sqrt{d}}\Big)\,V ,
+\]</span></p>
+<p>where the rows of Q, K and V are the queries, keys and values of the n tokens, d is their length, and the softmax is applied to each row, so each row of weights is positive and sums to one. Compare that with a convolution, which mixes each pixel only with a fixed neighbourhood using fixed weights. Attention mixes every token with every other one, with weights that depend on the content, which is much more flexible, at the price of n² work for n tokens.</p>
+<p>The √d is there for a reason that’s worth spelling out. If the entries of a query and a key are independent with mean zero and variance one, their dot product is a sum of d such products, so it has variance d.&nbsp;For large d the logits would then be huge, the softmax would put almost all its weight on one token, and the gradients through it would vanish. Dividing by √d brings the variance back to one. A transformer layer runs several attention operations in parallel (<em>multi-head</em> attention, each head with its own maps, so different heads can attend to different things), followed by a small fully connected network applied to each token separately, with residual connections and normalization around both. Attention by itself doesn’t know the order of the tokens, since permuting the inputs just permutes the outputs, so position information is added to the tokens at the start, as <em>positional encodings</em>.</p>
+</section>
+<section id="sec-vit" class="level3" data-number="5.5.2">
+<h3 data-number="5.5.2" class="anchored" data-anchor-id="sec-vit"><span class="header-section-number">5.5.2</span> Vision transformers</h3>
+<p>The Vision Transformer, or ViT (Dosovitskiy and colleagues, 2021), applies this to images with almost no changes. Cut the image into a grid of patches, 16 × 16 pixels each, flatten each patch into a vector, map it linearly to the token length, add a positional encoding, and feed the sequence of patch tokens to a standard transformer, with an extra learned token whose final value is used for classification. A 224 × 224 image becomes 14 × 14 = 196 tokens. With little data, ViTs do worse than convolutional networks, since they don’t have the built-in assumptions that nearby pixels matter most and that features look the same everywhere, but trained on enough data they do better, and they’ve become the standard backbone for large vision and vision-language models.</p>
+<div id="ex-5-5-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 5.5.1 (Attention and patches)</strong></span> Write <code>attention(Q, K, V)</code>, implementing the formula above for arrays of shape (n, d), (n, d) and (n, d<sub>v</sub>), with a numerically safe softmax, returning both the output (n, d<sub>v</sub>) and the weight matrix (n, n), and <code>patchify(img, p)</code>, which turns an H × W × C image into an array of (H/p)(W/p) flattened patches of length p·p·C, in row-major order of the patch grid. The check confirms that the weights are rows of probabilities, that permuting the tokens permutes the outputs, and that a 224 × 224 RGB image gives 196 tokens of length 768.</p>
+</div>
+<div id="8639abf2" class="cell lc-exercise" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> attention(Q, K, V):</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Scaled dot-product attention. Returns (output (n, dv), weights (n, n))."""</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> patchify(img, p):</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Split an H x W x C image into non-overlapping p x p patches, flattened. Returns ((H/p)(W/p), p*p*C)."""</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="8cea1d62" class="cell lc-check" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(<span class="dv">0</span>)</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    Q, K, V <span class="op">=</span> rng.normal(size<span class="op">=</span>(<span class="dv">6</span>, <span class="dv">8</span>)), rng.normal(size<span class="op">=</span>(<span class="dv">6</span>, <span class="dv">8</span>)), rng.normal(size<span class="op">=</span>(<span class="dv">6</span>, <span class="dv">3</span>))</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    out, Wt <span class="op">=</span> (np.asarray(a, <span class="bu">float</span>) <span class="cf">for</span> a <span class="kw">in</span> attention(Q, K, V))</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    perm <span class="op">=</span> rng.permutation(<span class="dv">6</span>)</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    out_p, _ <span class="op">=</span> attention(Q[perm], K[perm], V[perm])</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>    big, _ <span class="op">=</span> attention(Q <span class="op">*</span> <span class="fl">1e3</span>, K, V)</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    img <span class="op">=</span> rng.random((<span class="dv">224</span>, <span class="dv">224</span>, <span class="dv">3</span>))</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>    P <span class="op">=</span> np.asarray(patchify(img, <span class="dv">16</span>))</span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>    ok_patch <span class="op">=</span> P.shape <span class="op">==</span> (<span class="dv">196</span>, <span class="dv">768</span>) <span class="kw">and</span> np.array_equal(P[<span class="dv">15</span>], img[<span class="dv">16</span>:<span class="dv">32</span>, <span class="dv">16</span>:<span class="dv">32</span>].reshape(<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"weights sum to"</span>, np.<span class="bu">round</span>(Wt.<span class="bu">sum</span>(<span class="dv">1</span>), <span class="dv">6</span>), <span class="st">" patch array shape"</span>, P.shape)</span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (np.allclose(Wt.<span class="bu">sum</span>(<span class="dv">1</span>), <span class="dv">1</span>) <span class="kw">and</span> np.<span class="bu">all</span>(Wt <span class="op">&gt;=</span> <span class="dv">0</span>) <span class="kw">and</span> np.allclose(np.asarray(out_p), out[perm])</span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>            <span class="kw">and</span> np.<span class="bu">all</span>(np.isfinite(big)) <span class="kw">and</span> ok_patch)</span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 5.5.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 5.5.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-vision-language" class="level2" data-number="5.6">
+<h2 data-number="5.6" class="anchored" data-anchor-id="sec-vision-language"><span class="header-section-number">5.6</span> Vision And Language</h2>
+<p>The April 18 lecture is on <em>vision-and-language navigation</em>, where an agent placed in a building has to follow an instruction like “walk past the kitchen, go up the stairs and stop by the second door on the left”. The standard benchmark is Room-to-Room (Anderson and colleagues, 2018), built on real 3D scans of houses from the Matterport3D dataset, in which the agent sees panoramic photos at each location and moves between viewpoints on a graph. It’s a really demanding combination, since the agent needs to ground words in what it sees (what does a kitchen look like, which way is “left” from here), keep track of where it is in the instruction, and plan, and success is measured by how often it ends up within a few metres of the goal.</p>
+<p>What made this kind of task practical is models that put images and text in the same embedding space. CLIP (Radford and colleagues, 2021) trained an image encoder and a text encoder on 400 million image-caption pairs from the web with a contrastive loss, so that matching image and caption embeddings have high cosine similarity and non-matching ones low, the same embedding idea as the face verification of <a href="04-deep-vision.html#sec-face-tasks" class="quarto-xref"><span>Section 4.2.1</span></a>, with captions playing the role of identities. A model like that can score how well any view matches any phrase, which is just what a navigating agent needs, and more recent systems go further by connecting a vision encoder to a large language model that can reason about the instruction in words.</p>
+</section>
+<section id="sec-multiview-tracking" class="level2" data-number="5.7">
+<h2 data-number="5.7" class="anchored" data-anchor-id="sec-multiview-tracking"><span class="header-section-number">5.7</span> Many Cameras, Many Objects</h2>
+<p>The last technical lecture combines tracking from Chapter 3 with the multiview geometry of Chapter 4. With several cameras watching the same scene, like the thermal cameras Betke’s group used to reconstruct the 3D flight paths of bats emerging from caves, we have to solve the association problem twice, once over time, as in <a href="03-tracking-and-flow.html#sec-data-association" class="quarto-xref"><span>Section 3.2.1</span></a>, and once <em>across views</em>, deciding which detection in camera 2 is the same object as a given detection in camera 1. The epipolar constraint of <a href="04-deep-vision.html#sec-epipolar" class="quarto-xref"><span>Section 4.3.1</span></a> gives the cost for the cross-view matching. A detection in camera 2 can only be the same object as a detection x<sub>1</sub> in camera 1 if it lies on (or near) the epipolar line F x̃<sub>1</sub>, so the distance from that line is a natural cost, and the assignment methods of <a href="03-tracking-and-flow.html#sec-data-association" class="quarto-xref"><span>Section 3.2.1</span></a> do the rest. With three or more cameras the constraints get stronger, since a match has to be consistent in every pair, and once the matches are made, triangulation from <a href="04-deep-vision.html#sec-triangulation" class="quarto-xref"><span>Section 4.3.3</span></a> gives 3D positions, which can then be tracked over time with a 3D Kalman filter. The two association problems help each other, since tracking over time resolves ambiguities in a single frame (two bats might both lie near the same epipolar line in one frame but not in the next), and that’s what makes these systems work in very crowded scenes. When the objects move on a ground plane, as people do, a simpler alternative is to map each camera’s detections onto the ground with a homography, and associate them there by distance.</p>
+<div id="ex-5-7-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 5.7.1 (Matching across two views)</strong></span> Write <code>epipolar_cost(F, x1, x2)</code>, which returns the n × m matrix of distances from each point of <code>x2</code> (m × 2, in image 2) to the epipolar line of each point of <code>x1</code> (n × 2, in image 1), and <code>match_views(F, x1, x2, gate)</code>, which uses it with <code>scipy.optimize.linear_sum_assignment</code> and returns the list of matched (i, j) pairs whose cost is below <code>gate</code>. The check reuses the two cameras of <a href="04-deep-vision.html#sec-eight-point" class="quarto-xref"><span>Section 4.3.2</span></a> with the detections in camera 2 shuffled, and asks whether you recover the true pairing.</p>
+</div>
+<div id="9c345fb1" class="cell lc-exercise" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> epipolar_cost(F, x1, x2):</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Distances from points x2 (m, 2) to the epipolar lines of points x1 (n, 2). Returns (n, m)."""</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> match_views(F, x1, x2, gate):</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Optimal cross-view matching with an epipolar gate. Returns a list of (i, j)."""</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="521121a7" class="cell lc-setup" data-execution_count="19">
+<details class="code-fold">
+<summary>Setup: two calibrated cameras and their fundamental matrix</summary>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># [Setup] Two cameras looking at a few objects, and the fundamental matrix F = K^-T [t]x R K^-1 relating them.</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>_rng <span class="op">=</span> np.random.default_rng(<span class="dv">8</span>)</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>K_c <span class="op">=</span> np.array([[<span class="fl">700.0</span>, <span class="dv">0</span>, <span class="dv">320</span>], [<span class="dv">0</span>, <span class="dv">700</span>, <span class="dv">240</span>], [<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>]])</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>R_c, _ <span class="op">=</span> cv2.Rodrigues(np.array([<span class="fl">0.02</span>, <span class="op">-</span><span class="fl">0.4</span>, <span class="fl">0.01</span>]))<span class="op">;</span> t_c <span class="op">=</span> np.array([<span class="op">-</span><span class="fl">1.5</span>, <span class="fl">0.05</span>, <span class="fl">0.3</span>])</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>tx <span class="op">=</span> np.array([[<span class="dv">0</span>, <span class="op">-</span>t_c[<span class="dv">2</span>], t_c[<span class="dv">1</span>]], [t_c[<span class="dv">2</span>], <span class="dv">0</span>, <span class="op">-</span>t_c[<span class="dv">0</span>]], [<span class="op">-</span>t_c[<span class="dv">1</span>], t_c[<span class="dv">0</span>], <span class="dv">0</span>]])</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>F_c <span class="op">=</span> np.linalg.inv(K_c).T <span class="op">@</span> tx <span class="op">@</span> R_c <span class="op">@</span> np.linalg.inv(K_c)</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>objs <span class="op">=</span> np.c_[_rng.uniform(<span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">8</span>), _rng.uniform(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">8</span>), _rng.uniform(<span class="dv">6</span>, <span class="dv">10</span>, <span class="dv">8</span>)]</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> _proj(P):</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>    h <span class="op">=</span> P <span class="op">@</span> K_c.T</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> h[:, :<span class="dv">2</span>] <span class="op">/</span> h[:, <span class="dv">2</span>:]</span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>view1 <span class="op">=</span> _proj(objs) <span class="op">+</span> _rng.normal(<span class="dv">0</span>, <span class="fl">0.5</span>, (<span class="dv">8</span>, <span class="dv">2</span>))</span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>perm_c <span class="op">=</span> _rng.permutation(<span class="dv">8</span>)</span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>view2 <span class="op">=</span> (_proj(objs <span class="op">@</span> R_c.T <span class="op">+</span> t_c) <span class="op">+</span> _rng.normal(<span class="dv">0</span>, <span class="fl">0.5</span>, (<span class="dv">8</span>, <span class="dv">2</span>)))[perm_c]</span></code></pre></div>
+</details>
+</div>
+<div id="551faed7" class="cell lc-check" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>    C <span class="op">=</span> np.asarray(epipolar_cost(F_c, view1, view2), <span class="bu">float</span>)</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    m <span class="op">=</span> <span class="bu">sorted</span>(<span class="bu">tuple</span>(<span class="bu">int</span>(v) <span class="cf">for</span> v <span class="kw">in</span> p) <span class="cf">for</span> p <span class="kw">in</span> match_views(F_c, view1, view2, gate<span class="op">=</span><span class="fl">5.0</span>))</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    truth <span class="op">=</span> <span class="bu">sorted</span>((<span class="bu">int</span>(perm_c[j]), j) <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">8</span>))</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"cost matrix shape"</span>, C.shape, <span class="st">" correct pairs:"</span>, <span class="bu">sum</span>(p <span class="kw">in</span> truth <span class="cf">for</span> p <span class="kw">in</span> m), <span class="st">"of 8"</span>)</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> C.shape <span class="op">==</span> (<span class="dv">8</span>, <span class="dv">8</span>) <span class="kw">and</span> m <span class="op">==</span> truth <span class="kw">and</span> C[perm_c[<span class="dv">0</span>], <span class="dv">0</span>] <span class="op">&lt;</span> <span class="dv">3</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 5.7.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 5.7.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-ethics" class="level2" data-number="5.8">
+<h2 data-number="5.8" class="anchored" data-anchor-id="sec-ethics"><span class="header-section-number">5.8</span> Computer Vision And Ethics</h2>
+<p>The course ends, rightly I think, with ethics, and it’s a good place for this book to end too, since a lot of the techniques we’ve worked through have direct consequences for people.</p>
+<p>The most obvious issue is <em>privacy and surveillance</em>. Face recognition from <a href="04-deep-vision.html#sec-face-recognition" class="quarto-xref"><span>Section 4.2</span></a>, combined with the multi-camera tracking we just saw, makes it technically possible to follow people across a whole city without their knowledge, and different countries and cities have made very different choices about whether to allow that, with some American cities banning police use of face recognition and other places deploying it widely. The second is <em>bias</em>. Buolamwini and Gebru’s 2018 Gender Shades study showed that commercial gender classifiers were far less accurate for darker-skinned women than for lighter-skinned men, largely because of what was in the training data, and the NIST vendor tests mentioned in <a href="04-deep-vision.html#sec-biometrics" class="quarto-xref"><span>Section 4.2.5</span></a> found demographic differences in many face recognition algorithms. Those differences have consequences, as several wrongful arrests based on false face matches in the US have shown. The third is <em>data and consent</em>. Many of the big face datasets of <a href="04-deep-vision.html#sec-face-tasks" class="quarto-xref"><span>Section 4.2.1</span></a> were built by scraping photos of people who never agreed to it, and some, like Microsoft’s MS-Celeb-1M, were withdrawn after criticism. The fourth is <em>synthetic media</em>. The generative models of <a href="#sec-generative" class="quarto-xref"><span>Section 5.1</span></a> make convincing fake photos and videos cheap, which is a real problem for trust in images as evidence and for the people whose faces get used.</p>
+<p>None of this means computer vision is a bad thing to work on. The same course started with the Camera Mouse, which lets people with severe paralysis use a computer by moving their head, and vision is behind medical image analysis, accessibility tools for blind people and a lot of science, including the bat and cell tracking that Betke’s group is known for. The point is that the choices made while building a system, which data to collect, which error rates to measure and for whom, where to set a threshold on an ROC curve, what to do when the system is unsure (remember the KidsRoom’s monsters, which just didn’t praise a child when unsure), are partly ethical choices, and the people best placed to make them well are the ones who understand how the methods work.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./04-deep-vision.html" class="pagination-link" aria-label="Deep Learning, Faces and Multiple Views">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Deep Learning, Faces and Multiple Views</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./references.html" class="pagination-link" aria-label="References">
+        <span class="nav-page-text">References</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p><a href="../">← Computer Vision</a> · <a href="../../../#notes">All notes</a></p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+<p>© 2026 Hieu Nguyen</p>
+</div>
+  </div>
+</footer>
+
+
+
+
+<script src="site_libs/quarto-contrib/livecells-0.2.0/livecells.js"></script>
+</body></html>

@@ -1,0 +1,419 @@
+# Image Formation {#sec-image-formation}
+
+In the first chapter an image was just an array that showed up from somewhere, and we never really asked where the numbers came from. This chapter is about that question, which is how a three-dimensional world turns into a flat picture, and it follows the two lectures on image formation in the course schedule, the one on the pinhole model and binocular stereo and the one on vanishing points, the lens equation and computer vision for paintings ([CS 585 schedule](https://www.cs.bu.edu/faculty/betke/cs585/)). The geometry here is old, and painters had worked most of it out by the fifteenth century, but it's the thing every later chapter quietly assumes, so it's worth getting it straight once and for all. The main references are Chapter 2 of Horn's *Robot Vision* and Chapter 2 of Szeliski's book ([Szeliski, 2nd ed., 2022](https://szeliski.org/Book/)).
+
+```{python}
+#| code-fold: true
+#| code-summary: "Setup: imports and the helper used by the exercise checks"
+#| classes: lc-autorun
+# [Exercise setup] Run once. Imports what this chapter uses and defines the helper used by every check cell.
+import numpy as np
+import cv2
+import matplotlib.pyplot as plt
+
+def check(name, test):
+    """Run test(), which returns True or False, and report the result without ever raising."""
+    try:
+        ok = test()
+    except NotImplementedError:
+        print(f"{name}: not attempted yet")
+        return
+    except Exception as err:
+        print(f"{name}: your code raised {type(err).__name__}: {err}")
+        return
+    print(f"{name}: " + ("passed" if ok else "not yet. Something is off, see the output above."))
+```
+
+## The Pinhole Camera {#sec-pinhole}
+
+### Perspective projection {#sec-perspective-projection}
+
+Take a box, make it light-tight, and poke a tiny hole in one side. Light from a point in the scene can only get into the box along one line, the one through the hole, so each scene point lights up exactly one spot on the back wall, and the back wall ends up showing an upside-down picture of the world. That's the *pinhole camera* (or camera obscura, which people were using to watch eclipses safely long before anybody thought of film), and it's still the model that almost all of computer vision is built on, even though real cameras have lenses.
+
+Let's set up coordinates. Put the pinhole at the origin, let the Z axis point out into the scene along the *optical axis*, and put the back wall, the *image plane*, at distance f behind the hole, where f is called the focal length. A scene point P = (X, Y, Z) sends its ray through the origin, and the ray keeps going until it hits the image plane at Z = −f. Since the ray is a straight line through the origin, the image point is just P scaled by some factor, and the factor has to be −f/Z to land on the plane, so the image point is (−fX/Z, −fY/Z). The minus signs are the upside-down part. Nobody wants to carry them around, so it's standard to pretend the image plane sits at distance f *in front* of the pinhole instead (a virtual image plane, which you can't build but which gives the same picture right side up), and then
+
+$$
+x = f\,\frac{X}{Z}, \qquad y = f\,\frac{Y}{Z}.
+$$
+
+These are the equations of *perspective projection*, and pretty much everything in this chapter is a consequence of the division by Z. You can also get them from similar triangles, if you draw the ray, the optical axis and the perpendicular from P to the axis, which is how Horn does it in Chapter 2, but the scaling argument is the same thing in one line.
+
+The division by Z is what makes far things look small. An object of height H at distance Z has an image of height fH/Z, so doubling the distance halves the image, and it's also why the projection loses information, because every point along the ray, (tX, tY, tZ) for any t > 0, lands on the same image point. A single picture can't tell a small nearby object from a big far one, and getting depth back is what the second half of this chapter is about.
+
+```{python}
+#| fig-cap: "A wireframe cube seen through a pinhole camera with focal length 1, from two distances. Left, the cube's front face is 3 units away; right, it's 8 units away. The near view shows strong perspective, with the back face much smaller than the front, while the far view looks almost like a flat drawing."
+cube = np.array([[x, y, z] for x in (-1, 1) for y in (-1, 1) for z in (0, 2)], float)
+edges = [(i, j) for i in range(8) for j in range(i + 1, 8) if np.sum(cube[i] != cube[j]) == 1]
+
+def pinhole(P, f=1.0):
+    return f * P[:, :2] / P[:, 2:3]
+
+fig, axes = plt.subplots(1, 2, figsize=(8, 3.6))
+for ax, dist in zip(axes, [3.0, 8.0]):
+    p = pinhole(cube + [0.3, 0.2, dist])
+    for i, j in edges:
+        ax.plot(p[[i, j], 0], p[[i, j], 1], color="#3B6FB6")
+    ax.set_aspect("equal"); ax.invert_yaxis(); ax.set_xticks([]); ax.set_yticks([])
+fig.tight_layout(); plt.show()
+```
+
+(We flip the y axis in the plot so that it points down like image rows do, which is the convention from @sec-rows-columns-x-and-y.)
+
+::: {#ex-2-1-1 .exercise}
+[**Exercise 2.1.1 (Projecting points)**]{.theorem-title} Write `project(P, f)`, which takes an array of shape (n, 3) of scene points in camera coordinates and returns an array of shape (n, 2) of image points (x, y) on the virtual image plane. The check projects a few points by hand and also confirms that every point on a ray through the pinhole lands in the same place.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def project(P, f):
+    """Perspective projection of the (n, 3) points P onto the virtual image plane at distance f."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    P = np.array([[1.0, 2.0, 4.0], [-3.0, 0.5, 2.0], [0.0, 0.0, 7.0]])
+    expected = np.array([[0.5, 1.0], [-3.0, 0.5], [0.0, 0.0]])
+    got = np.asarray(project(P, 2.0), float)
+    print("projected:\n", np.round(got, 4))
+    ray = np.array([[2.0, -1.0, 3.0]]) * np.array([[1.0], [2.5], [10.0]])
+    q = np.asarray(project(ray, 1.5), float)
+    return got.shape == (3, 2) and np.allclose(got, expected) and np.allclose(q, q[0])
+check("Exercise 2.1.1", test)
+```
+
+### From the image plane to pixels {#sec-camera-matrix}
+
+The equations above give positions on the image plane in the same units as the scene, but what we actually get from a camera is pixel coordinates, counted from the top-left corner like in @sec-rows-columns-x-and-y. Two more things happen on the way. The sensor has some number of pixels per millimetre, so the coordinates get scaled, and the pixel grid starts at a corner instead of at the point where the optical axis hits the sensor (the *principal point*), so the coordinates get shifted. Putting both in,
+
+$$
+u = f_x\,\frac{X}{Z} + c_x, \qquad v = f_y\,\frac{Y}{Z} + c_y,
+$$
+
+where f~x~ and f~y~ are the focal length measured in pixels, which are equal when the pixels are square and (c~x~, c~y~) is the principal point in pixels, usually somewhere near the centre of the image.
+
+The division by Z is annoying to carry around, because it's the only nonlinear part, and there's a really neat trick that hides it, which is *homogeneous coordinates*. We represent the image point (u, v) by any triple (w u, w v, w) with w ≠ 0, so (u, v, 1), (2u, 2v, 2) and so on all mean the same point, and to get back to ordinary coordinates we divide by the last entry. With that convention the projection becomes a plain matrix multiplication,
+
+$$
+\begin{pmatrix} w\,u \\ w\,v \\ w \end{pmatrix} = \underbrace{\begin{pmatrix} f_x & 0 & c_x \\ 0 & f_y & c_y \\ 0 & 0 & 1 \end{pmatrix}}_{K} \begin{pmatrix} X \\ Y \\ Z \end{pmatrix},
+$$
+
+and you can check that w comes out as Z, so dividing by it does exactly the perspective division. The matrix K is called the *intrinsic matrix* (or calibration matrix), because it only depends on the camera itself.
+
+So far the scene points were given in the camera's own coordinate system. Usually they're given in some world coordinate system instead, say with the origin on the floor of the room, and then we first have to move them into camera coordinates with a rotation R and a translation t, P~cam~ = R P~world~ + t. Writing the world point as (X, Y, Z, 1) in homogeneous coordinates turns that into a matrix product too, and the whole camera becomes one 3 × 4 matrix,
+
+$$
+\begin{pmatrix} w\,u \\ w\,v \\ w \end{pmatrix} = K \begin{pmatrix} R & t \end{pmatrix} \begin{pmatrix} X \\ Y \\ Z \\ 1 \end{pmatrix} .
+$$
+
+R and t are the *extrinsic* parameters, since they describe where the camera is rather than what kind of camera it is. Finding K for a real camera is called *calibration*, and the usual way to do it is to photograph a checkerboard from several angles and solve for the parameters that best explain where the corners show up, which OpenCV does with `cv2.calibrateCamera`.
+
+::: {#ex-2-1-2 .exercise}
+[**Exercise 2.1.2 (The camera matrix)**]{.theorem-title} Write `camera_project(Pw, K, R, t)`, which takes world points of shape (n, 3) and returns their pixel coordinates (u, v) as an array of shape (n, 2), by building the 3 × 4 matrix K[R | t], multiplying it with the homogeneous world points and dividing by the last row. The check compares your answer with `cv2.projectPoints`, which does the same thing, with the lens distortion switched off by passing zeros.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def camera_project(Pw, K, R, t):
+    """Pixel coordinates of world points Pw (n, 3) for a camera with intrinsics K and pose R, t."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    rng = np.random.default_rng(0)
+    K = np.array([[800.0, 0, 320], [0, 800, 240], [0, 0, 1]])
+    rvec = np.array([0.1, -0.2, 0.05]); R, _ = cv2.Rodrigues(rvec)
+    t = np.array([0.2, -0.1, 5.0])
+    Pw = rng.uniform(-1, 1, (6, 3))
+    ref, _ = cv2.projectPoints(Pw, rvec, t, K, np.zeros(5))
+    got = np.asarray(camera_project(Pw, K, R, t), float)
+    print("largest difference from OpenCV, in pixels:", np.abs(got - ref.reshape(-1, 2)).max())
+    return got.shape == (6, 2) and np.allclose(got, ref.reshape(-1, 2), atol=1e-6)
+check("Exercise 2.1.2", test)
+```
+
+### When perspective hardly matters {#sec-weak-perspective}
+
+Look again at the far cube in the figure above. When an object's depth range is small compared with its distance, Z barely changes across it, and we can replace every Z by one average depth Z~0~,
+
+$$
+x \approx \frac{f}{Z_0}\,X, \qquad y \approx \frac{f}{Z_0}\,Y .
+$$
+
+That's *weak perspective* (or scaled orthographic projection), and it's just a uniform scaling of X and Y, so parallel lines stay parallel and the whole thing is linear. How good is it? If a point sits at depth Z = Z~0~ + ΔZ, the exact projection is fX/(Z~0~ + ΔZ) = (fX/Z~0~)(1 − ΔZ/Z~0~ + ...), so the relative error is about ΔZ/Z~0~. A face 10 cm deep seen from 2 metres gives errors around 5%, and a building seen from a plane gives errors you'd never notice. A lot of algorithms are much easier under weak perspective, which is why it keeps showing up, for example in the factorization method for structure from motion in @sec-structure-from-motion.
+
+## Vanishing Points {#sec-vanishing-points}
+
+### Where parallel lines meet {#sec-vanishing-derivation}
+
+Stand in the middle of a straight railway track and the two rails seem to meet at a point on the horizon, even though they never actually meet. That point is a *vanishing point*, and it's one of those things that's obvious once you see it but kind of fun to derive. Take a line in the scene through the point A = (A~X~, A~Y~, A~Z~) with direction D = (D~X~, D~Y~, D~Z~), so its points are A + sD for all s. The image of the point with parameter s is
+
+$$
+x(s) = f\,\frac{A_X + s D_X}{A_Z + s D_Z}, \qquad y(s) = f\,\frac{A_Y + s D_Y}{A_Z + s D_Z},
+$$
+
+and as s goes to infinity (walking off along the line, away from the camera, which needs D~Z~ > 0) both fractions go to the ratio of the s terms,
+
+$$
+x_\infty = f\,\frac{D_X}{D_Z}, \qquad y_\infty = f\,\frac{D_Y}{D_Z}.
+$$
+
+The starting point A has dropped out completely, so *every* line with direction D, no matter where it is, heads towards the same image point, and that's the vanishing point for the direction D. Two consequences are worth writing down. Lines parallel to the image plane (D~Z~ = 0) have no vanishing point, or rather it's at infinity, so they stay parallel in the picture, which is why the vertical edges of a building photographed straight on stay vertical. And the vanishing point of D is exactly where the ray from the pinhole in direction D hits the image plane, so it only depends on the direction, which is the geometric reason for everything above. All directions parallel to the ground plane give vanishing points on one line in the image, the *horizon*, which is the image of the plane through the pinhole parallel to the ground, which is why the horizon always sits at the height of your eyes.
+
+### Lines and points in homogeneous coordinates {#sec-homogeneous-lines}
+
+To find a vanishing point in a real photograph we need to intersect lines, and homogeneous coordinates make that pretty painless. A line in the image, a x + b y + c = 0, can be stored as the triple ℓ = (a, b, c), and a point p = (x, y, 1) lies on it exactly when ℓ · p = 0. Now take two points p~1~ and p~2~. The cross product p~1~ × p~2~ is perpendicular to both, so it has zero dot product with both, which means it's the line through them. And by the same argument, the cross product of two lines ℓ~1~ × ℓ~2~ is the point on both, so it's their intersection. Points and lines play completely symmetric roles here, and parallel lines aren't a special case at all, their intersection just comes out with a last coordinate of zero, which is a point at infinity.
+
+In a real photo, though, three or more lines that should meet at one vanishing point never quite do, because the edges we detect are noisy. So instead of intersecting two of them we look for the point that comes closest to lying on all of them. If we normalize each line so that a² + b² = 1, then ℓ · p is the signed distance from p to the line, and we want the homogeneous p that makes the sum of squared ℓ~i~ · p as small as possible. Stack the lines as the rows of a matrix L, and we're minimizing ‖L p‖² over p with ‖p‖ = 1 (the scale of p doesn't matter, so we have to fix it somehow), and the answer is the right singular vector of L with the smallest singular value. That's the standard *least squares with a unit-norm constraint* trick, and it'll come back in the eight-point algorithm of @sec-eight-point.
+
+(Strictly speaking, ℓ · p is only the distance when p has last coordinate 1, so minimizing ‖Lp‖ with ‖p‖ = 1 isn't exactly the geometric least squares problem, but it's very close when the vanishing point is at a sensible distance and it's what almost everybody uses.)
+
+::: {#ex-2-2-1 .exercise}
+[**Exercise 2.2.1 (Finding a vanishing point)**]{.theorem-title} Write `vanishing_point(segments)`, which takes an array of shape (n, 4) whose rows are line segments (x~1~, y~1~, x~2~, y~2~) in an image and returns the least squares vanishing point (x, y). Build each line as a cross product of homogeneous endpoints, scale it so that a² + b² = 1, and use `np.linalg.svd`. The check makes noisy segments that point at a known vanishing point.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def vanishing_point(segments):
+    """Least squares intersection of the lines through the given segments (n, 4)."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    rng = np.random.default_rng(3)
+    vp = np.array([412.0, -95.0])
+    segs = []
+    for _ in range(12):
+        a = rng.uniform([0, 200], [640, 480])
+        d = (vp - a) / np.linalg.norm(vp - a)
+        b = a + d * rng.uniform(40, 120)
+        segs.append(np.r_[a + rng.normal(0, 0.3, 2), b + rng.normal(0, 0.3, 2)])
+    got = np.asarray(vanishing_point(np.array(segs)), float)
+    print("true vanishing point", vp, "  estimate", np.round(got, 2))
+    exact = np.asarray(vanishing_point(np.array([[0, 0, 1, 1], [0, 2, 1, 2]], float)), float)  # meet at (2, 2)
+    return np.linalg.norm(got - vp) < 15 and np.allclose(exact, [2, 2])
+check("Exercise 2.2.1", test)
+```
+
+### Focal length from vanishing points {#sec-focal-from-vp}
+
+Here's a lovely application. Suppose a photo shows a building, and we find the vanishing points v~1~ and v~2~ (in pixels) of two horizontal directions that we know are perpendicular in the scene, like the two walls of the building. From @sec-vanishing-derivation the vanishing point of direction D is the image of the ray in direction D, so with the principal point c = (c~x~, c~y~) and focal length f in pixels, the directions are proportional to (v~1~ − c, f) and (v~2~ − c, f), where we've glued the third coordinate f onto the two-dimensional offset. These two directions are perpendicular, so their dot product vanishes,
+
+$$
+(v_1 - c)\cdot(v_2 - c) + f^2 = 0 \quad\Longrightarrow\quad f = \sqrt{-(v_1 - c)\cdot(v_2 - c)} .
+$$
+
+So two vanishing points of perpendicular directions, plus a guess for the principal point (usually just the image centre), are enough to work out the focal length of a camera you've never seen, from a single photo. With three mutually perpendicular directions you can even get the principal point too, since it turns out to be the orthocentre of the triangle formed by the three vanishing points, which is a classic result, from Caprile and Torre's 1990 paper on calibration with vanishing points. It also explains a fact photographers know, which is that a wide-angle lens (small f) puts the vanishing points close together and close to the image, so you get dramatic perspective, while a telephoto lens pushes them way out and flattens everything.
+
+::: {#ex-2-2-2 .exercise}
+[**Exercise 2.2.2 (Focal length from a photo)**]{.theorem-title} Write `focal_from_vps(v1, v2, c)`, which returns the focal length in pixels from two vanishing points of perpendicular directions and the principal point, all given as (x, y) pairs in pixels. The check builds a synthetic camera with a known focal length, rotates it, works out the vanishing points of the world's X and Z axes with your formula from @sec-vanishing-derivation, and asks for the focal length back.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def focal_from_vps(v1, v2, c):
+    """Focal length (pixels) from vanishing points v1, v2 of perpendicular directions and principal point c."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    f, c = 950.0, np.array([640.0, 360.0])
+    R, _ = cv2.Rodrigues(np.array([0.15, 0.6, 0.02]))
+    vps = []
+    for D in [np.array([1.0, 0, 0]), np.array([0, 0, 1.0])]:
+        d = R @ D                                   # direction in camera coordinates
+        vps.append(c + f * d[:2] / d[2])
+    got = float(focal_from_vps(vps[0], vps[1], c))
+    print("vanishing points", np.round(vps, 1).tolist(), " focal length", round(got, 3))
+    return abs(got - f) < 1e-6
+check("Exercise 2.2.2", test)
+```
+
+### Computer vision and paintings {#sec-paintings}
+
+The second image formation lecture spends some time on paintings, and it's a nice detour. Linear perspective was worked out by Renaissance artists, with Brunelleschi's famous demonstration in Florence around 1415 (he painted the Baptistery on a panel, drilled a hole in it and had people look through the hole at a mirror, so they could compare painting and building directly) and Alberti's 1435 treatise *On Painting*, which describes the picture as a window through which you look at the scene, which is exactly our virtual image plane. A painter who follows these rules is basically computing perspective projection by hand, and that means we can run the analysis of this section backwards on a painting.
+
+For example, if a painting shows a tiled floor, the lines of the tiles that are parallel in the scene should all meet at one vanishing point, and we can check with the least squares fit of @sec-homogeneous-lines how well they do. If they meet nicely, the painter was using a perspective construction or an optical device, and if they wander around, the perspective was done by eye. Using the vanishing points of a floor and the horizon you can also measure relative heights of people in the painting, which is the idea of single-view metrology (Criminisi, Reid and Zisserman wrote the standard paper on it in 2000, and they used paintings as examples). This kind of analysis has been used in arguments among art historians, most famously around David Hockney's claim that some old masters secretly traced projections from lenses and mirrors, which David Stork and others tested by checking exactly these geometric constraints. I won't try to settle that argument here, but it's a fun example of the geometry being useful well outside engineering.
+
+## Lenses {#sec-lenses}
+
+### Why not just a pinhole? {#sec-why-lenses}
+
+A pinhole camera has a real problem, which is that it's either dim or blurry. A smaller hole gives a sharper picture, because each scene point lights up a smaller spot, but it lets in less light, so the exposure takes forever, and if you make the hole really tiny, diffraction kicks in and the picture gets blurry again anyway. A lens solves this by collecting all the light that hits a big aperture from one scene point and bending it so that it comes back together at one image point, so we get both brightness and sharpness, at least for points at the right distance.
+
+### The thin lens equation {#sec-thin-lens}
+
+The simplest model of a lens is the *thin lens*, which we treat as a plane with two rules for how rays get bent. A ray through the centre of the lens goes straight through, and a ray coming in parallel to the optical axis gets bent so that it passes through the *focal point*, at distance f behind the lens. Now take a scene point at height h and distance z~o~ in front of the lens and follow both rays. The central ray reaches the image side at height −h z~i~/z~o~ at distance z~i~ (similar triangles through the centre), and the parallel ray leaves the lens at height h and passes through the focal point, so on the image side it drops from h to 0 over distance f and keeps going, which puts it at height h(1 − z~i~/f) at distance z~i~. For the two rays to meet at the image point, their heights have to agree,
+
+$$
+-\frac{h\,z_i}{z_o} = h\Big(1 - \frac{z_i}{f}\Big) \quad\Longrightarrow\quad \frac{1}{z_o} + \frac{1}{z_i} = \frac{1}{f},
+$$
+
+and dividing by h z~i~ and rearranging gives the *thin lens equation*. The height h dropped out, so every point at distance z~o~ comes to focus at the same distance z~i~ behind the lens, so a whole plane of the scene is in focus at once, and that's the plane the camera is focused on. A few things follow right away. When z~o~ goes to infinity, z~i~ goes to f, so a camera focused at infinity has its sensor at the focal point, and as objects come closer the image moves further back, which is why focusing on something close means moving the lens away from the sensor. The magnification is z~i~/z~o~, and for distant objects that's about f/z~o~, so far away the lens acts exactly like a pinhole at its centre with "focal length" f, which is why the pinhole model works so well. And when z~o~ = f, z~i~ is infinite, so a point at the focal distance in front of the lens can't be focused at all (its rays come out parallel, which is how a flashlight works).
+
+### Blur and depth of field {#sec-blur}
+
+What about scene points that aren't at the focused distance? Say the sensor is at distance s behind the lens, which focuses points at distance z~o~ = (1/f − 1/s)^−1^ perfectly, and a point at some other distance z focuses at z' = (1/f − 1/z)^−1^ instead. The cone of light from the lens aperture, of diameter D, converges to a point at z' and then the sensor at s cuts the cone, giving a disc of light, the *blur circle*. Similar triangles in the cone give its diameter,
+
+$$
+b = D\,\frac{|s - z'|}{z'} .
+$$
+
+A blur circle smaller than a pixel is invisible, so there's a whole range of distances that look sharp, the *depth of field*. The formula shows how photographers control it. Making the aperture D smaller makes b smaller in proportion, so a small aperture (a large *f-number* N = f/D, like f/16) gives a deep depth of field, and a wide aperture (like f/1.8) gives the blurry backgrounds people like in portraits. It also says that blur carries depth information, since b depends on z, and there are methods that estimate depth from how blurry things are (depth from defocus), though we won't go into them here.
+
+::: {#ex-2-3-1 .exercise}
+[**Exercise 2.3.1 (Blur circles)**]{.theorem-title} Write `blur_diameter(z, f, N, focus)`, which returns the blur circle diameter on the sensor (in the same units as f) for a point at distance z, for a lens of focal length f and f-number N that's focused at distance `focus`. Use the thin lens equation to find the sensor distance s and the image distance z' of the point. The check uses a 50 mm lens at f/2 focused at 2 m, and confirms that the blur is zero at 2 m, that it shrinks in proportion when you stop down to f/8, and prints the range of distances whose blur stays below 0.03 mm, a common rule of thumb for "looks sharp".
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def blur_diameter(z, f, N, focus):
+    """Blur circle diameter for a point at distance z (thin lens, focal length f, f-number N, focused at `focus`)."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    f = 50.0
+    b_focus = blur_diameter(2000.0, f, 2.0, 2000.0)
+    b2 = blur_diameter(3000.0, f, 2.0, 2000.0)
+    b8 = blur_diameter(3000.0, f, 8.0, 2000.0)
+    zs = np.linspace(1000, 6000, 5001)
+    sharp2 = zs[np.array([blur_diameter(z, f, 2.0, 2000.0) for z in zs]) < 0.03]
+    sharp8 = zs[np.array([blur_diameter(z, f, 8.0, 2000.0) for z in zs]) < 0.03]
+    print(f"blur at 3 m: f/2 {b2:.4f} mm, f/8 {b8:.4f} mm")
+    print(f"sharp range at f/2: {sharp2.min():.0f} to {sharp2.max():.0f} mm;  at f/8: {sharp8.min():.0f} to {sharp8.max():.0f} mm")
+    s = 1 / (1 / f - 1 / 2000.0); zp = 1 / (1 / f - 1 / 3000.0)
+    return abs(b_focus) < 1e-9 and abs(b2 - (f / 2) * abs(s - zp) / zp) < 1e-9 and abs(b2 / b8 - 4) < 1e-9
+check("Exercise 2.3.1", test)
+```
+
+## Two Eyes {#sec-binocular-stereo}
+
+### Depth from disparity {#sec-disparity}
+
+A single image throws depth away, as we saw in @sec-perspective-projection, but two images from slightly different places can get it back, which is what our two eyes do and what the binocular stereo lecture is about. The simplest arrangement has two identical pinhole cameras side by side, pointing in the same direction, with their pinholes a distance B apart along the x axis (B is called the *baseline*). Put the left camera at the origin and the right one at (B, 0, 0). A scene point (X, Y, Z) projects to
+
+$$
+x_l = f\,\frac{X}{Z}, \qquad x_r = f\,\frac{X - B}{Z}, \qquad y_l = y_r = f\,\frac{Y}{Z},
+$$
+
+so the point shows up in the same row of both images but shifted horizontally by the *disparity*
+
+$$
+d = x_l - x_r = \frac{f B}{Z} \quad\Longrightarrow\quad Z = \frac{f B}{d} .
+$$
+
+Depth is inversely proportional to disparity, so nearby things shift a lot between the two views and far things hardly move, which you can check by holding a finger in front of your face and closing one eye and then the other.
+
+How accurate is this? Differentiate Z = fB/d with respect to d, and an error δd in the disparity gives
+
+$$
+\delta Z \approx \frac{f B}{d^2}\,\delta d = \frac{Z^2}{f B}\,\delta d ,
+$$
+
+so the depth error grows like the *square* of the distance. A stereo rig that measures depth to a millimetre at half a metre is off by about 40 centimetres at 10 metres, with the same disparity error, and the only ways to fight that are a longer baseline or a longer focal length (both of which make it harder to find matches, since the two views look less alike). That's why the stereo cameras on cars have their lenses as far apart as the windshield allows.
+
+### Finding matches {#sec-stereo-matching}
+
+All of this assumes we know which pixel in the right image goes with which pixel in the left image, the *correspondence problem*, and that's by far the hard part. In our side-by-side arrangement the search is one-dimensional, since the match of a left pixel has to be in the same row, somewhere to its left in the right image. The simplest method reuses template matching from @sec-template-matching-with-the-sum-of-squared-differences. Take a small window around the left pixel, slide it along the same row of the right image over a range of disparities, and pick the disparity with the smallest SSD (or the largest normalized correlation). This is called *block matching*, and it works well on textured surfaces and badly on blank walls, where every window looks the same, which is the aperture problem in another form (we'll meet it properly with optical flow in @sec-aperture).
+
+A classic way to test a stereo algorithm is a *random-dot stereogram*, which Béla Julesz used in the 1960s to show that human depth perception doesn't need any recognizable objects. Fill the left image with random dots, copy it to make the right image, and shift a square region of the right image sideways. Each image on its own looks like pure noise, but the pair has a well-defined disparity everywhere, so a stereo algorithm has to rely on matching alone.
+
+```{python}
+#| fig-cap: "A random-dot stereogram. The left and right images (left and middle) look like noise, but a square in the right image is shifted by 6 pixels relative to the background, which is shifted by 2. The disparity map found by block matching (right) recovers the square."
+rng = np.random.default_rng(7)
+H, W = 120, 160
+left = (rng.random((H, W)) > 0.5).astype(np.float64) * 255
+right = np.roll(left, -2, axis=1)                 # background disparity 2
+sq = (slice(35, 85), slice(55, 105))
+right[sq] = np.roll(left, -6, axis=1)[sq]         # the square has disparity 6
+right[:, W - 6:] = rng.random((H, 6)) * 255      # fill the strip that rolled around
+
+def block_match(L, R, max_d, half=4):
+    h, w = L.shape
+    best = np.zeros((h, w), int); best_cost = np.full((h, w), np.inf)
+    box = np.ones((2 * half + 1, 2 * half + 1))
+    for d in range(max_d + 1):
+        shifted = np.full_like(R, np.nan); shifted[:, d:] = R[:, :w - d]   # right pixel x - d lines up with left x
+        cost = cv2.filter2D(np.nan_to_num((L - shifted) ** 2, nan=1e9), -1, box)
+        better = cost < best_cost
+        best[better], best_cost[better] = d, cost[better]
+    return best
+
+disp = block_match(left, right, 10)
+fig, ax = plt.subplots(1, 3, figsize=(9, 2.6))
+for a, im, cmap in zip(ax, [left, right, disp], ["gray", "gray", "viridis"]):
+    a.imshow(im, cmap=cmap); a.set_xticks([]); a.set_yticks([])
+fig.tight_layout(); plt.show()
+print("median disparity inside the square:", np.median(disp[45:75, 65:95]), "  outside:", np.median(disp[5:30, 10:150]))
+```
+
+Real stereo systems add a lot on top of this, like smoothness between neighbouring disparities, checking that the left-to-right and right-to-left matches agree, and nowadays neural networks that learn the matching cost, but the core idea of searching along a row is the same. And the real setup is never perfectly side by side, which is where the epipolar geometry of @sec-epipolar comes in, since it says where to search when the cameras are pointing in different directions.
+
+::: {#ex-2-4-1 .exercise}
+[**Exercise 2.4.1 (Depth and its error)**]{.theorem-title} Write `stereo_depth(d, f, B, delta_d)`, which returns the depth Z and the approximate depth error δZ for a disparity d (in pixels), a focal length f (in pixels), a baseline B and a disparity error δd. The check uses a rig with f = 700 pixels and B = 12 cm, and confirms that your error estimate agrees with the actual change in Z when the disparity changes by a small amount, and that the error quadruples when the distance doubles.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def stereo_depth(d, f, B, delta_d):
+    """Depth Z = f B / d and its first-order error for a disparity error delta_d. Returns (Z, dZ)."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    f, B = 700.0, 0.12
+    Z1, e1 = stereo_depth(42.0, f, B, 0.25)
+    Z2, e2 = stereo_depth(21.0, f, B, 0.25)
+    actual = f * B / (42.0 - 0.001) - f * B / 42.0
+    print(f"d = 42 px: Z = {Z1:.3f} m, error {e1 * 100:.2f} cm;   d = 21 px: Z = {Z2:.3f} m, error {e2 * 100:.2f} cm")
+    return (abs(Z1 - 2.0) < 1e-9 and abs(e1 / 0.25 * 0.001 - actual) < 1e-6
+            and abs(Z2 / Z1 - 2) < 1e-9 and abs(e2 / e1 - 4) < 1e-9)
+check("Exercise 2.4.1", test)
+```
+
+::: {#ex-2-4-2 .exercise}
+[**Exercise 2.4.2 (Matching along a row)**]{.theorem-title} Write `match_pixel(L, R, row, col, max_d, half)`, which finds the disparity of one pixel by brute force: compare the (2·half + 1)-square window around (row, col) in the left image with the windows around (row, col − d) in the right image, for d = 0, ..., `max_d` (skipping any that run off the image), and return the d with the smallest SSD. The check runs it on a few pixels of the random-dot stereogram above, inside and outside the square.
+
+:::
+
+```{python}
+#| classes: lc-exercise
+def match_pixel(L, R, row, col, max_d, half):
+    """Disparity of pixel (row, col) of L by SSD block matching along the same row of R."""
+    # your code here
+    raise NotImplementedError
+```
+
+```{python}
+#| classes: lc-check
+def test():
+    tests = [((60, 80), 6), ((50, 70), 6), ((15, 40), 2), ((100, 130), 2)]
+    got = [int(match_pixel(left, right, r, c, 10, 4)) for (r, c), _ in tests]
+    print("found", got, " expected", [d for _, d in tests])
+    return got == [d for _, d in tests]
+check("Exercise 2.4.2", test)
+```

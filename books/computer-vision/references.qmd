@@ -21,6 +21,50 @@ Slide numbers in the text count from the title slide of each deck.
 - T. W. Ridler and S. Calvard, Picture thresholding using an iterative selection method, *IEEE Transactions on Systems, Man, and Cybernetics* 8(8), 630–632, 1978.
 - L. Shapiro and G. Stockman, *Computer Vision*, Prentice Hall, 2001. Source of the normalized red and green skin-colour plot, as credited on slide 16 of the January 25 deck.
 
+**Chapters 2 to 5**
+
+- B. K. P. Horn, *Robot Vision*, MIT Press, 1986. Chapter 2 for image formation, Chapters 10 and 11 for reflectance maps, photometric stereo and shape from shading, Chapter 12 for optical flow.
+- G. Caprile and V. Torre, Using vanishing points for camera calibration, *International Journal of Computer Vision* 4(2), 127–139, 1990.
+- A. Criminisi, I. Reid and A. Zisserman, Single view metrology, *International Journal of Computer Vision* 40(2), 123–148, 2000.
+- R. E. Kalman, A new approach to linear filtering and prediction problems, *Journal of Basic Engineering* 82(1), 35–45, 1960.
+- H. W. Kuhn, The Hungarian method for the assignment problem, *Naval Research Logistics Quarterly* 2, 83–97, 1955.
+- J. Canny, A computational approach to edge detection, *IEEE Transactions on Pattern Analysis and Machine Intelligence* 8(6), 679–698, 1986.
+- D. Marr and E. Hildreth, Theory of edge detection, *Proceedings of the Royal Society of London B* 207, 187–217, 1980.
+- M. Kass, A. Witkin and D. Terzopoulos, Snakes: active contour models, *International Journal of Computer Vision* 1(4), 321–331, 1988.
+- D. J. Williams and M. Shah, A fast algorithm for active contours and curvature estimation, *CVGIP: Image Understanding* 55(1), 14–26, 1992.
+- B. K. P. Horn and B. G. Schunck, Determining optical flow, *Artificial Intelligence* 17, 185–203, 1981.
+- B. D. Lucas and T. Kanade, An iterative image registration technique with an application to stereo vision, *Proceedings of IJCAI*, 674–679, 1981.
+- J. Shi and C. Tomasi, Good features to track, *Proceedings of CVPR*, 593–600, 1994.
+- J. Deng, W. Dong, R. Socher, L.-J. Li, K. Li and L. Fei-Fei, ImageNet: a large-scale hierarchical image database, *Proceedings of CVPR*, 2009.
+- A. Krizhevsky, I. Sutskever and G. E. Hinton, ImageNet classification with deep convolutional neural networks, *NeurIPS*, 2012.
+- K. He, X. Zhang, S. Ren and J. Sun, Deep residual learning for image recognition, *Proceedings of CVPR*, 2016.
+- F. Schroff, D. Kalenichenko and J. Philbin, FaceNet: a unified embedding for face recognition and clustering, *Proceedings of CVPR*, 2015.
+- J. Deng, J. Guo, N. Xue and S. Zafeiriou, ArcFace: additive angular margin loss for deep face recognition, *Proceedings of CVPR*, 2019.
+- G. B. Huang, M. Ramesh, T. Berg and E. Learned-Miller, Labeled Faces in the Wild, technical report 07-49, University of Massachusetts Amherst, 2007.
+- Q. Cao, L. Shen, W. Xie, O. M. Parkhi and A. Zisserman, VGGFace2: a dataset for recognising faces across pose and age, *Proceedings of IEEE FG*, 2018.
+- L. Best-Rowden and A. K. Jain, Longitudinal study of automatic face recognition, *IEEE Transactions on Pattern Analysis and Machine Intelligence* 40(1), 148–162, 2018 (online 2017).
+- T. Fawcett, An introduction to ROC analysis, *Pattern Recognition Letters* 27(8), 861–874, 2006.
+- M. J. Black and Y. Yacoob, Recognizing facial expressions in image sequences using local parameterized models of image motion, *International Journal of Computer Vision* 25(1), 23–48, 1997.
+- H. C. Longuet-Higgins, A computer algorithm for reconstructing a scene from two projections, *Nature* 293, 133–135, 1981.
+- R. I. Hartley, In defense of the eight-point algorithm, *IEEE Transactions on Pattern Analysis and Machine Intelligence* 19(6), 580–593, 1997.
+- R. Hartley and A. Zisserman, *Multiple View Geometry in Computer Vision*, 2nd edition, Cambridge University Press, 2004.
+- C. Tomasi and T. Kanade, Shape and motion from image streams under orthography: a factorization method, *International Journal of Computer Vision* 9(2), 137–154, 1992.
+- J. Long, E. Shelhamer and T. Darrell, Fully convolutional networks for semantic segmentation, *Proceedings of CVPR*, 2015.
+- O. Ronneberger, P. Fischer and T. Brox, U-Net: convolutional networks for biomedical image segmentation, *MICCAI*, 2015.
+- K. He, G. Gkioxari, P. Dollár and R. Girshick, Mask R-CNN, *Proceedings of ICCV*, 2017.
+- I. Goodfellow et al., Generative adversarial nets, *NeurIPS*, 2014.
+- J. Ho, A. Jain and P. Abbeel, Denoising diffusion probabilistic models, *NeurIPS*, 2020.
+- R. J. Woodham, Photometric method for determining surface orientation from multiple images, *Optical Engineering* 19(1), 139–144, 1980.
+- M. Turk and A. Pentland, Eigenfaces for recognition, *Journal of Cognitive Neuroscience* 3(1), 71–86, 1991.
+- B. K. P. Horn, Closed-form solution of absolute orientation using unit quaternions, *Journal of the Optical Society of America A* 4(4), 629–642, 1987.
+- K. S. Arun, T. S. Huang and S. D. Blostein, Least-squares fitting of two 3-D point sets, *IEEE Transactions on Pattern Analysis and Machine Intelligence* 9(5), 698–700, 1987.
+- P. J. Besl and N. D. McKay, A method for registration of 3-D shapes, *IEEE Transactions on Pattern Analysis and Machine Intelligence* 14(2), 239–256, 1992.
+- A. Vaswani et al., Attention is all you need, *NeurIPS*, 2017.
+- A. Dosovitskiy et al., An image is worth 16x16 words: transformers for image recognition at scale, *ICLR*, 2021.
+- A. Radford et al., Learning transferable visual models from natural language supervision, *ICML*, 2021.
+- P. Anderson et al., Vision-and-language navigation: interpreting visually-grounded navigation instructions in real environments, *Proceedings of CVPR*, 2018.
+- J. Buolamwini and T. Gebru, Gender shades: intersectional accuracy disparities in commercial gender classification, *Proceedings of FAT\**, 2018.
+
 **Documentation and reference pages**
 
 - OpenCV, [Image file reading and writing](https://docs.opencv.org/4.x/d4/da8/group__imgcodecs.html) (the BGR default and what `imread` returns on failure).

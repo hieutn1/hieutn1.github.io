@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.20">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>3&nbsp; Tracking, Edges and Optical Flow – Computer Vision</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./04-deep-vision.html" rel="next">
+<link href="./02-image-formation.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-da0f4d964b336c7357bd1e6e7fe8ee30.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-42a672b7a9700d1436569573ce3dcc0e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/quarto-contrib/livecells-0.2.0/livecells.css" rel="stylesheet">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script>window.LIVECELLS_CONFIG = {"server": "http://127.0.0.1:8888", "kernelName": "python3", "pyodide": "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/", "packages": ["numpy", "opencv-python", "matplotlib"]};</script>
+  <script defer="" src="mathjax/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./03-tracking-and-flow.html"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Tracking, Edges and Optical Flow</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto"><div class="quarto-sidebar-header"><div class="sidebar-header-item">
+<p><a href="../">← Course page</a></p>
+</div></div>
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Computer Vision</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01-programming-with-images.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Programming with Images</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02-image-formation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Image Formation</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03-tracking-and-flow.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Tracking, Edges and Optical Flow</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04-deep-vision.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Deep Learning, Faces and Multiple Views</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05-generation-geometry-ethics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Generative Models, Surfaces and the Rest</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active" data-toc-expanded="1">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#sec-single-tracking" id="toc-sec-single-tracking" class="nav-link active" data-scroll-target="#sec-single-tracking"><span class="header-section-number">3.1</span> Tracking One Object</a>
+  <ul class="collapse">
+  <li><a href="#sec-tracking-problem" id="toc-sec-tracking-problem" class="nav-link" data-scroll-target="#sec-tracking-problem"><span class="header-section-number">3.1.1</span> Noisy detections</a></li>
+  <li><a href="#sec-alpha-beta" id="toc-sec-alpha-beta" class="nav-link" data-scroll-target="#sec-alpha-beta"><span class="header-section-number">3.1.2</span> The alpha-beta filter</a></li>
+  <li><a href="#sec-kalman" id="toc-sec-kalman" class="nav-link" data-scroll-target="#sec-kalman"><span class="header-section-number">3.1.3</span> The Kalman filter</a></li>
+  </ul></li>
+  <li><a href="#sec-multi-tracking" id="toc-sec-multi-tracking" class="nav-link" data-scroll-target="#sec-multi-tracking"><span class="header-section-number">3.2</span> Tracking Many Objects</a>
+  <ul class="collapse">
+  <li><a href="#sec-data-association" id="toc-sec-data-association" class="nav-link" data-scroll-target="#sec-data-association"><span class="header-section-number">3.2.1</span> Data association</a></li>
+  <li><a href="#sec-mot-tracker" id="toc-sec-mot-tracker" class="nav-link" data-scroll-target="#sec-mot-tracker"><span class="header-section-number">3.2.2</span> A small multi-object tracker</a></li>
+  </ul></li>
+  <li><a href="#sec-edges" id="toc-sec-edges" class="nav-link" data-scroll-target="#sec-edges"><span class="header-section-number">3.3</span> Edges</a>
+  <ul class="collapse">
+  <li><a href="#sec-image-derivatives" id="toc-sec-image-derivatives" class="nav-link" data-scroll-target="#sec-image-derivatives"><span class="header-section-number">3.3.1</span> Derivatives of an image</a></li>
+  <li><a href="#sec-log" id="toc-sec-log" class="nav-link" data-scroll-target="#sec-log"><span class="header-section-number">3.3.2</span> Second derivatives and the Mexican hat</a></li>
+  <li><a href="#sec-canny" id="toc-sec-canny" class="nav-link" data-scroll-target="#sec-canny"><span class="header-section-number">3.3.3</span> The Canny detector</a></li>
+  </ul></li>
+  <li><a href="#sec-active-contours" id="toc-sec-active-contours" class="nav-link" data-scroll-target="#sec-active-contours"><span class="header-section-number">3.4</span> Active Contours</a></li>
+  <li><a href="#sec-optical-flow" id="toc-sec-optical-flow" class="nav-link" data-scroll-target="#sec-optical-flow"><span class="header-section-number">3.5</span> Optical Flow</a>
+  <ul class="collapse">
+  <li><a href="#sec-brightness-constancy" id="toc-sec-brightness-constancy" class="nav-link" data-scroll-target="#sec-brightness-constancy"><span class="header-section-number">3.5.1</span> Brightness constancy</a></li>
+  <li><a href="#sec-aperture" id="toc-sec-aperture" class="nav-link" data-scroll-target="#sec-aperture"><span class="header-section-number">3.5.2</span> The aperture problem</a></li>
+  <li><a href="#sec-horn-schunck" id="toc-sec-horn-schunck" class="nav-link" data-scroll-target="#sec-horn-schunck"><span class="header-section-number">3.5.3</span> Horn and Schunck</a></li>
+  <li><a href="#sec-lucas-kanade" id="toc-sec-lucas-kanade" class="nav-link" data-scroll-target="#sec-lucas-kanade"><span class="header-section-number">3.5.4</span> Lucas and Kanade</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span id="sec-tracking-flow" class="quarto-section-identifier"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Tracking, Edges and Optical Flow</span></span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>This chapter covers the stretch of the course between the image formation lectures and the midterm, which in the schedule runs from the alpha-beta and Kalman filters, through multiple object tracking and data association, edge detection and active contours, and ends with optical flow (<a href="https://www.cs.bu.edu/faculty/betke/cs585/">CS 585 schedule</a>). It might look like a bit of a grab bag, but there’s actually a common thread, which is that every method here is about <em>change</em>, either an object changing position from frame to frame or brightness changing from pixel to pixel, and about how to say something sensible about that change when the measurements are noisy. We’ll start with the most practical question, which is how to follow one thing through a video when the detector that finds it in each frame keeps jittering around.</p>
+<div id="d65fb4bc" class="cell lc-autorun" data-execution_count="1">
+<details class="code-fold">
+<summary>Setup: imports and the helper used by the exercise checks</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># [Exercise setup] Run once. Imports what this chapter uses and defines the helper used by every check cell.</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cv2</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> check(name, test):</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Run test(), which returns True or False, and report the result without ever raising."""</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>        ok <span class="op">=</span> test()</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> <span class="pp">NotImplementedError</span>:</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: not attempted yet"</span>)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> <span class="pp">Exception</span> <span class="im">as</span> err:</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: your code raised </span><span class="sc">{</span><span class="bu">type</span>(err)<span class="sc">.</span><span class="va">__name__</span><span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>err<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: "</span> <span class="op">+</span> (<span class="st">"passed"</span> <span class="cf">if</span> ok <span class="cf">else</span> <span class="st">"not yet. Something is off, see the output above."</span>))</span></code></pre></div>
+</details>
+</div>
+<section id="sec-single-tracking" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="sec-single-tracking"><span class="header-section-number">3.1</span> Tracking One Object</h2>
+<section id="sec-tracking-problem" class="level3" data-number="3.1.1">
+<h3 data-number="3.1.1" class="anchored" data-anchor-id="sec-tracking-problem"><span class="header-section-number">3.1.1</span> Noisy detections</h3>
+<p>Suppose we already have some detector that finds an object in each frame, like the skin-colour blob of <a href="01-programming-with-images.html#sec-skin-colour" class="quarto-xref"><span>Section 1.3.1</span></a> or the template match of <a href="01-programming-with-images.html#sec-the-normalized-correlation-coefficient" class="quarto-xref"><span>Section 1.3.3</span></a>, and it gives us a measured position z<sub>k</sub> in frame k. The measurements are noisy, so if we just connect them up we get a jittery track, and sometimes the detector misses a frame completely, so we’d like to be able to say where the object probably is even then. The idea behind every tracking filter is to combine two sources of information. One is the measurement, and the other is a <em>prediction</em> from a model of how the object moves, and the filter’s job is to decide how much to trust each.</p>
+<p>The simplest useful motion model is constant velocity. If the object was at position x with velocity v one frame ago, and frames are Δt apart, then right now it should be at x + vΔt with the same velocity v. Real objects speed up and slow down and turn, of course, so the model is wrong all the time, but it’s wrong by a small amount from one frame to the next, and that’s good enough.</p>
+</section>
+<section id="sec-alpha-beta" class="level3" data-number="3.1.2">
+<h3 data-number="3.1.2" class="anchored" data-anchor-id="sec-alpha-beta"><span class="header-section-number">3.1.2</span> The alpha-beta filter</h3>
+<p>The alpha-beta filter is basically the simplest thing you could do with that idea. In each frame we first predict, then correct. The prediction step uses the motion model,</p>
+<p><span class="math display">\[
+\hat{x}_k^- = \hat{x}_{k-1} + \hat{v}_{k-1}\,\Delta t, \qquad \hat{v}_k^- = \hat{v}_{k-1},
+\]</span></p>
+<p>where the hats mean estimates and the minus sign means “before we’ve looked at the new measurement”. Then we compare the prediction with what we actually measured, which gives the <em>residual</em> (or innovation) r<sub>k</sub> = z<sub>k</sub> − x̂<sub>k</sub><sup>−</sup>, and we nudge both estimates towards the measurement by a fixed fraction of the residual,</p>
+<p><span class="math display">\[
+\hat{x}_k = \hat{x}_k^- + \alpha\, r_k, \qquad \hat{v}_k = \hat{v}_k^- + \frac{\beta}{\Delta t}\, r_k .
+\]</span></p>
+<p>The two constants α and β, both between 0 and 1, are where all the tuning happens. With α = 1 the filter just believes every measurement and does no smoothing at all, and with α close to 0 it mostly ignores the measurements and coasts along on its prediction, which is very smooth but slow to react when the object actually changes direction. The β term is what lets the velocity estimate learn from the residuals, since if the object keeps showing up ahead of where we predicted, the residuals are positive on average and the velocity estimate creeps up until the predictions catch up. When a measurement is missing we simply skip the correction and keep the prediction, which is one of the nicest practical features of this kind of filter.</p>
+<div id="b4fc1edc" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> alpha_beta_demo(z, dt, alpha, beta):</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    x, v <span class="op">=</span> z[<span class="dv">0</span>], <span class="fl">0.0</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    out <span class="op">=</span> []</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> zk <span class="kw">in</span> z:</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        x, v <span class="op">=</span> x <span class="op">+</span> v <span class="op">*</span> dt, v               <span class="co"># predict</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>        r <span class="op">=</span> zk <span class="op">-</span> x</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        x, v <span class="op">=</span> x <span class="op">+</span> alpha <span class="op">*</span> r, v <span class="op">+</span> beta <span class="op">/</span> dt <span class="op">*</span> r</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        out.append(x)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.array(out)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">1</span>)</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>t <span class="op">=</span> np.arange(<span class="dv">100</span>)</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>truth <span class="op">=</span> <span class="dv">100</span> <span class="op">+</span> <span class="dv">80</span> <span class="op">*</span> np.sin(<span class="dv">2</span> <span class="op">*</span> np.pi <span class="op">*</span> t <span class="op">/</span> <span class="dv">120</span>)</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>z <span class="op">=</span> truth <span class="op">+</span> rng.normal(<span class="dv">0</span>, <span class="dv">8</span>, t.size)</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">7</span>, <span class="fl">3.3</span>))</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>ax.plot(t, z, <span class="st">"."</span>, color<span class="op">=</span><span class="st">"0.6"</span>, ms<span class="op">=</span><span class="dv">4</span>, label<span class="op">=</span><span class="st">"measurements"</span>)</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>ax.plot(t, alpha_beta_demo(z, <span class="fl">1.0</span>, <span class="fl">0.5</span>, <span class="fl">0.1</span>), color<span class="op">=</span><span class="st">"#3B6FB6"</span>, label<span class="op">=</span><span class="st">"α = 0.5, β = 0.1"</span>)</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>ax.plot(t, alpha_beta_demo(z, <span class="fl">1.0</span>, <span class="fl">0.1</span>, <span class="fl">0.005</span>), color<span class="op">=</span><span class="st">"#E07A3F"</span>, label<span class="op">=</span><span class="st">"α = 0.1, β = 0.005"</span>)</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>ax.plot(t, truth, <span class="st">"k"</span>, lw<span class="op">=</span><span class="fl">0.8</span>, label<span class="op">=</span><span class="st">"truth"</span>)</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">"frame"</span>)<span class="op">;</span> ax.set_ylabel(<span class="st">"position"</span>)<span class="op">;</span> ax.legend(fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>fig.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="03-tracking-and-flow_files/figure-html/cell-3-output-1.png" width="662" height="307" class="figure-img"></p>
+<figcaption>One coordinate of an object swinging back and forth, measured with noise (dots). The alpha-beta filter with α = 0.5, β = 0.1 (blue) smooths out most of the jitter and follows the turns; with α = 0.1, β = 0.005 (orange) it’s smoother still but lags far behind every turn. The true path is in black.</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div id="ex-3-1-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 3.1.1 (An alpha-beta filter with gaps)</strong></span> Write <code>alpha_beta(z, dt, alpha, beta)</code>, which runs the filter over a one-dimensional array of measurements <code>z</code> and returns the array of filtered positions. Start with x̂ = z<sub>0</sub> and v̂ = 0. Some measurements are <code>np.nan</code>, meaning the detector missed that frame, and for those you should keep the prediction without correcting. The check runs your filter on the noisy track above with some frames knocked out, and compares its error with the raw measurements.</p>
+</div>
+<div id="4d373483" class="cell lc-exercise" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> alpha_beta(z, dt, alpha, beta):</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Alpha-beta filtered positions for measurements z (np.nan = missing)."""</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="a126e062" class="cell lc-check" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    zz <span class="op">=</span> z.copy()<span class="op">;</span> zz[[<span class="dv">20</span>, <span class="dv">21</span>, <span class="dv">22</span>, <span class="dv">70</span>, <span class="dv">71</span>]] <span class="op">=</span> np.nan</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    est <span class="op">=</span> np.asarray(alpha_beta(zz, <span class="fl">1.0</span>, <span class="fl">0.5</span>, <span class="fl">0.1</span>), <span class="bu">float</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    ok_raw <span class="op">=</span> <span class="op">~</span>np.isnan(zz)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    err_f <span class="op">=</span> np.sqrt(np.mean((est[<span class="dv">10</span>:] <span class="op">-</span> truth[<span class="dv">10</span>:]) <span class="op">**</span> <span class="dv">2</span>))<span class="op">;</span> err_m <span class="op">=</span> np.sqrt(np.mean((zz[ok_raw] <span class="op">-</span> truth[ok_raw]) <span class="op">**</span> <span class="dv">2</span>))</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"rms error: measurements </span><span class="sc">{</span>err_m<span class="sc">:.2f}</span><span class="ss">, filtered (after frame 10) </span><span class="sc">{</span>err_f<span class="sc">:.2f}</span><span class="ss">;  estimate during the gap at frame 22: </span><span class="sc">{</span>est[<span class="dv">22</span>]<span class="sc">:.1f}</span><span class="ss"> (truth </span><span class="sc">{</span>truth[<span class="dv">22</span>]<span class="sc">:.0f}</span><span class="ss">)"</span>)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    ref <span class="op">=</span> alpha_beta_demo(z, <span class="fl">1.0</span>, <span class="fl">0.5</span>, <span class="fl">0.1</span>)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    same <span class="op">=</span> np.allclose(np.asarray(alpha_beta(z, <span class="fl">1.0</span>, <span class="fl">0.5</span>, <span class="fl">0.1</span>), <span class="bu">float</span>), ref)</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> same <span class="kw">and</span> <span class="kw">not</span> np.isnan(est).<span class="bu">any</span>() <span class="kw">and</span> err_f <span class="op">&lt;</span> <span class="fl">0.8</span> <span class="op">*</span> err_m <span class="kw">and</span> <span class="bu">abs</span>(est[<span class="dv">22</span>] <span class="op">-</span> truth[<span class="dv">22</span>]) <span class="op">&lt;</span> <span class="dv">12</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 3.1.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 3.1.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-kalman" class="level3" data-number="3.1.3">
+<h3 data-number="3.1.3" class="anchored" data-anchor-id="sec-kalman"><span class="header-section-number">3.1.3</span> The Kalman filter</h3>
+<p>The alpha-beta filter works, but α and β are just numbers we picked, and it would be nice to have a principled way to choose them, ideally one that adapts when we’re more or less certain about things. That’s what the Kalman filter does (Kalman published it in 1960, and a version of it was flying on the Apollo missions a few years later). The key idea is to keep track not only of an estimate but of how uncertain it is, as a variance, and then to combine prediction and measurement in proportion to how much we trust each.</p>
+<p>The heart of it is a small calculation that’s worth doing once in one dimension. Suppose we have two independent, unbiased estimates of the same quantity, a prediction x̂<sup>−</sup> with variance P and a measurement z with variance R, and we want to combine them as x̂ = x̂<sup>−</sup> + K(z − x̂<sup>−</sup>) for some weight K. The error of the combination is (1 − K) times the prediction error plus K times the measurement error, and since the two errors are independent, its variance is</p>
+<p><span class="math display">\[
+P_{\text{new}}(K) = (1-K)^2 P + K^2 R .
+\]</span></p>
+<p>Setting the derivative to zero gives −2(1 − K)P + 2KR = 0, so the best weight and the resulting variance are</p>
+<p><span class="math display">\[
+K = \frac{P}{P + R}, \qquad P_{\text{new}} = (1 - K)\,P = \frac{P R}{P + R} .
+\]</span></p>
+<p>That’s the whole idea of the Kalman update. When the prediction is much more uncertain than the measurement (P ≫ R), K is close to 1 and we basically take the measurement, and when the measurement is the noisy one, K is close to 0 and we keep the prediction. The new variance is smaller than both P and R, which makes sense, since two independent pieces of information should beat either one alone. (In terms of inverse variances, 1/P<sub>new</sub> = 1/P + 1/R, so information just adds up.)</p>
+<p>The full filter does the same thing with vectors and matrices. The state x collects everything we’re estimating, like position and velocity in both directions, the motion model is a matrix F with x<sub>k</sub> = F x<sub>k−1</sub> + noise, and the measurement is z<sub>k</sub> = H x<sub>k</sub> + noise, where H picks out the parts of the state we actually observe. The process noise has covariance Q, which is how we say the constant-velocity model is only approximately right, and the measurement noise has covariance R. Each frame then runs</p>
+<p><span class="math display">\[
+\begin{aligned}
+\text{predict:}\quad &amp; \hat{x}^- = F\hat{x}, &amp; P^- &amp;= F P F^\top + Q,\\
+\text{update:}\quad &amp; K = P^- H^\top\big(H P^- H^\top + R\big)^{-1}, &amp; \hat{x} &amp;= \hat{x}^- + K\big(z - H\hat{x}^-\big), \quad P = (I - K H)P^- .
+\end{aligned}
+\]</span></p>
+<p>The formulas look heavy, but each line is just the matrix version of something above. Predicting moves the estimate with F and moves the uncertainty with it, plus some extra uncertainty Q because the model isn’t perfect. The gain K is the matrix version of P/(P + R), and the last line is (1 − K)P. For the one-dimensional constant-velocity model, with state (x, v),</p>
+<p><span class="math display">\[
+F = \begin{pmatrix} 1 &amp; \Delta t \\ 0 &amp; 1\end{pmatrix}, \qquad H = \begin{pmatrix} 1 &amp; 0 \end{pmatrix},
+\]</span></p>
+<p>and a nice fact is that if Q and R stay fixed, P and K converge to constant values after a few frames, and the constant gain K = (α, β/Δt) is exactly an alpha-beta filter. So the alpha-beta filter is the steady state of a Kalman filter, and the Kalman filter tells us which α and β to use given how noisy the detector and the motion are. The difference shows up at the start of a track, when the Kalman filter knows it’s uncertain and trusts the measurements more, and whenever measurements go missing, since P grows during the gap and the filter then leans more heavily on the next measurement that arrives. OpenCV has an implementation in <code>cv2.KalmanFilter</code>, but it’s short enough that writing it yourself is the best way to see what it does.</p>
+<div id="ex-3-1-2" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 3.1.2 (A Kalman filter for a moving point)</strong></span> Write <code>kalman_track(zs, dt, q, r)</code> for a point moving in the plane. The state is (x, y, v<sub>x</sub>, v<sub>y</sub>), the measurements are positions (x, y) with covariance r·I, and the process noise is Q = q·G G<sup>⊤</sup> with G = [[Δt²/2, 0], [0, Δt²/2], [Δt, 0], [0, Δt]], which models random accelerations. Start from x̂ = (z<sub>0</sub>, 0, 0) with P = diag(r, r, 100, 100), and handle rows of <code>zs</code> that are <code>np.nan</code> by skipping the update. Return the array of estimated positions (n, 2) and the final gain matrix K. The check compares the error with the raw measurements and confirms that the position entry of the steady-state gain is between 0 and 1.</p>
+</div>
+<div id="463967aa" class="cell lc-exercise" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> kalman_track(zs, dt, q, r):</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Constant-velocity Kalman filter for 2D positions zs (n, 2). Returns (positions (n, 2), final gain K (4, 2))."""</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="7ca93500" class="cell lc-check" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(<span class="dv">5</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="dv">120</span><span class="op">;</span> tt <span class="op">=</span> np.arange(n) <span class="op">*</span> <span class="fl">0.1</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    path <span class="op">=</span> np.c_[<span class="dv">30</span> <span class="op">*</span> np.cos(<span class="fl">0.4</span> <span class="op">*</span> tt) <span class="op">+</span> <span class="dv">5</span> <span class="op">*</span> tt, <span class="dv">20</span> <span class="op">*</span> np.sin(<span class="fl">0.4</span> <span class="op">*</span> tt)]</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    zs <span class="op">=</span> path <span class="op">+</span> rng.normal(<span class="dv">0</span>, <span class="fl">2.0</span>, path.shape)<span class="op">;</span> zs[[<span class="dv">40</span>, <span class="dv">41</span>, <span class="dv">42</span>, <span class="dv">43</span>]] <span class="op">=</span> np.nan</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    est, K <span class="op">=</span> kalman_track(zs, <span class="fl">0.1</span>, q<span class="op">=</span><span class="fl">50.0</span>, r<span class="op">=</span><span class="fl">4.0</span>)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    est <span class="op">=</span> np.asarray(est, <span class="bu">float</span>)<span class="op">;</span> good <span class="op">=</span> <span class="op">~</span>np.isnan(zs[:, <span class="dv">0</span>])</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    e_meas <span class="op">=</span> np.sqrt(np.mean(np.<span class="bu">sum</span>((zs[good] <span class="op">-</span> path[good]) <span class="op">**</span> <span class="dv">2</span>, <span class="dv">1</span>)))</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    e_filt <span class="op">=</span> np.sqrt(np.mean(np.<span class="bu">sum</span>((est[<span class="dv">10</span>:] <span class="op">-</span> path[<span class="dv">10</span>:]) <span class="op">**</span> <span class="dv">2</span>, <span class="dv">1</span>)))</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"rms error: measurements </span><span class="sc">{</span>e_meas<span class="sc">:.2f}</span><span class="ss">, Kalman </span><span class="sc">{</span>e_filt<span class="sc">:.2f}</span><span class="ss">;  steady-state position gain </span><span class="sc">{</span>K[<span class="dv">0</span>, <span class="dv">0</span>]<span class="sc">:.3f}</span><span class="ss">"</span>)</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> est.shape <span class="op">==</span> (n, <span class="dv">2</span>) <span class="kw">and</span> <span class="kw">not</span> np.isnan(est).<span class="bu">any</span>() <span class="kw">and</span> e_filt <span class="op">&lt;</span> <span class="fl">0.75</span> <span class="op">*</span> e_meas <span class="kw">and</span> <span class="dv">0</span> <span class="op">&lt;</span> K[<span class="dv">0</span>, <span class="dv">0</span>] <span class="op">&lt;</span> <span class="dv">1</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 3.1.2"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 3.1.2: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-multi-tracking" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="sec-multi-tracking"><span class="header-section-number">3.2</span> Tracking Many Objects</h2>
+<section id="sec-data-association" class="level3" data-number="3.2.1">
+<h3 data-number="3.2.1" class="anchored" data-anchor-id="sec-data-association"><span class="header-section-number">3.2.1</span> Data association</h3>
+<p>With one object, every detection belongs to it. With several objects, like the bats flying out of a cave in the thermal videos from Betke’s group or the flocks and schools in the animal tracking part of the lecture, we first have to decide which detection belongs to which track, and that’s the <em>data association</em> problem. It’s usually much harder than the filtering itself, and when trackers fail, it’s almost always because of a wrong association, two tracks swapping identities when the objects pass close to each other, say.</p>
+<p>The standard setup goes like this. Each existing track predicts where its object should be in the new frame (that’s what the filter of <a href="#sec-single-tracking" class="quarto-xref"><span>Section 3.1</span></a> is for), and we build a cost matrix C whose entry C<sub>ij</sub> is how badly detection j fits track i, for example the distance between the prediction and the detection. A good choice is the Mahalanobis distance, which divides by the predicted uncertainty, so that a track that’s been coasting for a while (and is therefore uncertain) is allowed to grab a detection further away. Then we pick an assignment, at most one detection per track and at most one track per detection, that makes the total cost small. Pairs whose cost is above some threshold aren’t allowed at all, which is called <em>gating</em>, and any detection left over starts a new track, while a track that goes unmatched for several frames in a row gets deleted.</p>
+<p>The simplest assignment rule is <em>greedy</em>. Find the smallest entry in the whole matrix, make that pair, cross out its row and column, and repeat. It’s fast and usually fine, but it can be fooled. Here’s a tiny example where it is, with two tracks and two detections,</p>
+<p><span class="math display">\[
+C = \begin{pmatrix} 1 &amp; 2 \\ 2 &amp; 10 \end{pmatrix}.
+\]</span></p>
+<p>Greedy takes the 1 first, which forces track 2 onto detection 2 at cost 10, for a total of 11, while the other assignment costs 2 + 2 = 4. The optimal assignment, the one with the smallest total cost, can be found exactly in O(n³) time by the <em>Hungarian algorithm</em> (Kuhn, 1955, building on work by the Hungarian mathematicians Kőnig and Egerváry, hence the name). We won’t go through how it works, since SciPy has it as <code>scipy.optimize.linear_sum_assignment</code>, but it’s worth knowing that it exists and that the optimal assignment isn’t any harder to use than the greedy one.</p>
+<div id="ex-3-2-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 3.2.1 (Greedy assignment)</strong></span> Write <code>greedy_assign(C)</code>, which returns a list of (track, detection) pairs chosen greedily from the cost matrix C, which can be rectangular. The check compares the total cost with the optimal one from SciPy on the example above and on a bunch of random matrices, so you can see how often greedy loses and by how much.</p>
+</div>
+<div id="5cde9b35" class="cell lc-exercise" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> greedy_assign(C):</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Greedy assignment: repeatedly take the cheapest remaining (row, col) pair. Returns a list of pairs."""</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="c2dcc312" class="cell lc-check" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="im">from</span> scipy.optimize <span class="im">import</span> linear_sum_assignment</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    pairs <span class="op">=</span> <span class="bu">sorted</span>(<span class="bu">tuple</span>(<span class="bu">int</span>(v) <span class="cf">for</span> v <span class="kw">in</span> p) <span class="cf">for</span> p <span class="kw">in</span> greedy_assign(np.array([[<span class="fl">1.0</span>, <span class="dv">2</span>], [<span class="dv">2</span>, <span class="dv">10</span>]])))</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(<span class="dv">2</span>)<span class="op">;</span> worse <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> total_g <span class="op">=</span> total_o <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">200</span>):</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>        C <span class="op">=</span> rng.random((<span class="dv">5</span>, <span class="dv">7</span>))</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>        g <span class="op">=</span> greedy_assign(C)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>        rows, cols <span class="op">=</span> <span class="bu">zip</span>(<span class="op">*</span>g)</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">len</span>(<span class="bu">set</span>(rows)) <span class="op">!=</span> <span class="dv">5</span> <span class="kw">or</span> <span class="bu">len</span>(<span class="bu">set</span>(cols)) <span class="op">!=</span> <span class="dv">5</span>:</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>            <span class="bu">print</span>(<span class="st">"each track should get exactly one detection"</span>)<span class="op">;</span> <span class="cf">return</span> <span class="va">False</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>        r, c <span class="op">=</span> linear_sum_assignment(C)</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>        cg, co <span class="op">=</span> <span class="bu">sum</span>(C[i, j] <span class="cf">for</span> i, j <span class="kw">in</span> g), C[r, c].<span class="bu">sum</span>()</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>        worse <span class="op">+=</span> cg <span class="op">&gt;</span> co <span class="op">+</span> <span class="fl">1e-12</span><span class="op">;</span> total_g <span class="op">+=</span> cg<span class="op">;</span> total_o <span class="op">+=</span> co</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"greedy pairs on the 2 x 2 example: </span><span class="sc">{</span>pairs<span class="sc">}</span><span class="ss">;  greedy was worse in </span><span class="sc">{</span>worse<span class="sc">}</span><span class="ss"> of 200 random cases, "</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>          <span class="ss">f"by </span><span class="sc">{</span><span class="dv">100</span> <span class="op">*</span> (total_g <span class="op">/</span> total_o <span class="op">-</span> <span class="dv">1</span>)<span class="sc">:.1f}</span><span class="ss">% on average"</span>)</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pairs <span class="op">==</span> [(<span class="dv">0</span>, <span class="dv">0</span>), (<span class="dv">1</span>, <span class="dv">1</span>)] <span class="kw">and</span> worse <span class="op">&gt;</span> <span class="dv">0</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 3.2.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 3.2.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-mot-tracker" class="level3" data-number="3.2.2">
+<h3 data-number="3.2.2" class="anchored" data-anchor-id="sec-mot-tracker"><span class="header-section-number">3.2.2</span> A small multi-object tracker</h3>
+<p>Putting the pieces together gives a tracker that’s simple but pretty usable. Each track has an ID, a filtered state and a count of how many frames it’s gone without a detection. In each frame we predict every track, build the cost matrix of distances to the detections, solve the assignment, throw out pairs that fail the gate, update the matched tracks, age the unmatched ones and delete them when they’ve been missing too long, and start new tracks for unmatched detections. The second part of the third assignment in the course is exactly this, keeping a consistent ID for each object across a video.</p>
+<div id="7534401e" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.optimize <span class="im">import</span> linear_sum_assignment</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> simulate(n_obj<span class="op">=</span><span class="dv">5</span>, n_frames<span class="op">=</span><span class="dv">60</span>, seed<span class="op">=</span><span class="dv">4</span>):</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(seed)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    p0 <span class="op">=</span> rng.uniform(<span class="dv">0</span>, <span class="dv">100</span>, (n_obj, <span class="dv">2</span>))<span class="op">;</span> v <span class="op">=</span> rng.uniform(<span class="op">-</span><span class="fl">1.5</span>, <span class="fl">1.5</span>, (n_obj, <span class="dv">2</span>))</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    frames <span class="op">=</span> []</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(n_frames):</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>        pts <span class="op">=</span> p0 <span class="op">+</span> k <span class="op">*</span> v <span class="op">+</span> rng.normal(<span class="dv">0</span>, <span class="fl">0.4</span>, (n_obj, <span class="dv">2</span>))</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>        keep <span class="op">=</span> rng.random(n_obj) <span class="op">&gt;</span> <span class="fl">0.08</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>        frames.append(pts[keep])</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> frames</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> track(frames, gate<span class="op">=</span><span class="fl">6.0</span>, max_missing<span class="op">=</span><span class="dv">3</span>):</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    tracks, next_id, history <span class="op">=</span> [], <span class="dv">0</span>, {}</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> k, dets <span class="kw">in</span> <span class="bu">enumerate</span>(frames):</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>        preds <span class="op">=</span> np.array([t[<span class="st">"x"</span>] <span class="op">+</span> t[<span class="st">"v"</span>] <span class="cf">for</span> t <span class="kw">in</span> tracks]).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">2</span>)</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>        matched_t, matched_d <span class="op">=</span> <span class="bu">set</span>(), <span class="bu">set</span>()</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">len</span>(tracks) <span class="kw">and</span> <span class="bu">len</span>(dets):</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>            C <span class="op">=</span> np.linalg.norm(preds[:, <span class="va">None</span>, :] <span class="op">-</span> dets[<span class="va">None</span>, :, :], axis<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> i, j <span class="kw">in</span> <span class="bu">zip</span>(<span class="op">*</span>linear_sum_assignment(C)):</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> C[i, j] <span class="op">&lt;</span> gate:</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>                    t <span class="op">=</span> tracks[i]</span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>                    t[<span class="st">"v"</span>] <span class="op">=</span> <span class="fl">0.7</span> <span class="op">*</span> t[<span class="st">"v"</span>] <span class="op">+</span> <span class="fl">0.3</span> <span class="op">*</span> (dets[j] <span class="op">-</span> t[<span class="st">"x"</span>])<span class="op">;</span> t[<span class="st">"x"</span>] <span class="op">=</span> dets[j]<span class="op">;</span> t[<span class="st">"miss"</span>] <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>                    matched_t.add(i)<span class="op">;</span> matched_d.add(j)</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i, t <span class="kw">in</span> <span class="bu">enumerate</span>(tracks):</span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> i <span class="kw">not</span> <span class="kw">in</span> matched_t:</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>                t[<span class="st">"x"</span>] <span class="op">=</span> t[<span class="st">"x"</span>] <span class="op">+</span> t[<span class="st">"v"</span>]<span class="op">;</span> t[<span class="st">"miss"</span>] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>        tracks <span class="op">=</span> [t <span class="cf">for</span> t <span class="kw">in</span> tracks <span class="cf">if</span> t[<span class="st">"miss"</span>] <span class="op">&lt;=</span> max_missing]</span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j, d <span class="kw">in</span> <span class="bu">enumerate</span>(dets):</span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> j <span class="kw">not</span> <span class="kw">in</span> matched_d:</span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>                tracks.append({<span class="st">"id"</span>: next_id, <span class="st">"x"</span>: d.copy(), <span class="st">"v"</span>: np.zeros(<span class="dv">2</span>), <span class="st">"miss"</span>: <span class="dv">0</span>})<span class="op">;</span> next_id <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> t <span class="kw">in</span> tracks:</span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a>            history.setdefault(t[<span class="st">"id"</span>], []).append((k, <span class="op">*</span>t[<span class="st">"x"</span>]))</span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> history</span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a>hist <span class="op">=</span> track(simulate())</span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">5</span>, <span class="fl">4.2</span>))</span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> tid, h <span class="kw">in</span> hist.items():</span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true" tabindex="-1"></a>    h <span class="op">=</span> np.array(h)<span class="op">;</span> ax.plot(h[:, <span class="dv">1</span>], h[:, <span class="dv">2</span>], <span class="st">"-"</span>, lw<span class="op">=</span><span class="fl">1.4</span>)</span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true" tabindex="-1"></a>ax.set_aspect(<span class="st">"equal"</span>)<span class="op">;</span> ax.set_xlabel(<span class="st">"x"</span>)<span class="op">;</span> ax.set_ylabel(<span class="st">"y"</span>)</span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true" tabindex="-1"></a>fig.tight_layout()<span class="op">;</span> plt.show()</span>
+<span id="cb12-42"><a href="#cb12-42" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of track IDs created:"</span>, <span class="bu">len</span>(hist))</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="03-tracking-and-flow_files/figure-html/cell-10-output-1.png" width="470" height="322" class="figure-img"></p>
+<figcaption>Five points moving in straight lines with noisy detections, a few missed detections and two crossings, tracked with constant-velocity prediction and optimal assignment. Each colour is one track ID, and every track keeps its own ID through the crossings.</figcaption>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>number of track IDs created: 5</code></pre>
+</div>
+</div>
+<p>The velocity update in there is really an alpha-beta filter with α = 1, written in a slightly different way, and swapping in the Kalman filter of <a href="#sec-kalman" class="quarto-xref"><span>Section 3.1.3</span></a> (and the Mahalanobis distance for the cost) is the obvious next step. Crowded scenes need more than this, like keeping several hypotheses about the association alive for a few frames and deciding later (multiple hypothesis tracking), or using appearance as well as position, which is where the deep learning methods of later chapters come in.</p>
+<div id="ex-3-2-2" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 3.2.2 (Association with a gate)</strong></span> Write <code>associate(preds, dets, gate)</code>, which takes predicted positions (m, 2) and detections (n, 2) and returns three things: a list of matched (track, detection) pairs from the optimal assignment of Euclidean distances, with every pair at distance gate or more thrown out, a list of unmatched track indices and a list of unmatched detection indices. The check includes a detection that’s far from everything and a track whose object disappeared.</p>
+</div>
+<div id="3040cb49" class="cell lc-exercise" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> associate(preds, dets, gate):</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Optimal gated association. Returns (matches, unmatched_tracks, unmatched_dets)."""</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="bc43ac2d" class="cell lc-check" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    preds <span class="op">=</span> np.array([[<span class="fl">0.0</span>, <span class="dv">0</span>], [<span class="dv">10</span>, <span class="dv">0</span>], [<span class="dv">20</span>, <span class="dv">0</span>]])</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    dets <span class="op">=</span> np.array([[<span class="fl">10.5</span>, <span class="fl">0.3</span>], [<span class="fl">0.2</span>, <span class="op">-</span><span class="fl">0.4</span>], [<span class="dv">55</span>, <span class="dv">55</span>]])</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    m, ut, ud <span class="op">=</span> associate(preds, dets, gate<span class="op">=</span><span class="fl">3.0</span>)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    m <span class="op">=</span> <span class="bu">sorted</span>(<span class="bu">tuple</span>(<span class="bu">int</span>(v) <span class="cf">for</span> v <span class="kw">in</span> p) <span class="cf">for</span> p <span class="kw">in</span> m)</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"matches"</span>, m, <span class="st">" unmatched tracks"</span>, <span class="bu">sorted</span>(ut), <span class="st">" unmatched detections"</span>, <span class="bu">sorted</span>(ud))</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    m2, ut2, ud2 <span class="op">=</span> associate(np.zeros((<span class="dv">0</span>, <span class="dv">2</span>)), dets, <span class="fl">3.0</span>)</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> m <span class="op">==</span> [(<span class="dv">0</span>, <span class="dv">1</span>), (<span class="dv">1</span>, <span class="dv">0</span>)] <span class="kw">and</span> <span class="bu">sorted</span>(ut) <span class="op">==</span> [<span class="dv">2</span>] <span class="kw">and</span> <span class="bu">sorted</span>(ud) <span class="op">==</span> [<span class="dv">2</span>] <span class="kw">and</span> <span class="bu">len</span>(m2) <span class="op">==</span> <span class="dv">0</span> <span class="kw">and</span> <span class="bu">sorted</span>(ud2) <span class="op">==</span> [<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">2</span>]</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 3.2.2"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 3.2.2: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-edges" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="sec-edges"><span class="header-section-number">3.3</span> Edges</h2>
+<section id="sec-image-derivatives" class="level3" data-number="3.3.1">
+<h3 data-number="3.3.1" class="anchored" data-anchor-id="sec-image-derivatives"><span class="header-section-number">3.3.1</span> Derivatives of an image</h3>
+<p>So far we’ve mostly looked at regions, blobs of pixels that belong together. The other way to describe the shapes in an image is by their boundaries, the places where the brightness changes quickly, which are called <em>edges</em>. Edges are where most of the information in a picture is, which you can convince yourself of by noticing that a line drawing is usually enough to recognize a scene, and they’re much less sensitive to lighting than raw brightness, since a uniform change in brightness doesn’t move them.</p>
+<p>An edge is where the derivative of the brightness is large, so we need derivatives of an image, and since an image is sampled on a grid, we approximate them with differences. The simplest is ∂I/∂x ≈ I(x + 1, y) − I(x, y), but the centred difference (I(x + 1, y) − I(x − 1, y))/2 is better, for the same reason the midpoint rule beats the rectangle rule (its error is second order in the spacing instead of first). Differences like this can be written as small masks that we slide over the image and multiply-and-add, which is exactly the correlation we did in template matching, and the edge detection lecture lists the classic masks. The <em>Roberts</em> masks use 2 × 2 diagonal differences, and the <em>Prewitt</em> and <em>Sobel</em> masks combine a centred difference in one direction with averaging in the other,</p>
+<p><span class="math display">\[
+\text{Prewitt}_x = \begin{pmatrix} -1 &amp; 0 &amp; 1 \\ -1 &amp; 0 &amp; 1 \\ -1 &amp; 0 &amp; 1\end{pmatrix}, \qquad \text{Sobel}_x = \begin{pmatrix} -1 &amp; 0 &amp; 1 \\ -2 &amp; 0 &amp; 2 \\ -1 &amp; 0 &amp; 1\end{pmatrix},
+\]</span></p>
+<p>with the y versions given by the transposes. The averaging matters, since differencing amplifies noise (a difference of two noisy pixels has twice the noise variance, the same √2 we saw for frame differencing in <a href="01-programming-with-images.html#sec-frame-differencing" class="quarto-xref"><span>Section 1.4.2</span></a>), and smoothing across the edge direction pulls the noise back down. From the two derivatives we get the <em>gradient</em>, with magnitude ‖∇I‖ = √(I<sub>x</sub>² + I<sub>y</sub>²), which is large on edges, and direction atan2(I<sub>y</sub>, I<sub>x</sub>), which points across the edge from dark to bright.</p>
+<div id="ex-3-3-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 3.3.1 (The Sobel gradient)</strong></span> Write <code>sobel_gradient(img)</code>, which returns the arrays I<sub>x</sub> and I<sub>y</sub> obtained by correlating a float version of the image with the Sobel masks above, using <code>cv2.filter2D</code> (which computes correlation, not convolution, so the mask is used as written) with <code>borderType=cv2.BORDER_REFLECT_101</code>. The check compares your result with <code>cv2.Sobel</code> and with the exact gradient of a linear ramp.</p>
+</div>
+<div id="9afe5468" class="cell lc-exercise" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sobel_gradient(img):</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Sobel derivatives (Ix, Iy) of a greyscale image, as float arrays."""</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="afb8e198" class="cell lc-check" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(<span class="dv">0</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    img <span class="op">=</span> cv2.GaussianBlur(rng.uniform(<span class="dv">0</span>, <span class="dv">255</span>, (<span class="dv">60</span>, <span class="dv">80</span>)), (<span class="dv">0</span>, <span class="dv">0</span>), <span class="dv">2</span>)</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    Ix, Iy <span class="op">=</span> sobel_gradient(img)</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    rx <span class="op">=</span> cv2.Sobel(img, cv2.CV_64F, <span class="dv">1</span>, <span class="dv">0</span>, ksize<span class="op">=</span><span class="dv">3</span>)<span class="op">;</span> ry <span class="op">=</span> cv2.Sobel(img, cv2.CV_64F, <span class="dv">0</span>, <span class="dv">1</span>, ksize<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    yy, xx <span class="op">=</span> np.mgrid[<span class="dv">0</span>:<span class="dv">20</span>, <span class="dv">0</span>:<span class="dv">30</span>].astype(<span class="bu">float</span>)</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    gx, gy <span class="op">=</span> sobel_gradient(<span class="dv">3</span> <span class="op">*</span> xx <span class="op">-</span> <span class="dv">2</span> <span class="op">*</span> yy)</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"largest difference from cv2.Sobel:"</span>, <span class="bu">max</span>(np.<span class="bu">abs</span>(Ix <span class="op">-</span> rx).<span class="bu">max</span>(), np.<span class="bu">abs</span>(Iy <span class="op">-</span> ry).<span class="bu">max</span>()))</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"on the ramp 3x - 2y, interior Ix ="</span>, gx[<span class="dv">5</span>, <span class="dv">5</span>], <span class="st">" Iy ="</span>, gy[<span class="dv">5</span>, <span class="dv">5</span>], <span class="st">" (Sobel's weights add up to 8, so 24 and -16)"</span>)</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.allclose(Ix, rx) <span class="kw">and</span> np.allclose(Iy, ry) <span class="kw">and</span> <span class="bu">abs</span>(gx[<span class="dv">5</span>, <span class="dv">5</span>] <span class="op">-</span> <span class="dv">24</span>) <span class="op">&lt;</span> <span class="fl">1e-9</span> <span class="kw">and</span> <span class="bu">abs</span>(gy[<span class="dv">5</span>, <span class="dv">5</span>] <span class="op">+</span> <span class="dv">16</span>) <span class="op">&lt;</span> <span class="fl">1e-9</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 3.3.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 3.3.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-log" class="level3" data-number="3.3.2">
+<h3 data-number="3.3.2" class="anchored" data-anchor-id="sec-log"><span class="header-section-number">3.3.2</span> Second derivatives and the Mexican hat</h3>
+<p>Another way to find an edge is to look at the second derivative. Across a smooth step the first derivative has a peak, so the second derivative crosses zero right at the edge, and zero crossings are easy to locate precisely. The rotationally symmetric second derivative is the Laplacian, ∇²I = I<sub>xx</sub> + I<sub>yy</sub>, but taking second derivatives of a noisy image is a terrible idea unless you smooth first, so Marr and Hildreth (1980) proposed smoothing with a Gaussian G<sub>σ</sub> and then taking the Laplacian. Since both are linear, we can combine them into one mask, the <em>Laplacian of Gaussian</em>,</p>
+<p><span class="math display">\[
+\nabla^2 G_\sigma(x, y) = \frac{x^2 + y^2 - 2\sigma^2}{\sigma^4}\, G_\sigma(x, y), \qquad G_\sigma(x, y) = \frac{1}{2\pi\sigma^2}e^{-(x^2+y^2)/2\sigma^2},
+\]</span></p>
+<p>which you can check by differentiating the Gaussian twice. Flipped upside down it looks like a sombrero, which is why the lecture calls it the <em>Mexican hat</em>. It’s also very close to a <em>difference of Gaussians</em>, G<sub>σ1</sub> − G<sub>σ2</sub> with σ<sub>2</sub> about 1.6 times σ<sub>1</sub>, which is cheaper to compute and shows up again in the SIFT feature detector. The reason is that the Gaussian satisfies the heat equation, ∂G/∂σ = σ∇²G, so the difference of two Gaussians with nearby widths is approximately (σ<sub>2</sub> − σ<sub>1</sub>)σ∇²G. There’s even a nice biological connection, since neurons in the retina have centre-surround receptive fields that respond roughly like this mask.</p>
+</section>
+<section id="sec-canny" class="level3" data-number="3.3.3">
+<h3 data-number="3.3.3" class="anchored" data-anchor-id="sec-canny"><span class="header-section-number">3.3.3</span> The Canny detector</h3>
+<p>The edge detector everyone actually uses is the one from John Canny’s 1986 paper, which set out three goals for a good detector: find all the real edges and nothing else, put them in the right place, and report each edge only once. Working out what these mean for a step edge in noise leads to a filter that’s very close to the derivative of a Gaussian, and the full detector runs four steps.</p>
+<ol type="1">
+<li>Smooth the image with a Gaussian and compute the gradient, magnitude and direction.</li>
+<li><em>Non-maximum suppression</em>: keep a pixel only if its gradient magnitude is at least as big as its two neighbours along the gradient direction, so a thick ridge of large gradient gets thinned to a one-pixel-wide line.</li>
+<li><em>Double thresholding</em>: pixels above a high threshold are strong edges, pixels between a low and a high threshold are weak edges, and everything else is dropped.</li>
+<li><em>Hysteresis</em>: keep a weak edge pixel only if it’s connected to a strong one, through a chain of edge pixels.</li>
+</ol>
+<p>The last step is the clever bit. A single threshold either breaks real edges into dashes, where the contrast dips a little, or lets in lots of noise, and hysteresis gets around this by letting a strong edge “pull in” its weaker continuation, while isolated weak responses, which are usually noise, get dropped. OpenCV’s <code>cv2.Canny(img, low, high)</code> does all four steps, and the usual advice is to set the high threshold two or three times the low one.</p>
+<div id="306d226e" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">3</span>)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>scene <span class="op">=</span> np.full((<span class="dv">140</span>, <span class="dv">200</span>), <span class="fl">70.0</span>)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>cv2.circle(scene, (<span class="dv">60</span>, <span class="dv">70</span>), <span class="dv">35</span>, <span class="dv">170</span>, <span class="op">-</span><span class="dv">1</span>)<span class="op">;</span> cv2.rectangle(scene, (<span class="dv">115</span>, <span class="dv">30</span>), (<span class="dv">180</span>, <span class="dv">110</span>), <span class="dv">130</span>, <span class="op">-</span><span class="dv">1</span>)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>noisy <span class="op">=</span> np.clip(scene <span class="op">+</span> rng.normal(<span class="dv">0</span>, <span class="dv">12</span>, scene.shape), <span class="dv">0</span>, <span class="dv">255</span>).astype(np.uint8)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>smooth <span class="op">=</span> cv2.GaussianBlur(noisy.astype(<span class="bu">float</span>), (<span class="dv">0</span>, <span class="dv">0</span>), <span class="fl">1.5</span>)</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>mag <span class="op">=</span> np.hypot(cv2.Sobel(smooth, cv2.CV_64F, <span class="dv">1</span>, <span class="dv">0</span>), cv2.Sobel(smooth, cv2.CV_64F, <span class="dv">0</span>, <span class="dv">1</span>))</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>edges <span class="op">=</span> cv2.Canny(cv2.GaussianBlur(noisy, (<span class="dv">0</span>, <span class="dv">0</span>), <span class="fl">1.5</span>), <span class="dv">40</span>, <span class="dv">100</span>)</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="fl">2.6</span>))</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> a, im <span class="kw">in</span> <span class="bu">zip</span>(ax, [noisy, mag, edges]):</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    a.imshow(im, cmap<span class="op">=</span><span class="st">"gray"</span>)<span class="op">;</span> a.set_xticks([])<span class="op">;</span> a.set_yticks([])</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>fig.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="03-tracking-and-flow_files/figure-html/cell-15-output-1.png" width="950" height="230" class="figure-img"></p>
+<figcaption>A noisy test image (left), its Sobel gradient magnitude (middle) and the Canny edges with thresholds 40 and 100 (right). The gradient magnitude is thick and noisy, while Canny gives thin, connected outlines.</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div id="ex-3-3-2" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 3.3.2 (Hysteresis)</strong></span> Write <code>hysteresis(mag, low, high)</code>, which takes a gradient magnitude image (already thinned, if you like) and returns a boolean edge map containing every pixel above <code>low</code> that belongs to an 8-connected group of above-<code>low</code> pixels containing at least one pixel above <code>high</code>. The connected components of <a href="01-programming-with-images.html#sec-from-pixels-to-blobs" class="quarto-xref"><span>Section 1.4.4</span></a> do all the work, so <code>cv2.connectedComponents</code> on the above-<code>low</code> mask is a good start. The check uses a small hand-made example.</p>
+</div>
+<div id="eeaf577c" class="cell lc-exercise" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> hysteresis(mag, low, high):</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Boolean map of pixels &gt; low that are 8-connected to some pixel &gt; high."""</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="c882eaaa" class="cell lc-check" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>    m <span class="op">=</span> np.zeros((<span class="dv">7</span>, <span class="dv">9</span>))</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    m[<span class="dv">1</span>, <span class="dv">1</span>:<span class="dv">6</span>] <span class="op">=</span> [<span class="dv">5</span>, <span class="dv">5</span>, <span class="dv">9</span>, <span class="dv">5</span>, <span class="dv">5</span>]      <span class="co"># weak chain with one strong pixel: kept</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    m[<span class="dv">4</span>, <span class="dv">2</span>:<span class="dv">5</span>] <span class="op">=</span> [<span class="dv">5</span>, <span class="dv">5</span>, <span class="dv">5</span>]            <span class="co"># weak chain with no strong pixel: dropped</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    m[<span class="dv">2</span>, <span class="dv">6</span>] <span class="op">=</span> <span class="dv">5</span>                      <span class="co"># diagonal neighbour of the first chain: kept</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    m[<span class="dv">6</span>, <span class="dv">8</span>] <span class="op">=</span> <span class="dv">9</span>                      <span class="co"># isolated strong pixel: kept</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    got <span class="op">=</span> np.asarray(hysteresis(m, <span class="dv">4</span>, <span class="dv">8</span>), <span class="bu">bool</span>)</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    want <span class="op">=</span> np.zeros_like(got)<span class="op">;</span> want[<span class="dv">1</span>, <span class="dv">1</span>:<span class="dv">6</span>] <span class="op">=</span> <span class="va">True</span><span class="op">;</span> want[<span class="dv">2</span>, <span class="dv">6</span>] <span class="op">=</span> <span class="va">True</span><span class="op">;</span> want[<span class="dv">6</span>, <span class="dv">8</span>] <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> np.array_equal(got, want):</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">"kept (row, col):"</span>, [<span class="bu">tuple</span>(<span class="bu">int</span>(v) <span class="cf">for</span> v <span class="kw">in</span> p) <span class="cf">for</span> p <span class="kw">in</span> np.argwhere(got)])</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.array_equal(got, want)</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 3.3.2"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 3.3.2: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-active-contours" class="level2" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="sec-active-contours"><span class="header-section-number">3.4</span> Active Contours</h2>
+<p>Edge detectors give us lots of little edge pixels, but they don’t tell us which of them make up the outline of one object, and on a real image the edges of the object we want are usually broken and mixed in with edges of everything else. <em>Active contours</em>, or snakes, attack the problem from the other side. We start with a closed curve roughly around the object, maybe drawn by a user or from the previous frame of a video, and let it move to fit the object’s boundary, pulled towards strong edges but resisting stretching and bending, so that it bridges gaps and ignores stray edge pixels. The idea comes from Kass, Witkin and Terzopoulos (1988), and the course follows the greedy algorithm of Williams and Shah (1992), which is simple and fast.</p>
+<p>The contour is a list of points v<sub>1</sub>, …, v<sub>n</sub>, and its energy is a sum over the points,</p>
+<p><span class="math display">\[
+E = \sum_i \big[\alpha_i E_{\text{cont}}(v_i) + \beta_i E_{\text{curv}}(v_i) + \gamma_i E_{\text{image}}(v_i)\big].
+\]</span></p>
+<p>The three terms do different jobs. The <em>continuity</em> term keeps the points evenly spaced, which Williams and Shah measure as |d̄ − ‖v<sub>i</sub> − v<sub>i−1</sub>‖|, where d̄ is the current average spacing (the original snakes used ‖v<sub>i</sub> − v<sub>i−1</sub>‖² instead, which also makes the curve shrink, and Williams and Shah changed it to avoid that). The <em>curvature</em> term ‖v<sub>i−1</sub> − 2v<sub>i</sub> + v<sub>i+1</sub>‖² is a discrete second derivative, so it’s small when the curve is locally straight and penalizes sharp bends. The <em>image</em> term is minus the gradient magnitude, so the energy drops when a point sits on a strong edge. Each term is normalized to lie between 0 and 1 over the neighbourhood being considered, so that α, β and γ really control their relative importance.</p>
+<p>The greedy algorithm is then really simple to state. Go around the contour, and for each point look at its 3 × 3 (or 5 × 5) neighbourhood of pixels, compute the energy the point would have at each of those positions with its neighbours held fixed, and move it to the position with the smallest energy. Keep going around until hardly any points move. Williams and Shah add one more trick, which is to look for corners, places where the curvature is a local maximum and the edge is strong, and set β to zero there so the snake is allowed to bend sharply at real corners. Each pass is cheap, and the snake converges in a few dozen passes on easy images, though, like any local search, it can get stuck on a strong edge that isn’t the one you wanted, which is why the starting contour matters.</p>
+<div id="44ce9c51" class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> greedy_snake(edge_mag, pts, alpha<span class="op">=</span><span class="fl">1.0</span>, beta<span class="op">=</span><span class="fl">1.0</span>, gamma<span class="op">=</span><span class="fl">1.0</span>, iters<span class="op">=</span><span class="dv">60</span>, win<span class="op">=</span><span class="dv">1</span>):</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    pts <span class="op">=</span> pts.astype(<span class="bu">float</span>).copy()<span class="op">;</span> n <span class="op">=</span> <span class="bu">len</span>(pts)</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    h, w <span class="op">=</span> edge_mag.shape</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    offs <span class="op">=</span> [(dx, dy) <span class="cf">for</span> dy <span class="kw">in</span> <span class="bu">range</span>(<span class="op">-</span>win, win <span class="op">+</span> <span class="dv">1</span>) <span class="cf">for</span> dx <span class="kw">in</span> <span class="bu">range</span>(<span class="op">-</span>win, win <span class="op">+</span> <span class="dv">1</span>)]</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(iters):</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>        moved <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>        dbar <span class="op">=</span> np.mean(np.linalg.norm(pts <span class="op">-</span> np.roll(pts, <span class="dv">1</span>, <span class="dv">0</span>), axis<span class="op">=</span><span class="dv">1</span>))</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n):</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>            prev, nxt <span class="op">=</span> pts[i <span class="op">-</span> <span class="dv">1</span>], pts[(i <span class="op">+</span> <span class="dv">1</span>) <span class="op">%</span> n]</span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>            cand <span class="op">=</span> np.array([pts[i] <span class="op">+</span> o <span class="cf">for</span> o <span class="kw">in</span> offs])</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>            cand[:, <span class="dv">0</span>] <span class="op">=</span> np.clip(cand[:, <span class="dv">0</span>], <span class="dv">0</span>, w <span class="op">-</span> <span class="dv">1</span>)<span class="op">;</span> cand[:, <span class="dv">1</span>] <span class="op">=</span> np.clip(cand[:, <span class="dv">1</span>], <span class="dv">0</span>, h <span class="op">-</span> <span class="dv">1</span>)</span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>            ec <span class="op">=</span> np.<span class="bu">abs</span>(dbar <span class="op">-</span> np.linalg.norm(cand <span class="op">-</span> prev, axis<span class="op">=</span><span class="dv">1</span>))</span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>            ek <span class="op">=</span> np.<span class="bu">sum</span>((prev <span class="op">-</span> <span class="dv">2</span> <span class="op">*</span> cand <span class="op">+</span> nxt) <span class="op">**</span> <span class="dv">2</span>, axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>            ei <span class="op">=</span> <span class="op">-</span>edge_mag[cand[:, <span class="dv">1</span>].astype(<span class="bu">int</span>), cand[:, <span class="dv">0</span>].astype(<span class="bu">int</span>)]</span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>            norm <span class="op">=</span> <span class="kw">lambda</span> e: (e <span class="op">-</span> e.<span class="bu">min</span>()) <span class="op">/</span> (e.<span class="bu">max</span>() <span class="op">-</span> e.<span class="bu">min</span>() <span class="op">+</span> <span class="fl">1e-12</span>)</span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>            best <span class="op">=</span> np.argmin(alpha <span class="op">*</span> norm(ec) <span class="op">+</span> beta <span class="op">*</span> norm(ek) <span class="op">+</span> gamma <span class="op">*</span> norm(ei))</span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>            moved <span class="op">+=</span> best <span class="op">!=</span> <span class="bu">len</span>(offs) <span class="op">//</span> <span class="dv">2</span></span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>            pts[i] <span class="op">=</span> cand[best]</span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> moved <span class="op">&lt;</span> <span class="dv">2</span>:</span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>            <span class="cf">break</span></span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pts</span>
+<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a>img_s <span class="op">=</span> np.full((<span class="dv">120</span>, <span class="dv">120</span>), <span class="fl">40.0</span>)<span class="op">;</span> cv2.circle(img_s, (<span class="dv">60</span>, <span class="dv">60</span>), <span class="dv">28</span>, <span class="dv">200</span>, <span class="op">-</span><span class="dv">1</span>)</span>
+<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a>img_s <span class="op">+=</span> np.random.default_rng(<span class="dv">0</span>).normal(<span class="dv">0</span>, <span class="dv">15</span>, img_s.shape)</span>
+<span id="cb24-25"><a href="#cb24-25" aria-hidden="true" tabindex="-1"></a>sm <span class="op">=</span> cv2.GaussianBlur(img_s, (<span class="dv">0</span>, <span class="dv">0</span>), <span class="dv">2</span>)</span>
+<span id="cb24-26"><a href="#cb24-26" aria-hidden="true" tabindex="-1"></a>emag <span class="op">=</span> np.hypot(cv2.Sobel(sm, cv2.CV_64F, <span class="dv">1</span>, <span class="dv">0</span>), cv2.Sobel(sm, cv2.CV_64F, <span class="dv">0</span>, <span class="dv">1</span>))</span>
+<span id="cb24-27"><a href="#cb24-27" aria-hidden="true" tabindex="-1"></a>ang <span class="op">=</span> np.linspace(<span class="dv">0</span>, <span class="dv">2</span> <span class="op">*</span> np.pi, <span class="dv">40</span>, endpoint<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb24-28"><a href="#cb24-28" aria-hidden="true" tabindex="-1"></a>init <span class="op">=</span> np.c_[<span class="dv">60</span> <span class="op">+</span> <span class="dv">48</span> <span class="op">*</span> np.cos(ang), <span class="dv">60</span> <span class="op">+</span> <span class="dv">48</span> <span class="op">*</span> np.sin(ang)]</span>
+<span id="cb24-29"><a href="#cb24-29" aria-hidden="true" tabindex="-1"></a>final <span class="op">=</span> greedy_snake(emag, init, beta<span class="op">=</span><span class="fl">2.0</span>, gamma<span class="op">=</span><span class="fl">0.6</span>, iters<span class="op">=</span><span class="dv">150</span>)</span>
+<span id="cb24-30"><a href="#cb24-30" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="fl">3.6</span>, <span class="fl">3.6</span>))</span>
+<span id="cb24-31"><a href="#cb24-31" aria-hidden="true" tabindex="-1"></a>ax.imshow(img_s, cmap<span class="op">=</span><span class="st">"gray"</span>)</span>
+<span id="cb24-32"><a href="#cb24-32" aria-hidden="true" tabindex="-1"></a>ax.plot(<span class="op">*</span>np.r_[init, init[:<span class="dv">1</span>]].T, <span class="st">"--"</span>, color<span class="op">=</span><span class="st">"#E07A3F"</span>)<span class="op">;</span> ax.plot(<span class="op">*</span>np.r_[final, final[:<span class="dv">1</span>]].T, <span class="st">"-"</span>, color<span class="op">=</span><span class="st">"#3B6FB6"</span>, lw<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb24-33"><a href="#cb24-33" aria-hidden="true" tabindex="-1"></a>ax.set_xticks([])<span class="op">;</span> ax.set_yticks([])<span class="op">;</span> fig.tight_layout()<span class="op">;</span> plt.show()</span>
+<span id="cb24-34"><a href="#cb24-34" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"mean distance of the final contour from the centre:"</span>, <span class="bu">round</span>(np.linalg.norm(final <span class="op">-</span> <span class="dv">60</span>, axis<span class="op">=</span><span class="dv">1</span>).mean(), <span class="dv">1</span>), <span class="st">"(the disc has radius 28)"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="03-tracking-and-flow_files/figure-html/cell-18-output-1.png" width="336" height="336" class="figure-img"></p>
+<figcaption>A greedy snake (Williams and Shah) shrinking onto a noisy disc. The initial contour is the dashed circle, the final contour is solid, and it settles onto the disc’s edge.</figcaption>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>mean distance of the final contour from the centre: 27.1 (the disc has radius 28)</code></pre>
+</div>
+</div>
+<p>Notice that the snake shrank from radius 48 down to the disc even though there’s no edge in between. That’s the curvature term at work, since on a circle of points every point can lower its curvature energy a little by moving inward, and the continuity term keeps the spacing even while it happens. Once the points reach the edge, the image term holds them there. The weights matter more than you’d hope, though, and with the image term turned up (γ = 1.2, β = 1) the snake gets stuck in the noise near where it started, which is a good reminder that these methods need some tuning for each kind of image.</p>
+<div id="ex-3-4-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 3.4.1 (Snake energies)</strong></span> Write <code>snake_terms(pts)</code> for a closed contour given as an (n, 2) array, returning two arrays of length n: the continuity term |d̄ − ‖v<sub>i</sub> − v<sub>i−1</sub>‖| and the curvature term ‖v<sub>i−1</sub> − 2v<sub>i</sub> + v<sub>i+1</sub>‖², with indices wrapping around. The check uses a regular polygon, where every point should get the same values, and works out the curvature term on paper: for a regular n-gon with radius ρ it’s (2ρ(1 − cos(2π/n)))².</p>
+</div>
+<div id="2cb222d4" class="cell lc-exercise" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> snake_terms(pts):</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Continuity and curvature energy terms for every point of a closed contour (n, 2)."""</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="0e64644b" class="cell lc-check" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    n, rho <span class="op">=</span> <span class="dv">12</span>, <span class="fl">10.0</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    a <span class="op">=</span> <span class="dv">2</span> <span class="op">*</span> np.pi <span class="op">*</span> np.arange(n) <span class="op">/</span> n</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    poly <span class="op">=</span> np.c_[rho <span class="op">*</span> np.cos(a), rho <span class="op">*</span> np.sin(a)]</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    ec, ek <span class="op">=</span> (np.asarray(v, <span class="bu">float</span>) <span class="cf">for</span> v <span class="kw">in</span> snake_terms(poly))</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>    want_k <span class="op">=</span> (<span class="dv">2</span> <span class="op">*</span> rho <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> np.cos(<span class="dv">2</span> <span class="op">*</span> np.pi <span class="op">/</span> n))) <span class="op">**</span> <span class="dv">2</span></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>    uneven <span class="op">=</span> poly.copy()<span class="op">;</span> uneven[<span class="dv">3</span>] <span class="op">+=</span> [<span class="fl">1.5</span>, <span class="fl">0.0</span>]</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>    ec2, ek2 <span class="op">=</span> (np.asarray(v, <span class="bu">float</span>) <span class="cf">for</span> v <span class="kw">in</span> snake_terms(uneven))</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"regular 12-gon: continuity </span><span class="sc">{</span>ec<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.2e}</span><span class="ss">, curvature </span><span class="sc">{</span>ek[<span class="dv">0</span>]<span class="sc">:.4f}</span><span class="ss"> (paper: </span><span class="sc">{</span>want_k<span class="sc">:.4f}</span><span class="ss">);  moved point curvature </span><span class="sc">{</span>ek2[<span class="dv">3</span>]<span class="sc">:.3f}</span><span class="ss">"</span>)</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.allclose(ec, <span class="dv">0</span>, atol<span class="op">=</span><span class="fl">1e-9</span>) <span class="kw">and</span> np.allclose(ek, want_k) <span class="kw">and</span> ek2[<span class="dv">3</span>] <span class="op">&gt;</span> ek2[<span class="dv">0</span>] <span class="kw">and</span> ec2[<span class="dv">3</span>] <span class="op">&gt;</span> <span class="fl">1e-3</span></span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 3.4.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 3.4.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-optical-flow" class="level2" data-number="3.5">
+<h2 data-number="3.5" class="anchored" data-anchor-id="sec-optical-flow"><span class="header-section-number">3.5</span> Optical Flow</h2>
+<section id="sec-brightness-constancy" class="level3" data-number="3.5.1">
+<h3 data-number="3.5.1" class="anchored" data-anchor-id="sec-brightness-constancy"><span class="header-section-number">3.5.1</span> Brightness constancy</h3>
+<p>Frame differencing in <a href="01-programming-with-images.html#sec-frame-differencing" class="quarto-xref"><span>Section 1.4.2</span></a> told us <em>where</em> things changed between two frames, and optical flow asks for more, which is how each pixel moved, as a vector (u, v) per pixel. The two classic methods, both from 1981, are the ones the schedule lists for this lecture, Horn and Schunck’s and Lucas and Kanade’s.</p>
+<p>Both start from the same assumption, <em>brightness constancy</em>, which says that a point keeps its brightness as it moves. If the point at (x, y) at time t moves to (x + u δt, y + v δt) at time t + δt, then</p>
+<p><span class="math display">\[
+I(x + u\,\delta t,\; y + v\,\delta t,\; t + \delta t) = I(x, y, t).
+\]</span></p>
+<p>Expand the left side to first order in δt, cancel I(x, y, t), and divide by δt,</p>
+<p><span class="math display">\[
+I_x\,u + I_y\,v + I_t = 0 ,
+\]</span></p>
+<p>where I<sub>x</sub>, I<sub>y</sub> and I<sub>t</sub> are the partial derivatives of the brightness. This is the <em>optical flow constraint equation</em>, and it’s the starting point for both methods. In practice I<sub>x</sub> and I<sub>y</sub> come from masks like the ones in <a href="#sec-image-derivatives" class="quarto-xref"><span>Section 3.3.1</span></a> and I<sub>t</sub> from the difference between the two frames.</p>
+</section>
+<section id="sec-aperture" class="level3" data-number="3.5.2">
+<h3 data-number="3.5.2" class="anchored" data-anchor-id="sec-aperture"><span class="header-section-number">3.5.2</span> The aperture problem</h3>
+<p>There’s a catch, which is that the constraint is one equation in two unknowns. Geometrically, it says (u, v) lies on a line in the (u, v) plane, perpendicular to the gradient (I<sub>x</sub>, I<sub>y</sub>), so it fixes the component of the motion along the gradient,</p>
+<p><span class="math display">\[
+\text{normal flow} = -\frac{I_t}{\sqrt{I_x^2 + I_y^2}},
+\]</span></p>
+<p>and leaves the component along the edge completely undetermined. That’s the <em>aperture problem</em>, and you’ve probably seen it in the barber pole illusion, where stripes on a rotating pole seem to move up even though the surface moves sideways, since looking at a straight edge through a small window, you can only see it move perpendicular to itself. So to get the full flow we need to bring in more information, and the two methods do it in different ways. Horn and Schunck assume the flow is smooth across the whole image, and Lucas and Kanade assume it’s constant in a small window.</p>
+</section>
+<section id="sec-horn-schunck" class="level3" data-number="3.5.3">
+<h3 data-number="3.5.3" class="anchored" data-anchor-id="sec-horn-schunck"><span class="header-section-number">3.5.3</span> Horn and Schunck</h3>
+<p>Horn and Schunck look for the flow field that satisfies the constraint as well as possible while varying smoothly, by minimizing</p>
+<p><span class="math display">\[
+E(u, v) = \iint \Big[(I_x u + I_y v + I_t)^2 + \lambda\big(\|\nabla u\|^2 + \|\nabla v\|^2\big)\Big]\,dx\,dy ,
+\]</span></p>
+<p>where λ sets how much we care about smoothness. The Euler-Lagrange equations of this functional are</p>
+<p><span class="math display">\[
+I_x(I_x u + I_y v + I_t) = \lambda\nabla^2 u, \qquad I_y(I_x u + I_y v + I_t) = \lambda\nabla^2 v .
+\]</span></p>
+<p>On the grid, the Laplacian is approximated as ∇²u ≈ κ(ū − u), where ū is a local average of u over the neighbours (with κ a constant that depends on the averaging mask, which we fold into λ). Substituting and solving the two linear equations for u and v at each pixel gives the famous update</p>
+<p><span class="math display">\[
+u \leftarrow \bar{u} - I_x\,\frac{I_x\bar{u} + I_y\bar{v} + I_t}{\lambda + I_x^2 + I_y^2}, \qquad v \leftarrow \bar{v} - I_y\,\frac{I_x\bar{u} + I_y\bar{v} + I_t}{\lambda + I_x^2 + I_y^2},
+\]</span></p>
+<p>which we iterate, recomputing the averages each time. There’s a nice reading of it. Each pixel starts from the average of its neighbours and then moves along the gradient direction just enough to (nearly) satisfy its own constraint, so in places with strong gradients the data decides, and in flat regions, where I<sub>x</sub> and I<sub>y</sub> are small, the flow is just filled in from the surroundings. That filling in is what solves the aperture problem, but it’s also the method’s weakness, since the smoothness term blurs the flow across the boundaries of moving objects.</p>
+<div id="ex-3-5-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 3.5.1 (Horn and Schunck)</strong></span> Write <code>horn_schunck(I1, I2, lam, iters)</code>, which returns flow arrays u and v of the same shape as the images. Compute I<sub>x</sub> and I<sub>y</sub> with <code>np.gradient</code> on the average of the two frames, I<sub>t</sub> = I2 − I1, start from zero flow, and get the neighbour averages with the mask [[1, 2, 1], [2, 0, 2], [1, 2, 1]]/12 and <code>cv2.filter2D</code>. The check moves a smooth random texture by a known sub-pixel amount and compares the median flow with the true motion.</p>
+</div>
+<div id="48244b84" class="cell lc-exercise" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> horn_schunck(I1, I2, lam, iters):</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Horn-Schunck optical flow between two float images. Returns (u, v)."""</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="41208c74" class="cell lc-setup" data-execution_count="21">
+<details class="code-fold">
+<summary>Setup: a smooth texture moved by a known amount</summary>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># [Setup] Two frames of a smooth random texture; the second is the first shifted by (0.6, -0.4) pixels.</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> shifted_pair(du, dv, seed<span class="op">=</span><span class="dv">0</span>, size<span class="op">=</span>(<span class="dv">96</span>, <span class="dv">128</span>), blur<span class="op">=</span><span class="dv">4</span>):</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(seed)</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>    base <span class="op">=</span> cv2.GaussianBlur(rng.uniform(<span class="dv">0</span>, <span class="dv">255</span>, size), (<span class="dv">0</span>, <span class="dv">0</span>), blur)</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>    M <span class="op">=</span> np.float32([[<span class="dv">1</span>, <span class="dv">0</span>, du], [<span class="dv">0</span>, <span class="dv">1</span>, dv]])</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>    moved <span class="op">=</span> cv2.warpAffine(base, M, size[::<span class="op">-</span><span class="dv">1</span>], flags<span class="op">=</span>cv2.INTER_CUBIC, borderMode<span class="op">=</span>cv2.BORDER_REFLECT)</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> base, moved</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>F1, F2 <span class="op">=</span> shifted_pair(<span class="fl">0.6</span>, <span class="op">-</span><span class="fl">0.4</span>)</span></code></pre></div>
+</details>
+</div>
+<div id="adc4fae4" class="cell lc-check" data-execution_count="22">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>    u, v <span class="op">=</span> horn_schunck(F1, F2, lam<span class="op">=</span><span class="fl">1.0</span>, iters<span class="op">=</span><span class="dv">200</span>)</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    inner <span class="op">=</span> (<span class="bu">slice</span>(<span class="dv">15</span>, <span class="op">-</span><span class="dv">15</span>), <span class="bu">slice</span>(<span class="dv">15</span>, <span class="op">-</span><span class="dv">15</span>))</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>    mu, mv <span class="op">=</span> np.median(u[inner]), np.median(v[inner])</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"median flow (</span><span class="sc">{</span>mu<span class="sc">:.3f}</span><span class="ss">, </span><span class="sc">{</span>mv<span class="sc">:.3f}</span><span class="ss">), true (0.6, -0.4)"</span>)</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">abs</span>(mu <span class="op">-</span> <span class="fl">0.6</span>) <span class="op">&lt;</span> <span class="fl">0.08</span> <span class="kw">and</span> <span class="bu">abs</span>(mv <span class="op">+</span> <span class="fl">0.4</span>) <span class="op">&lt;</span> <span class="fl">0.08</span></span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 3.5.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 3.5.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-lucas-kanade" class="level3" data-number="3.5.4">
+<h3 data-number="3.5.4" class="anchored" data-anchor-id="sec-lucas-kanade"><span class="header-section-number">3.5.4</span> Lucas and Kanade</h3>
+<p>Lucas and Kanade take the local route. Assume the flow is the same, (u, v), for every pixel in a small window around the point we care about. Each pixel in the window gives one constraint equation, so a 5 × 5 window gives 25 equations in 2 unknowns, and we solve them by least squares. Stacking the gradients into a matrix A with rows (I<sub>x</sub>, I<sub>y</sub>) and the time derivatives into a vector b with entries −I<sub>t</sub>, we want A(u, v)<sup>⊤</sup> ≈ b, and the normal equations are</p>
+<p><span class="math display">\[
+\underbrace{\begin{pmatrix} \sum I_x^2 &amp; \sum I_x I_y \\ \sum I_x I_y &amp; \sum I_y^2 \end{pmatrix}}_{A^\top A} \begin{pmatrix} u \\ v\end{pmatrix} = -\begin{pmatrix} \sum I_x I_t \\ \sum I_y I_t\end{pmatrix},
+\]</span></p>
+<p>with the sums over the window. The 2 × 2 matrix A<sup>⊤</sup>A, sometimes called the structure tensor, tells us whether the problem can be solved at all. If the window contains gradients in only one direction (a straight edge), A<sup>⊤</sup>A has one eigenvalue near zero and can’t be inverted, which is just the aperture problem again, and if the window is flat both eigenvalues are tiny. Only when both eigenvalues are reasonably large, at corners and in textured patches, is the flow well determined. That’s exactly the criterion the Harris and Shi-Tomasi corner detectors use to pick “good features to track”, which is not a coincidence, since Shi and Tomasi derived it from this tracking problem.</p>
+<p>The constraint equation came from a first-order Taylor expansion, so it only works for small motions, a pixel or so. For larger motions there are two standard fixes, and the usual implementation uses both. One is to iterate, warping the second image by the current flow estimate and solving again for the small leftover motion. The other is the coarse-to-fine idea from <a href="01-programming-with-images.html#sec-image-pyramids" class="quarto-xref"><span>Section 1.3.4</span></a>, solving for the flow on a small pyramid level where the motion is small in pixels, then doubling it and refining on the next level. OpenCV’s <code>cv2.calcOpticalFlowPyrLK</code> is exactly this pyramidal, iterative Lucas-Kanade tracker, and it’s still one of the most used pieces of code in computer vision.</p>
+<div id="ex-3-5-2" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 3.5.2 (Lucas and Kanade at one point)</strong></span> Write <code>lucas_kanade(I1, I2, x, y, half)</code>, which returns the flow (u, v) at pixel (x, y) from the window of size (2·half + 1)² around it, together with the smaller eigenvalue of A<sup>⊤</sup>A. Use <code>np.gradient</code> on the average of the two frames for I<sub>x</sub> and I<sub>y</sub> and I<sub>t</sub> = I2 − I1. The check uses the shifted texture from the previous exercise and a straight vertical edge, where the smaller eigenvalue should be close to zero.</p>
+</div>
+<div id="4e5de93b" class="cell lc-exercise" data-execution_count="23">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> lucas_kanade(I1, I2, x, y, half):</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Lucas-Kanade flow at pixel (x, y). Returns (u, v, smallest eigenvalue of A^T A)."""</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="aa4aedd6" class="cell lc-check" data-execution_count="24">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>    u, v, lam_min <span class="op">=</span> lucas_kanade(F1, F2, <span class="dv">64</span>, <span class="dv">48</span>, <span class="dv">7</span>)</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>    edge1 <span class="op">=</span> np.tile(np.r_[np.zeros(<span class="dv">40</span>), np.linspace(<span class="dv">0</span>, <span class="dv">200</span>, <span class="dv">8</span>), np.full(<span class="dv">40</span>, <span class="fl">200.0</span>)], (<span class="dv">40</span>, <span class="dv">1</span>))</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>    edge2 <span class="op">=</span> np.roll(edge1, <span class="dv">1</span>, axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>    _, _, lam_edge <span class="op">=</span> lucas_kanade(edge1, edge2, <span class="dv">44</span>, <span class="dv">20</span>, <span class="dv">5</span>)</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"texture: flow (</span><span class="sc">{</span>u<span class="sc">:.3f}</span><span class="ss">, </span><span class="sc">{</span>v<span class="sc">:.3f}</span><span class="ss">), smaller eigenvalue </span><span class="sc">{</span>lam_min<span class="sc">:.1f}</span><span class="ss">;  edge: smaller eigenvalue </span><span class="sc">{</span>lam_edge<span class="sc">:.2e}</span><span class="ss">"</span>)</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">abs</span>(u <span class="op">-</span> <span class="fl">0.6</span>) <span class="op">&lt;</span> <span class="fl">0.05</span> <span class="kw">and</span> <span class="bu">abs</span>(v <span class="op">+</span> <span class="fl">0.4</span>) <span class="op">&lt;</span> <span class="fl">0.05</span> <span class="kw">and</span> lam_min <span class="op">&gt;</span> <span class="dv">10</span> <span class="kw">and</span> <span class="bu">abs</span>(lam_edge) <span class="op">&lt;</span> <span class="fl">1e-6</span></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 3.5.2"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 3.5.2: not attempted yet</code></pre>
+</div>
+</div>
+<p>The two methods have stayed popular for different reasons. Lucas-Kanade is fast and local, so it’s what you use to track a few hundred good corners through a video, and Horn-Schunck gives a dense field everywhere, which is what you want for things like segmenting moving objects or estimating motion in medical images. Modern methods replace both with neural networks trained on synthetic videos with known flow, but most of them still use a coarse-to-fine pyramid and some form of the brightness constancy idea inside, so these two papers are still really worth reading.</p>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./02-image-formation.html" class="pagination-link" aria-label="Image Formation">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Image Formation</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./04-deep-vision.html" class="pagination-link" aria-label="Deep Learning, Faces and Multiple Views">
+        <span class="nav-page-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Deep Learning, Faces and Multiple Views</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p><a href="../">← Computer Vision</a> · <a href="../../../#notes">All notes</a></p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+<p>© 2026 Hieu Nguyen</p>
+</div>
+  </div>
+</footer>
+
+
+
+
+<script src="site_libs/quarto-contrib/livecells-0.2.0/livecells.js"></script>
+</body></html>

@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.20">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>2&nbsp; Image Formation – Computer Vision</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./03-tracking-and-flow.html" rel="next">
+<link href="./01-programming-with-images.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-da0f4d964b336c7357bd1e6e7fe8ee30.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-42a672b7a9700d1436569573ce3dcc0e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/quarto-contrib/livecells-0.2.0/livecells.css" rel="stylesheet">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script>window.LIVECELLS_CONFIG = {"server": "http://127.0.0.1:8888", "kernelName": "python3", "pyodide": "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/", "packages": ["numpy", "opencv-python", "matplotlib"]};</script>
+  <script defer="" src="mathjax/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./02-image-formation.html"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Image Formation</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto"><div class="quarto-sidebar-header"><div class="sidebar-header-item">
+<p><a href="../">← Course page</a></p>
+</div></div>
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Computer Vision</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01-programming-with-images.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Programming with Images</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02-image-formation.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Image Formation</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03-tracking-and-flow.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Tracking, Edges and Optical Flow</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04-deep-vision.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Deep Learning, Faces and Multiple Views</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05-generation-geometry-ethics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Generative Models, Surfaces and the Rest</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active" data-toc-expanded="1">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#sec-pinhole" id="toc-sec-pinhole" class="nav-link active" data-scroll-target="#sec-pinhole"><span class="header-section-number">2.1</span> The Pinhole Camera</a>
+  <ul class="collapse">
+  <li><a href="#sec-perspective-projection" id="toc-sec-perspective-projection" class="nav-link" data-scroll-target="#sec-perspective-projection"><span class="header-section-number">2.1.1</span> Perspective projection</a></li>
+  <li><a href="#sec-camera-matrix" id="toc-sec-camera-matrix" class="nav-link" data-scroll-target="#sec-camera-matrix"><span class="header-section-number">2.1.2</span> From the image plane to pixels</a></li>
+  <li><a href="#sec-weak-perspective" id="toc-sec-weak-perspective" class="nav-link" data-scroll-target="#sec-weak-perspective"><span class="header-section-number">2.1.3</span> When perspective hardly matters</a></li>
+  </ul></li>
+  <li><a href="#sec-vanishing-points" id="toc-sec-vanishing-points" class="nav-link" data-scroll-target="#sec-vanishing-points"><span class="header-section-number">2.2</span> Vanishing Points</a>
+  <ul class="collapse">
+  <li><a href="#sec-vanishing-derivation" id="toc-sec-vanishing-derivation" class="nav-link" data-scroll-target="#sec-vanishing-derivation"><span class="header-section-number">2.2.1</span> Where parallel lines meet</a></li>
+  <li><a href="#sec-homogeneous-lines" id="toc-sec-homogeneous-lines" class="nav-link" data-scroll-target="#sec-homogeneous-lines"><span class="header-section-number">2.2.2</span> Lines and points in homogeneous coordinates</a></li>
+  <li><a href="#sec-focal-from-vp" id="toc-sec-focal-from-vp" class="nav-link" data-scroll-target="#sec-focal-from-vp"><span class="header-section-number">2.2.3</span> Focal length from vanishing points</a></li>
+  <li><a href="#sec-paintings" id="toc-sec-paintings" class="nav-link" data-scroll-target="#sec-paintings"><span class="header-section-number">2.2.4</span> Computer vision and paintings</a></li>
+  </ul></li>
+  <li><a href="#sec-lenses" id="toc-sec-lenses" class="nav-link" data-scroll-target="#sec-lenses"><span class="header-section-number">2.3</span> Lenses</a>
+  <ul class="collapse">
+  <li><a href="#sec-why-lenses" id="toc-sec-why-lenses" class="nav-link" data-scroll-target="#sec-why-lenses"><span class="header-section-number">2.3.1</span> Why not just a pinhole?</a></li>
+  <li><a href="#sec-thin-lens" id="toc-sec-thin-lens" class="nav-link" data-scroll-target="#sec-thin-lens"><span class="header-section-number">2.3.2</span> The thin lens equation</a></li>
+  <li><a href="#sec-blur" id="toc-sec-blur" class="nav-link" data-scroll-target="#sec-blur"><span class="header-section-number">2.3.3</span> Blur and depth of field</a></li>
+  </ul></li>
+  <li><a href="#sec-binocular-stereo" id="toc-sec-binocular-stereo" class="nav-link" data-scroll-target="#sec-binocular-stereo"><span class="header-section-number">2.4</span> Two Eyes</a>
+  <ul class="collapse">
+  <li><a href="#sec-disparity" id="toc-sec-disparity" class="nav-link" data-scroll-target="#sec-disparity"><span class="header-section-number">2.4.1</span> Depth from disparity</a></li>
+  <li><a href="#sec-stereo-matching" id="toc-sec-stereo-matching" class="nav-link" data-scroll-target="#sec-stereo-matching"><span class="header-section-number">2.4.2</span> Finding matches</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span id="sec-image-formation" class="quarto-section-identifier"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Image Formation</span></span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>In the first chapter an image was just an array that showed up from somewhere, and we never really asked where the numbers came from. This chapter is about that question, which is how a three-dimensional world turns into a flat picture, and it follows the two lectures on image formation in the course schedule, the one on the pinhole model and binocular stereo and the one on vanishing points, the lens equation and computer vision for paintings (<a href="https://www.cs.bu.edu/faculty/betke/cs585/">CS 585 schedule</a>). The geometry here is old, and painters had worked most of it out by the fifteenth century, but it’s the thing every later chapter quietly assumes, so it’s worth getting it straight once and for all. The main references are Chapter 2 of Horn’s <em>Robot Vision</em> and Chapter 2 of Szeliski’s book (<a href="https://szeliski.org/Book/">Szeliski, 2nd ed., 2022</a>).</p>
+<div id="02e99277" class="cell lc-autorun" data-execution_count="1">
+<details class="code-fold">
+<summary>Setup: imports and the helper used by the exercise checks</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># [Exercise setup] Run once. Imports what this chapter uses and defines the helper used by every check cell.</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cv2</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> check(name, test):</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Run test(), which returns True or False, and report the result without ever raising."""</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>        ok <span class="op">=</span> test()</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> <span class="pp">NotImplementedError</span>:</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: not attempted yet"</span>)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> <span class="pp">Exception</span> <span class="im">as</span> err:</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: your code raised </span><span class="sc">{</span><span class="bu">type</span>(err)<span class="sc">.</span><span class="va">__name__</span><span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>err<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: "</span> <span class="op">+</span> (<span class="st">"passed"</span> <span class="cf">if</span> ok <span class="cf">else</span> <span class="st">"not yet. Something is off, see the output above."</span>))</span></code></pre></div>
+</details>
+</div>
+<section id="sec-pinhole" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="sec-pinhole"><span class="header-section-number">2.1</span> The Pinhole Camera</h2>
+<section id="sec-perspective-projection" class="level3" data-number="2.1.1">
+<h3 data-number="2.1.1" class="anchored" data-anchor-id="sec-perspective-projection"><span class="header-section-number">2.1.1</span> Perspective projection</h3>
+<p>Take a box, make it light-tight, and poke a tiny hole in one side. Light from a point in the scene can only get into the box along one line, the one through the hole, so each scene point lights up exactly one spot on the back wall, and the back wall ends up showing an upside-down picture of the world. That’s the <em>pinhole camera</em> (or camera obscura, which people were using to watch eclipses safely long before anybody thought of film), and it’s still the model that almost all of computer vision is built on, even though real cameras have lenses.</p>
+<p>Let’s set up coordinates. Put the pinhole at the origin, let the Z axis point out into the scene along the <em>optical axis</em>, and put the back wall, the <em>image plane</em>, at distance f behind the hole, where f is called the focal length. A scene point P = (X, Y, Z) sends its ray through the origin, and the ray keeps going until it hits the image plane at Z = −f.&nbsp;Since the ray is a straight line through the origin, the image point is just P scaled by some factor, and the factor has to be −f/Z to land on the plane, so the image point is (−fX/Z, −fY/Z). The minus signs are the upside-down part. Nobody wants to carry them around, so it’s standard to pretend the image plane sits at distance f <em>in front</em> of the pinhole instead (a virtual image plane, which you can’t build but which gives the same picture right side up), and then</p>
+<p><span class="math display">\[
+x = f\,\frac{X}{Z}, \qquad y = f\,\frac{Y}{Z}.
+\]</span></p>
+<p>These are the equations of <em>perspective projection</em>, and pretty much everything in this chapter is a consequence of the division by Z. You can also get them from similar triangles, if you draw the ray, the optical axis and the perpendicular from P to the axis, which is how Horn does it in Chapter 2, but the scaling argument is the same thing in one line.</p>
+<p>The division by Z is what makes far things look small. An object of height H at distance Z has an image of height fH/Z, so doubling the distance halves the image, and it’s also why the projection loses information, because every point along the ray, (tX, tY, tZ) for any t &gt; 0, lands on the same image point. A single picture can’t tell a small nearby object from a big far one, and getting depth back is what the second half of this chapter is about.</p>
+<div id="42597f67" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>cube <span class="op">=</span> np.array([[x, y, z] <span class="cf">for</span> x <span class="kw">in</span> (<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>) <span class="cf">for</span> y <span class="kw">in</span> (<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>) <span class="cf">for</span> z <span class="kw">in</span> (<span class="dv">0</span>, <span class="dv">2</span>)], <span class="bu">float</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>edges <span class="op">=</span> [(i, j) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">8</span>) <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i <span class="op">+</span> <span class="dv">1</span>, <span class="dv">8</span>) <span class="cf">if</span> np.<span class="bu">sum</span>(cube[i] <span class="op">!=</span> cube[j]) <span class="op">==</span> <span class="dv">1</span>]</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pinhole(P, f<span class="op">=</span><span class="fl">1.0</span>):</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> f <span class="op">*</span> P[:, :<span class="dv">2</span>] <span class="op">/</span> P[:, <span class="dv">2</span>:<span class="dv">3</span>]</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="fl">3.6</span>))</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax, dist <span class="kw">in</span> <span class="bu">zip</span>(axes, [<span class="fl">3.0</span>, <span class="fl">8.0</span>]):</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> pinhole(cube <span class="op">+</span> [<span class="fl">0.3</span>, <span class="fl">0.2</span>, dist])</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, j <span class="kw">in</span> edges:</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        ax.plot(p[[i, j], <span class="dv">0</span>], p[[i, j], <span class="dv">1</span>], color<span class="op">=</span><span class="st">"#3B6FB6"</span>)</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    ax.set_aspect(<span class="st">"equal"</span>)<span class="op">;</span> ax.invert_yaxis()<span class="op">;</span> ax.set_xticks([])<span class="op">;</span> ax.set_yticks([])</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>fig.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="02-image-formation_files/figure-html/cell-3-output-1.png" width="711" height="336" class="figure-img"></p>
+<figcaption>A wireframe cube seen through a pinhole camera with focal length 1, from two distances. Left, the cube’s front face is 3 units away; right, it’s 8 units away. The near view shows strong perspective, with the back face much smaller than the front, while the far view looks almost like a flat drawing.</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>(We flip the y axis in the plot so that it points down like image rows do, which is the convention from <a href="01-programming-with-images.html#sec-rows-columns-x-and-y" class="quarto-xref"><span>Section 1.1.3</span></a>.)</p>
+<div id="ex-2-1-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 2.1.1 (Projecting points)</strong></span> Write <code>project(P, f)</code>, which takes an array of shape (n, 3) of scene points in camera coordinates and returns an array of shape (n, 2) of image points (x, y) on the virtual image plane. The check projects a few points by hand and also confirms that every point on a ray through the pinhole lands in the same place.</p>
+</div>
+<div id="77dc84de" class="cell lc-exercise" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> project(P, f):</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Perspective projection of the (n, 3) points P onto the virtual image plane at distance f."""</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="38c91315" class="cell lc-check" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    P <span class="op">=</span> np.array([[<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">4.0</span>], [<span class="op">-</span><span class="fl">3.0</span>, <span class="fl">0.5</span>, <span class="fl">2.0</span>], [<span class="fl">0.0</span>, <span class="fl">0.0</span>, <span class="fl">7.0</span>]])</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    expected <span class="op">=</span> np.array([[<span class="fl">0.5</span>, <span class="fl">1.0</span>], [<span class="op">-</span><span class="fl">3.0</span>, <span class="fl">0.5</span>], [<span class="fl">0.0</span>, <span class="fl">0.0</span>]])</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    got <span class="op">=</span> np.asarray(project(P, <span class="fl">2.0</span>), <span class="bu">float</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"projected:</span><span class="ch">\n</span><span class="st">"</span>, np.<span class="bu">round</span>(got, <span class="dv">4</span>))</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    ray <span class="op">=</span> np.array([[<span class="fl">2.0</span>, <span class="op">-</span><span class="fl">1.0</span>, <span class="fl">3.0</span>]]) <span class="op">*</span> np.array([[<span class="fl">1.0</span>], [<span class="fl">2.5</span>], [<span class="fl">10.0</span>]])</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    q <span class="op">=</span> np.asarray(project(ray, <span class="fl">1.5</span>), <span class="bu">float</span>)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> got.shape <span class="op">==</span> (<span class="dv">3</span>, <span class="dv">2</span>) <span class="kw">and</span> np.allclose(got, expected) <span class="kw">and</span> np.allclose(q, q[<span class="dv">0</span>])</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 2.1.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 2.1.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-camera-matrix" class="level3" data-number="2.1.2">
+<h3 data-number="2.1.2" class="anchored" data-anchor-id="sec-camera-matrix"><span class="header-section-number">2.1.2</span> From the image plane to pixels</h3>
+<p>The equations above give positions on the image plane in the same units as the scene, but what we actually get from a camera is pixel coordinates, counted from the top-left corner like in <a href="01-programming-with-images.html#sec-rows-columns-x-and-y" class="quarto-xref"><span>Section 1.1.3</span></a>. Two more things happen on the way. The sensor has some number of pixels per millimetre, so the coordinates get scaled, and the pixel grid starts at a corner instead of at the point where the optical axis hits the sensor (the <em>principal point</em>), so the coordinates get shifted. Putting both in,</p>
+<p><span class="math display">\[
+u = f_x\,\frac{X}{Z} + c_x, \qquad v = f_y\,\frac{Y}{Z} + c_y,
+\]</span></p>
+<p>where f<sub>x</sub> and f<sub>y</sub> are the focal length measured in pixels, which are equal when the pixels are square and (c<sub>x</sub>, c<sub>y</sub>) is the principal point in pixels, usually somewhere near the centre of the image.</p>
+<p>The division by Z is annoying to carry around, because it’s the only nonlinear part, and there’s a really neat trick that hides it, which is <em>homogeneous coordinates</em>. We represent the image point (u, v) by any triple (w u, w v, w) with w ≠ 0, so (u, v, 1), (2u, 2v, 2) and so on all mean the same point, and to get back to ordinary coordinates we divide by the last entry. With that convention the projection becomes a plain matrix multiplication,</p>
+<p><span class="math display">\[
+\begin{pmatrix} w\,u \\ w\,v \\ w \end{pmatrix} = \underbrace{\begin{pmatrix} f_x &amp; 0 &amp; c_x \\ 0 &amp; f_y &amp; c_y \\ 0 &amp; 0 &amp; 1 \end{pmatrix}}_{K} \begin{pmatrix} X \\ Y \\ Z \end{pmatrix},
+\]</span></p>
+<p>and you can check that w comes out as Z, so dividing by it does exactly the perspective division. The matrix K is called the <em>intrinsic matrix</em> (or calibration matrix), because it only depends on the camera itself.</p>
+<p>So far the scene points were given in the camera’s own coordinate system. Usually they’re given in some world coordinate system instead, say with the origin on the floor of the room, and then we first have to move them into camera coordinates with a rotation R and a translation t, P<sub>cam</sub> = R P<sub>world</sub> + t. Writing the world point as (X, Y, Z, 1) in homogeneous coordinates turns that into a matrix product too, and the whole camera becomes one 3 × 4 matrix,</p>
+<p><span class="math display">\[
+\begin{pmatrix} w\,u \\ w\,v \\ w \end{pmatrix} = K \begin{pmatrix} R &amp; t \end{pmatrix} \begin{pmatrix} X \\ Y \\ Z \\ 1 \end{pmatrix} .
+\]</span></p>
+<p>R and t are the <em>extrinsic</em> parameters, since they describe where the camera is rather than what kind of camera it is. Finding K for a real camera is called <em>calibration</em>, and the usual way to do it is to photograph a checkerboard from several angles and solve for the parameters that best explain where the corners show up, which OpenCV does with <code>cv2.calibrateCamera</code>.</p>
+<div id="ex-2-1-2" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 2.1.2 (The camera matrix)</strong></span> Write <code>camera_project(Pw, K, R, t)</code>, which takes world points of shape (n, 3) and returns their pixel coordinates (u, v) as an array of shape (n, 2), by building the 3 × 4 matrix K[R | t], multiplying it with the homogeneous world points and dividing by the last row. The check compares your answer with <code>cv2.projectPoints</code>, which does the same thing, with the lens distortion switched off by passing zeros.</p>
+</div>
+<div id="854091d9" class="cell lc-exercise" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> camera_project(Pw, K, R, t):</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Pixel coordinates of world points Pw (n, 3) for a camera with intrinsics K and pose R, t."""</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="5c02d17b" class="cell lc-check" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(<span class="dv">0</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    K <span class="op">=</span> np.array([[<span class="fl">800.0</span>, <span class="dv">0</span>, <span class="dv">320</span>], [<span class="dv">0</span>, <span class="dv">800</span>, <span class="dv">240</span>], [<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>]])</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    rvec <span class="op">=</span> np.array([<span class="fl">0.1</span>, <span class="op">-</span><span class="fl">0.2</span>, <span class="fl">0.05</span>])<span class="op">;</span> R, _ <span class="op">=</span> cv2.Rodrigues(rvec)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    t <span class="op">=</span> np.array([<span class="fl">0.2</span>, <span class="op">-</span><span class="fl">0.1</span>, <span class="fl">5.0</span>])</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    Pw <span class="op">=</span> rng.uniform(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>, (<span class="dv">6</span>, <span class="dv">3</span>))</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    ref, _ <span class="op">=</span> cv2.projectPoints(Pw, rvec, t, K, np.zeros(<span class="dv">5</span>))</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    got <span class="op">=</span> np.asarray(camera_project(Pw, K, R, t), <span class="bu">float</span>)</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"largest difference from OpenCV, in pixels:"</span>, np.<span class="bu">abs</span>(got <span class="op">-</span> ref.reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">2</span>)).<span class="bu">max</span>())</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> got.shape <span class="op">==</span> (<span class="dv">6</span>, <span class="dv">2</span>) <span class="kw">and</span> np.allclose(got, ref.reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">2</span>), atol<span class="op">=</span><span class="fl">1e-6</span>)</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 2.1.2"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 2.1.2: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-weak-perspective" class="level3" data-number="2.1.3">
+<h3 data-number="2.1.3" class="anchored" data-anchor-id="sec-weak-perspective"><span class="header-section-number">2.1.3</span> When perspective hardly matters</h3>
+<p>Look again at the far cube in the figure above. When an object’s depth range is small compared with its distance, Z barely changes across it, and we can replace every Z by one average depth Z<sub>0</sub>,</p>
+<p><span class="math display">\[
+x \approx \frac{f}{Z_0}\,X, \qquad y \approx \frac{f}{Z_0}\,Y .
+\]</span></p>
+<p>That’s <em>weak perspective</em> (or scaled orthographic projection), and it’s just a uniform scaling of X and Y, so parallel lines stay parallel and the whole thing is linear. How good is it? If a point sits at depth Z = Z<sub>0</sub> + ΔZ, the exact projection is fX/(Z<sub>0</sub> + ΔZ) = (fX/Z<sub>0</sub>)(1 − ΔZ/Z<sub>0</sub> + …), so the relative error is about ΔZ/Z<sub>0</sub>. A face 10 cm deep seen from 2 metres gives errors around 5%, and a building seen from a plane gives errors you’d never notice. A lot of algorithms are much easier under weak perspective, which is why it keeps showing up, for example in the factorization method for structure from motion in <a href="04-deep-vision.html#sec-structure-from-motion" class="quarto-xref"><span>Section 4.3.6</span></a>.</p>
+</section>
+</section>
+<section id="sec-vanishing-points" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="sec-vanishing-points"><span class="header-section-number">2.2</span> Vanishing Points</h2>
+<section id="sec-vanishing-derivation" class="level3" data-number="2.2.1">
+<h3 data-number="2.2.1" class="anchored" data-anchor-id="sec-vanishing-derivation"><span class="header-section-number">2.2.1</span> Where parallel lines meet</h3>
+<p>Stand in the middle of a straight railway track and the two rails seem to meet at a point on the horizon, even though they never actually meet. That point is a <em>vanishing point</em>, and it’s one of those things that’s obvious once you see it but kind of fun to derive. Take a line in the scene through the point A = (A<sub>X</sub>, A<sub>Y</sub>, A<sub>Z</sub>) with direction D = (D<sub>X</sub>, D<sub>Y</sub>, D<sub>Z</sub>), so its points are A + sD for all s. The image of the point with parameter s is</p>
+<p><span class="math display">\[
+x(s) = f\,\frac{A_X + s D_X}{A_Z + s D_Z}, \qquad y(s) = f\,\frac{A_Y + s D_Y}{A_Z + s D_Z},
+\]</span></p>
+<p>and as s goes to infinity (walking off along the line, away from the camera, which needs D<sub>Z</sub> &gt; 0) both fractions go to the ratio of the s terms,</p>
+<p><span class="math display">\[
+x_\infty = f\,\frac{D_X}{D_Z}, \qquad y_\infty = f\,\frac{D_Y}{D_Z}.
+\]</span></p>
+<p>The starting point A has dropped out completely, so <em>every</em> line with direction D, no matter where it is, heads towards the same image point, and that’s the vanishing point for the direction D. Two consequences are worth writing down. Lines parallel to the image plane (D<sub>Z</sub> = 0) have no vanishing point, or rather it’s at infinity, so they stay parallel in the picture, which is why the vertical edges of a building photographed straight on stay vertical. And the vanishing point of D is exactly where the ray from the pinhole in direction D hits the image plane, so it only depends on the direction, which is the geometric reason for everything above. All directions parallel to the ground plane give vanishing points on one line in the image, the <em>horizon</em>, which is the image of the plane through the pinhole parallel to the ground, which is why the horizon always sits at the height of your eyes.</p>
+</section>
+<section id="sec-homogeneous-lines" class="level3" data-number="2.2.2">
+<h3 data-number="2.2.2" class="anchored" data-anchor-id="sec-homogeneous-lines"><span class="header-section-number">2.2.2</span> Lines and points in homogeneous coordinates</h3>
+<p>To find a vanishing point in a real photograph we need to intersect lines, and homogeneous coordinates make that pretty painless. A line in the image, a x + b y + c = 0, can be stored as the triple ℓ = (a, b, c), and a point p = (x, y, 1) lies on it exactly when ℓ · p = 0. Now take two points p<sub>1</sub> and p<sub>2</sub>. The cross product p<sub>1</sub> × p<sub>2</sub> is perpendicular to both, so it has zero dot product with both, which means it’s the line through them. And by the same argument, the cross product of two lines ℓ<sub>1</sub> × ℓ<sub>2</sub> is the point on both, so it’s their intersection. Points and lines play completely symmetric roles here, and parallel lines aren’t a special case at all, their intersection just comes out with a last coordinate of zero, which is a point at infinity.</p>
+<p>In a real photo, though, three or more lines that should meet at one vanishing point never quite do, because the edges we detect are noisy. So instead of intersecting two of them we look for the point that comes closest to lying on all of them. If we normalize each line so that a² + b² = 1, then ℓ · p is the signed distance from p to the line, and we want the homogeneous p that makes the sum of squared ℓ<sub>i</sub> · p as small as possible. Stack the lines as the rows of a matrix L, and we’re minimizing ‖L p‖² over p with ‖p‖ = 1 (the scale of p doesn’t matter, so we have to fix it somehow), and the answer is the right singular vector of L with the smallest singular value. That’s the standard <em>least squares with a unit-norm constraint</em> trick, and it’ll come back in the eight-point algorithm of <a href="04-deep-vision.html#sec-eight-point" class="quarto-xref"><span>Section 4.3.2</span></a>.</p>
+<p>(Strictly speaking, ℓ · p is only the distance when p has last coordinate 1, so minimizing ‖Lp‖ with ‖p‖ = 1 isn’t exactly the geometric least squares problem, but it’s very close when the vanishing point is at a sensible distance and it’s what almost everybody uses.)</p>
+<div id="ex-2-2-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 2.2.1 (Finding a vanishing point)</strong></span> Write <code>vanishing_point(segments)</code>, which takes an array of shape (n, 4) whose rows are line segments (x<sub>1</sub>, y<sub>1</sub>, x<sub>2</sub>, y<sub>2</sub>) in an image and returns the least squares vanishing point (x, y). Build each line as a cross product of homogeneous endpoints, scale it so that a² + b² = 1, and use <code>np.linalg.svd</code>. The check makes noisy segments that point at a known vanishing point.</p>
+</div>
+<div id="24081167" class="cell lc-exercise" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> vanishing_point(segments):</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Least squares intersection of the lines through the given segments (n, 4)."""</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="7415fa75" class="cell lc-check" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(<span class="dv">3</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    vp <span class="op">=</span> np.array([<span class="fl">412.0</span>, <span class="op">-</span><span class="fl">95.0</span>])</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    segs <span class="op">=</span> []</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">12</span>):</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>        a <span class="op">=</span> rng.uniform([<span class="dv">0</span>, <span class="dv">200</span>], [<span class="dv">640</span>, <span class="dv">480</span>])</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>        d <span class="op">=</span> (vp <span class="op">-</span> a) <span class="op">/</span> np.linalg.norm(vp <span class="op">-</span> a)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>        b <span class="op">=</span> a <span class="op">+</span> d <span class="op">*</span> rng.uniform(<span class="dv">40</span>, <span class="dv">120</span>)</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>        segs.append(np.r_[a <span class="op">+</span> rng.normal(<span class="dv">0</span>, <span class="fl">0.3</span>, <span class="dv">2</span>), b <span class="op">+</span> rng.normal(<span class="dv">0</span>, <span class="fl">0.3</span>, <span class="dv">2</span>)])</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    got <span class="op">=</span> np.asarray(vanishing_point(np.array(segs)), <span class="bu">float</span>)</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"true vanishing point"</span>, vp, <span class="st">"  estimate"</span>, np.<span class="bu">round</span>(got, <span class="dv">2</span>))</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    exact <span class="op">=</span> np.asarray(vanishing_point(np.array([[<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">1</span>], [<span class="dv">0</span>, <span class="dv">2</span>, <span class="dv">1</span>, <span class="dv">2</span>]], <span class="bu">float</span>)), <span class="bu">float</span>)  <span class="co"># meet at (2, 2)</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.linalg.norm(got <span class="op">-</span> vp) <span class="op">&lt;</span> <span class="dv">15</span> <span class="kw">and</span> np.allclose(exact, [<span class="dv">2</span>, <span class="dv">2</span>])</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 2.2.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 2.2.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-focal-from-vp" class="level3" data-number="2.2.3">
+<h3 data-number="2.2.3" class="anchored" data-anchor-id="sec-focal-from-vp"><span class="header-section-number">2.2.3</span> Focal length from vanishing points</h3>
+<p>Here’s a lovely application. Suppose a photo shows a building, and we find the vanishing points v<sub>1</sub> and v<sub>2</sub> (in pixels) of two horizontal directions that we know are perpendicular in the scene, like the two walls of the building. From <a href="#sec-vanishing-derivation" class="quarto-xref"><span>Section 2.2.1</span></a> the vanishing point of direction D is the image of the ray in direction D, so with the principal point c = (c<sub>x</sub>, c<sub>y</sub>) and focal length f in pixels, the directions are proportional to (v<sub>1</sub> − c, f) and (v<sub>2</sub> − c, f), where we’ve glued the third coordinate f onto the two-dimensional offset. These two directions are perpendicular, so their dot product vanishes,</p>
+<p><span class="math display">\[
+(v_1 - c)\cdot(v_2 - c) + f^2 = 0 \quad\Longrightarrow\quad f = \sqrt{-(v_1 - c)\cdot(v_2 - c)} .
+\]</span></p>
+<p>So two vanishing points of perpendicular directions, plus a guess for the principal point (usually just the image centre), are enough to work out the focal length of a camera you’ve never seen, from a single photo. With three mutually perpendicular directions you can even get the principal point too, since it turns out to be the orthocentre of the triangle formed by the three vanishing points, which is a classic result, from Caprile and Torre’s 1990 paper on calibration with vanishing points. It also explains a fact photographers know, which is that a wide-angle lens (small f) puts the vanishing points close together and close to the image, so you get dramatic perspective, while a telephoto lens pushes them way out and flattens everything.</p>
+<div id="ex-2-2-2" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 2.2.2 (Focal length from a photo)</strong></span> Write <code>focal_from_vps(v1, v2, c)</code>, which returns the focal length in pixels from two vanishing points of perpendicular directions and the principal point, all given as (x, y) pairs in pixels. The check builds a synthetic camera with a known focal length, rotates it, works out the vanishing points of the world’s X and Z axes with your formula from <a href="#sec-vanishing-derivation" class="quarto-xref"><span>Section 2.2.1</span></a>, and asks for the focal length back.</p>
+</div>
+<div id="0340c9e9" class="cell lc-exercise" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> focal_from_vps(v1, v2, c):</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Focal length (pixels) from vanishing points v1, v2 of perpendicular directions and principal point c."""</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="a20df037" class="cell lc-check" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    f, c <span class="op">=</span> <span class="fl">950.0</span>, np.array([<span class="fl">640.0</span>, <span class="fl">360.0</span>])</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    R, _ <span class="op">=</span> cv2.Rodrigues(np.array([<span class="fl">0.15</span>, <span class="fl">0.6</span>, <span class="fl">0.02</span>]))</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    vps <span class="op">=</span> []</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> D <span class="kw">in</span> [np.array([<span class="fl">1.0</span>, <span class="dv">0</span>, <span class="dv">0</span>]), np.array([<span class="dv">0</span>, <span class="dv">0</span>, <span class="fl">1.0</span>])]:</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>        d <span class="op">=</span> R <span class="op">@</span> D                                   <span class="co"># direction in camera coordinates</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>        vps.append(c <span class="op">+</span> f <span class="op">*</span> d[:<span class="dv">2</span>] <span class="op">/</span> d[<span class="dv">2</span>])</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    got <span class="op">=</span> <span class="bu">float</span>(focal_from_vps(vps[<span class="dv">0</span>], vps[<span class="dv">1</span>], c))</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"vanishing points"</span>, np.<span class="bu">round</span>(vps, <span class="dv">1</span>).tolist(), <span class="st">" focal length"</span>, <span class="bu">round</span>(got, <span class="dv">3</span>))</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">abs</span>(got <span class="op">-</span> f) <span class="op">&lt;</span> <span class="fl">1e-6</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 2.2.2"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 2.2.2: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-paintings" class="level3" data-number="2.2.4">
+<h3 data-number="2.2.4" class="anchored" data-anchor-id="sec-paintings"><span class="header-section-number">2.2.4</span> Computer vision and paintings</h3>
+<p>The second image formation lecture spends some time on paintings, and it’s a nice detour. Linear perspective was worked out by Renaissance artists, with Brunelleschi’s famous demonstration in Florence around 1415 (he painted the Baptistery on a panel, drilled a hole in it and had people look through the hole at a mirror, so they could compare painting and building directly) and Alberti’s 1435 treatise <em>On Painting</em>, which describes the picture as a window through which you look at the scene, which is exactly our virtual image plane. A painter who follows these rules is basically computing perspective projection by hand, and that means we can run the analysis of this section backwards on a painting.</p>
+<p>For example, if a painting shows a tiled floor, the lines of the tiles that are parallel in the scene should all meet at one vanishing point, and we can check with the least squares fit of <a href="#sec-homogeneous-lines" class="quarto-xref"><span>Section 2.2.2</span></a> how well they do. If they meet nicely, the painter was using a perspective construction or an optical device, and if they wander around, the perspective was done by eye. Using the vanishing points of a floor and the horizon you can also measure relative heights of people in the painting, which is the idea of single-view metrology (Criminisi, Reid and Zisserman wrote the standard paper on it in 2000, and they used paintings as examples). This kind of analysis has been used in arguments among art historians, most famously around David Hockney’s claim that some old masters secretly traced projections from lenses and mirrors, which David Stork and others tested by checking exactly these geometric constraints. I won’t try to settle that argument here, but it’s a fun example of the geometry being useful well outside engineering.</p>
+</section>
+</section>
+<section id="sec-lenses" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="sec-lenses"><span class="header-section-number">2.3</span> Lenses</h2>
+<section id="sec-why-lenses" class="level3" data-number="2.3.1">
+<h3 data-number="2.3.1" class="anchored" data-anchor-id="sec-why-lenses"><span class="header-section-number">2.3.1</span> Why not just a pinhole?</h3>
+<p>A pinhole camera has a real problem, which is that it’s either dim or blurry. A smaller hole gives a sharper picture, because each scene point lights up a smaller spot, but it lets in less light, so the exposure takes forever, and if you make the hole really tiny, diffraction kicks in and the picture gets blurry again anyway. A lens solves this by collecting all the light that hits a big aperture from one scene point and bending it so that it comes back together at one image point, so we get both brightness and sharpness, at least for points at the right distance.</p>
+</section>
+<section id="sec-thin-lens" class="level3" data-number="2.3.2">
+<h3 data-number="2.3.2" class="anchored" data-anchor-id="sec-thin-lens"><span class="header-section-number">2.3.2</span> The thin lens equation</h3>
+<p>The simplest model of a lens is the <em>thin lens</em>, which we treat as a plane with two rules for how rays get bent. A ray through the centre of the lens goes straight through, and a ray coming in parallel to the optical axis gets bent so that it passes through the <em>focal point</em>, at distance f behind the lens. Now take a scene point at height h and distance z<sub>o</sub> in front of the lens and follow both rays. The central ray reaches the image side at height −h z<sub>i</sub>/z<sub>o</sub> at distance z<sub>i</sub> (similar triangles through the centre), and the parallel ray leaves the lens at height h and passes through the focal point, so on the image side it drops from h to 0 over distance f and keeps going, which puts it at height h(1 − z<sub>i</sub>/f) at distance z<sub>i</sub>. For the two rays to meet at the image point, their heights have to agree,</p>
+<p><span class="math display">\[
+-\frac{h\,z_i}{z_o} = h\Big(1 - \frac{z_i}{f}\Big) \quad\Longrightarrow\quad \frac{1}{z_o} + \frac{1}{z_i} = \frac{1}{f},
+\]</span></p>
+<p>and dividing by h z<sub>i</sub> and rearranging gives the <em>thin lens equation</em>. The height h dropped out, so every point at distance z<sub>o</sub> comes to focus at the same distance z<sub>i</sub> behind the lens, so a whole plane of the scene is in focus at once, and that’s the plane the camera is focused on. A few things follow right away. When z<sub>o</sub> goes to infinity, z<sub>i</sub> goes to f, so a camera focused at infinity has its sensor at the focal point, and as objects come closer the image moves further back, which is why focusing on something close means moving the lens away from the sensor. The magnification is z<sub>i</sub>/z<sub>o</sub>, and for distant objects that’s about f/z<sub>o</sub>, so far away the lens acts exactly like a pinhole at its centre with “focal length” f, which is why the pinhole model works so well. And when z<sub>o</sub> = f, z<sub>i</sub> is infinite, so a point at the focal distance in front of the lens can’t be focused at all (its rays come out parallel, which is how a flashlight works).</p>
+</section>
+<section id="sec-blur" class="level3" data-number="2.3.3">
+<h3 data-number="2.3.3" class="anchored" data-anchor-id="sec-blur"><span class="header-section-number">2.3.3</span> Blur and depth of field</h3>
+<p>What about scene points that aren’t at the focused distance? Say the sensor is at distance s behind the lens, which focuses points at distance z<sub>o</sub> = (1/f − 1/s)<sup>−1</sup> perfectly, and a point at some other distance z focuses at z’ = (1/f − 1/z)<sup>−1</sup> instead. The cone of light from the lens aperture, of diameter D, converges to a point at z’ and then the sensor at s cuts the cone, giving a disc of light, the <em>blur circle</em>. Similar triangles in the cone give its diameter,</p>
+<p><span class="math display">\[
+b = D\,\frac{|s - z'|}{z'} .
+\]</span></p>
+<p>A blur circle smaller than a pixel is invisible, so there’s a whole range of distances that look sharp, the <em>depth of field</em>. The formula shows how photographers control it. Making the aperture D smaller makes b smaller in proportion, so a small aperture (a large <em>f-number</em> N = f/D, like f/16) gives a deep depth of field, and a wide aperture (like f/1.8) gives the blurry backgrounds people like in portraits. It also says that blur carries depth information, since b depends on z, and there are methods that estimate depth from how blurry things are (depth from defocus), though we won’t go into them here.</p>
+<div id="ex-2-3-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 2.3.1 (Blur circles)</strong></span> Write <code>blur_diameter(z, f, N, focus)</code>, which returns the blur circle diameter on the sensor (in the same units as f) for a point at distance z, for a lens of focal length f and f-number N that’s focused at distance <code>focus</code>. Use the thin lens equation to find the sensor distance s and the image distance z’ of the point. The check uses a 50 mm lens at f/2 focused at 2 m, and confirms that the blur is zero at 2 m, that it shrinks in proportion when you stop down to f/8, and prints the range of distances whose blur stays below 0.03 mm, a common rule of thumb for “looks sharp”.</p>
+</div>
+<div id="61cdc4d1" class="cell lc-exercise" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> blur_diameter(z, f, N, focus):</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Blur circle diameter for a point at distance z (thin lens, focal length f, f-number N, focused at `focus`)."""</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="8744710d" class="cell lc-check" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    f <span class="op">=</span> <span class="fl">50.0</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    b_focus <span class="op">=</span> blur_diameter(<span class="fl">2000.0</span>, f, <span class="fl">2.0</span>, <span class="fl">2000.0</span>)</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    b2 <span class="op">=</span> blur_diameter(<span class="fl">3000.0</span>, f, <span class="fl">2.0</span>, <span class="fl">2000.0</span>)</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    b8 <span class="op">=</span> blur_diameter(<span class="fl">3000.0</span>, f, <span class="fl">8.0</span>, <span class="fl">2000.0</span>)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    zs <span class="op">=</span> np.linspace(<span class="dv">1000</span>, <span class="dv">6000</span>, <span class="dv">5001</span>)</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    sharp2 <span class="op">=</span> zs[np.array([blur_diameter(z, f, <span class="fl">2.0</span>, <span class="fl">2000.0</span>) <span class="cf">for</span> z <span class="kw">in</span> zs]) <span class="op">&lt;</span> <span class="fl">0.03</span>]</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    sharp8 <span class="op">=</span> zs[np.array([blur_diameter(z, f, <span class="fl">8.0</span>, <span class="fl">2000.0</span>) <span class="cf">for</span> z <span class="kw">in</span> zs]) <span class="op">&lt;</span> <span class="fl">0.03</span>]</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"blur at 3 m: f/2 </span><span class="sc">{</span>b2<span class="sc">:.4f}</span><span class="ss"> mm, f/8 </span><span class="sc">{</span>b8<span class="sc">:.4f}</span><span class="ss"> mm"</span>)</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"sharp range at f/2: </span><span class="sc">{</span>sharp2<span class="sc">.</span><span class="bu">min</span>()<span class="sc">:.0f}</span><span class="ss"> to </span><span class="sc">{</span>sharp2<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.0f}</span><span class="ss"> mm;  at f/8: </span><span class="sc">{</span>sharp8<span class="sc">.</span><span class="bu">min</span>()<span class="sc">:.0f}</span><span class="ss"> to </span><span class="sc">{</span>sharp8<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.0f}</span><span class="ss"> mm"</span>)</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    s <span class="op">=</span> <span class="dv">1</span> <span class="op">/</span> (<span class="dv">1</span> <span class="op">/</span> f <span class="op">-</span> <span class="dv">1</span> <span class="op">/</span> <span class="fl">2000.0</span>)<span class="op">;</span> zp <span class="op">=</span> <span class="dv">1</span> <span class="op">/</span> (<span class="dv">1</span> <span class="op">/</span> f <span class="op">-</span> <span class="dv">1</span> <span class="op">/</span> <span class="fl">3000.0</span>)</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">abs</span>(b_focus) <span class="op">&lt;</span> <span class="fl">1e-9</span> <span class="kw">and</span> <span class="bu">abs</span>(b2 <span class="op">-</span> (f <span class="op">/</span> <span class="dv">2</span>) <span class="op">*</span> <span class="bu">abs</span>(s <span class="op">-</span> zp) <span class="op">/</span> zp) <span class="op">&lt;</span> <span class="fl">1e-9</span> <span class="kw">and</span> <span class="bu">abs</span>(b2 <span class="op">/</span> b8 <span class="op">-</span> <span class="dv">4</span>) <span class="op">&lt;</span> <span class="fl">1e-9</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 2.3.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 2.3.1: not attempted yet</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-binocular-stereo" class="level2" data-number="2.4">
+<h2 data-number="2.4" class="anchored" data-anchor-id="sec-binocular-stereo"><span class="header-section-number">2.4</span> Two Eyes</h2>
+<section id="sec-disparity" class="level3" data-number="2.4.1">
+<h3 data-number="2.4.1" class="anchored" data-anchor-id="sec-disparity"><span class="header-section-number">2.4.1</span> Depth from disparity</h3>
+<p>A single image throws depth away, as we saw in <a href="#sec-perspective-projection" class="quarto-xref"><span>Section 2.1.1</span></a>, but two images from slightly different places can get it back, which is what our two eyes do and what the binocular stereo lecture is about. The simplest arrangement has two identical pinhole cameras side by side, pointing in the same direction, with their pinholes a distance B apart along the x axis (B is called the <em>baseline</em>). Put the left camera at the origin and the right one at (B, 0, 0). A scene point (X, Y, Z) projects to</p>
+<p><span class="math display">\[
+x_l = f\,\frac{X}{Z}, \qquad x_r = f\,\frac{X - B}{Z}, \qquad y_l = y_r = f\,\frac{Y}{Z},
+\]</span></p>
+<p>so the point shows up in the same row of both images but shifted horizontally by the <em>disparity</em></p>
+<p><span class="math display">\[
+d = x_l - x_r = \frac{f B}{Z} \quad\Longrightarrow\quad Z = \frac{f B}{d} .
+\]</span></p>
+<p>Depth is inversely proportional to disparity, so nearby things shift a lot between the two views and far things hardly move, which you can check by holding a finger in front of your face and closing one eye and then the other.</p>
+<p>How accurate is this? Differentiate Z = fB/d with respect to d, and an error δd in the disparity gives</p>
+<p><span class="math display">\[
+\delta Z \approx \frac{f B}{d^2}\,\delta d = \frac{Z^2}{f B}\,\delta d ,
+\]</span></p>
+<p>so the depth error grows like the <em>square</em> of the distance. A stereo rig that measures depth to a millimetre at half a metre is off by about 40 centimetres at 10 metres, with the same disparity error, and the only ways to fight that are a longer baseline or a longer focal length (both of which make it harder to find matches, since the two views look less alike). That’s why the stereo cameras on cars have their lenses as far apart as the windshield allows.</p>
+</section>
+<section id="sec-stereo-matching" class="level3" data-number="2.4.2">
+<h3 data-number="2.4.2" class="anchored" data-anchor-id="sec-stereo-matching"><span class="header-section-number">2.4.2</span> Finding matches</h3>
+<p>All of this assumes we know which pixel in the right image goes with which pixel in the left image, the <em>correspondence problem</em>, and that’s by far the hard part. In our side-by-side arrangement the search is one-dimensional, since the match of a left pixel has to be in the same row, somewhere to its left in the right image. The simplest method reuses template matching from <a href="01-programming-with-images.html#sec-template-matching-with-the-sum-of-squared-differences" class="quarto-xref"><span>Section 1.3.2</span></a>. Take a small window around the left pixel, slide it along the same row of the right image over a range of disparities, and pick the disparity with the smallest SSD (or the largest normalized correlation). This is called <em>block matching</em>, and it works well on textured surfaces and badly on blank walls, where every window looks the same, which is the aperture problem in another form (we’ll meet it properly with optical flow in <a href="03-tracking-and-flow.html#sec-aperture" class="quarto-xref"><span>Section 3.5.2</span></a>).</p>
+<p>A classic way to test a stereo algorithm is a <em>random-dot stereogram</em>, which Béla Julesz used in the 1960s to show that human depth perception doesn’t need any recognizable objects. Fill the left image with random dots, copy it to make the right image, and shift a square region of the right image sideways. Each image on its own looks like pure noise, but the pair has a well-defined disparity everywhere, so a stereo algorithm has to rely on matching alone.</p>
+<div id="33de17a6" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">7</span>)</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>H, W <span class="op">=</span> <span class="dv">120</span>, <span class="dv">160</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>left <span class="op">=</span> (rng.random((H, W)) <span class="op">&gt;</span> <span class="fl">0.5</span>).astype(np.float64) <span class="op">*</span> <span class="dv">255</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>right <span class="op">=</span> np.roll(left, <span class="op">-</span><span class="dv">2</span>, axis<span class="op">=</span><span class="dv">1</span>)                 <span class="co"># background disparity 2</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>sq <span class="op">=</span> (<span class="bu">slice</span>(<span class="dv">35</span>, <span class="dv">85</span>), <span class="bu">slice</span>(<span class="dv">55</span>, <span class="dv">105</span>))</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>right[sq] <span class="op">=</span> np.roll(left, <span class="op">-</span><span class="dv">6</span>, axis<span class="op">=</span><span class="dv">1</span>)[sq]         <span class="co"># the square has disparity 6</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>right[:, W <span class="op">-</span> <span class="dv">6</span>:] <span class="op">=</span> rng.random((H, <span class="dv">6</span>)) <span class="op">*</span> <span class="dv">255</span>      <span class="co"># fill the strip that rolled around</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> block_match(L, R, max_d, half<span class="op">=</span><span class="dv">4</span>):</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    h, w <span class="op">=</span> L.shape</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    best <span class="op">=</span> np.zeros((h, w), <span class="bu">int</span>)<span class="op">;</span> best_cost <span class="op">=</span> np.full((h, w), np.inf)</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    box <span class="op">=</span> np.ones((<span class="dv">2</span> <span class="op">*</span> half <span class="op">+</span> <span class="dv">1</span>, <span class="dv">2</span> <span class="op">*</span> half <span class="op">+</span> <span class="dv">1</span>))</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> d <span class="kw">in</span> <span class="bu">range</span>(max_d <span class="op">+</span> <span class="dv">1</span>):</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>        shifted <span class="op">=</span> np.full_like(R, np.nan)<span class="op">;</span> shifted[:, d:] <span class="op">=</span> R[:, :w <span class="op">-</span> d]   <span class="co"># right pixel x - d lines up with left x</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>        cost <span class="op">=</span> cv2.filter2D(np.nan_to_num((L <span class="op">-</span> shifted) <span class="op">**</span> <span class="dv">2</span>, nan<span class="op">=</span><span class="fl">1e9</span>), <span class="op">-</span><span class="dv">1</span>, box)</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>        better <span class="op">=</span> cost <span class="op">&lt;</span> best_cost</span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>        best[better], best_cost[better] <span class="op">=</span> d, cost[better]</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> best</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>disp <span class="op">=</span> block_match(left, right, <span class="dv">10</span>)</span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="fl">2.6</span>))</span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> a, im, cmap <span class="kw">in</span> <span class="bu">zip</span>(ax, [left, right, disp], [<span class="st">"gray"</span>, <span class="st">"gray"</span>, <span class="st">"viridis"</span>]):</span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>    a.imshow(im, cmap<span class="op">=</span>cmap)<span class="op">;</span> a.set_xticks([])<span class="op">;</span> a.set_yticks([])</span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>fig.tight_layout()<span class="op">;</span> plt.show()</span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"median disparity inside the square:"</span>, np.median(disp[<span class="dv">45</span>:<span class="dv">75</span>, <span class="dv">65</span>:<span class="dv">95</span>]), <span class="st">"  outside:"</span>, np.median(disp[<span class="dv">5</span>:<span class="dv">30</span>, <span class="dv">10</span>:<span class="dv">150</span>]))</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="02-image-formation_files/figure-html/cell-14-output-1.png" width="854" height="221" class="figure-img"></p>
+<figcaption>A random-dot stereogram. The left and right images (left and middle) look like noise, but a square in the right image is shifted by 6 pixels relative to the background, which is shifted by 2. The disparity map found by block matching (right) recovers the square.</figcaption>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>median disparity inside the square: 6.0   outside: 2.0</code></pre>
+</div>
+</div>
+<p>Real stereo systems add a lot on top of this, like smoothness between neighbouring disparities, checking that the left-to-right and right-to-left matches agree, and nowadays neural networks that learn the matching cost, but the core idea of searching along a row is the same. And the real setup is never perfectly side by side, which is where the epipolar geometry of <a href="04-deep-vision.html#sec-epipolar" class="quarto-xref"><span>Section 4.3.1</span></a> comes in, since it says where to search when the cameras are pointing in different directions.</p>
+<div id="ex-2-4-1" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 2.4.1 (Depth and its error)</strong></span> Write <code>stereo_depth(d, f, B, delta_d)</code>, which returns the depth Z and the approximate depth error δZ for a disparity d (in pixels), a focal length f (in pixels), a baseline B and a disparity error δd. The check uses a rig with f = 700 pixels and B = 12 cm, and confirms that your error estimate agrees with the actual change in Z when the disparity changes by a small amount, and that the error quadruples when the distance doubles.</p>
+</div>
+<div id="a4623e39" class="cell lc-exercise" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> stereo_depth(d, f, B, delta_d):</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Depth Z = f B / d and its first-order error for a disparity error delta_d. Returns (Z, dZ)."""</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="4f06202f" class="cell lc-check" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    f, B <span class="op">=</span> <span class="fl">700.0</span>, <span class="fl">0.12</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    Z1, e1 <span class="op">=</span> stereo_depth(<span class="fl">42.0</span>, f, B, <span class="fl">0.25</span>)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    Z2, e2 <span class="op">=</span> stereo_depth(<span class="fl">21.0</span>, f, B, <span class="fl">0.25</span>)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    actual <span class="op">=</span> f <span class="op">*</span> B <span class="op">/</span> (<span class="fl">42.0</span> <span class="op">-</span> <span class="fl">0.001</span>) <span class="op">-</span> f <span class="op">*</span> B <span class="op">/</span> <span class="fl">42.0</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"d = 42 px: Z = </span><span class="sc">{</span>Z1<span class="sc">:.3f}</span><span class="ss"> m, error </span><span class="sc">{</span>e1 <span class="op">*</span> <span class="dv">100</span><span class="sc">:.2f}</span><span class="ss"> cm;   d = 21 px: Z = </span><span class="sc">{</span>Z2<span class="sc">:.3f}</span><span class="ss"> m, error </span><span class="sc">{</span>e2 <span class="op">*</span> <span class="dv">100</span><span class="sc">:.2f}</span><span class="ss"> cm"</span>)</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (<span class="bu">abs</span>(Z1 <span class="op">-</span> <span class="fl">2.0</span>) <span class="op">&lt;</span> <span class="fl">1e-9</span> <span class="kw">and</span> <span class="bu">abs</span>(e1 <span class="op">/</span> <span class="fl">0.25</span> <span class="op">*</span> <span class="fl">0.001</span> <span class="op">-</span> actual) <span class="op">&lt;</span> <span class="fl">1e-6</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>            <span class="kw">and</span> <span class="bu">abs</span>(Z2 <span class="op">/</span> Z1 <span class="op">-</span> <span class="dv">2</span>) <span class="op">&lt;</span> <span class="fl">1e-9</span> <span class="kw">and</span> <span class="bu">abs</span>(e2 <span class="op">/</span> e1 <span class="op">-</span> <span class="dv">4</span>) <span class="op">&lt;</span> <span class="fl">1e-9</span>)</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 2.4.1"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 2.4.1: not attempted yet</code></pre>
+</div>
+</div>
+<div id="ex-2-4-2" class="exercise">
+<p><span class="theorem-title"><strong>Exercise 2.4.2 (Matching along a row)</strong></span> Write <code>match_pixel(L, R, row, col, max_d, half)</code>, which finds the disparity of one pixel by brute force: compare the (2·half + 1)-square window around (row, col) in the left image with the windows around (row, col − d) in the right image, for d = 0, …, <code>max_d</code> (skipping any that run off the image), and return the d with the smallest SSD. The check runs it on a few pixels of the random-dot stereogram above, inside and outside the square.</p>
+</div>
+<div id="5cd2b555" class="cell lc-exercise" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> match_pixel(L, R, row, col, max_d, half):</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Disparity of pixel (row, col) of L by SSD block matching along the same row of R."""</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># your code here</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div>
+</div>
+<div id="79c4803a" class="cell lc-check" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test():</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    tests <span class="op">=</span> [((<span class="dv">60</span>, <span class="dv">80</span>), <span class="dv">6</span>), ((<span class="dv">50</span>, <span class="dv">70</span>), <span class="dv">6</span>), ((<span class="dv">15</span>, <span class="dv">40</span>), <span class="dv">2</span>), ((<span class="dv">100</span>, <span class="dv">130</span>), <span class="dv">2</span>)]</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    got <span class="op">=</span> [<span class="bu">int</span>(match_pixel(left, right, r, c, <span class="dv">10</span>, <span class="dv">4</span>)) <span class="cf">for</span> (r, c), _ <span class="kw">in</span> tests]</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"found"</span>, got, <span class="st">" expected"</span>, [d <span class="cf">for</span> _, d <span class="kw">in</span> tests])</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> got <span class="op">==</span> [d <span class="cf">for</span> _, d <span class="kw">in</span> tests]</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>check(<span class="st">"Exercise 2.4.2"</span>, test)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exercise 2.4.2: not attempted yet</code></pre>
+</div>
+</div>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./01-programming-with-images.html" class="pagination-link" aria-label="Programming with Images">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Programming with Images</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./03-tracking-and-flow.html" class="pagination-link" aria-label="Tracking, Edges and Optical Flow">
+        <span class="nav-page-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Tracking, Edges and Optical Flow</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p><a href="../">← Computer Vision</a> · <a href="../../../#notes">All notes</a></p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+<p>© 2026 Hieu Nguyen</p>
+</div>
+  </div>
+</footer>
+
+
+
+
+<script src="site_libs/quarto-contrib/livecells-0.2.0/livecells.js"></script>
+</body></html>
